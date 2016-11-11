@@ -36,21 +36,21 @@ class PatternCreator:
 
         # get original mesh
         if xmesh is None or ymesh is None:
-            self._detector_xmesh = lib.XXmesh_original.copy()
-            self._detector_ymesh = lib.YYmesh_original.copy()
+            self._detector_xmesh = lib.XXmesh.copy()
+            self._detector_ymesh = lib.YYmesh.copy()
         else:
             self._detector_xmesh = xmesh.copy()
             self._detector_ymesh = ymesh.copy()
 
         # set mesh values
-        self._nx_original = lib.nx_original
-        self._ny_original = lib.ny_original
-        self._xstep_original = lib.xstep_original
-        self._ystep_original = lib.ystep_original
-        self._xfirst_original = lib.xfirst_original
-        self._yfirst_original = lib.yfirst_original
-        self._xlast_original = lib.xlast_original
-        self._ylast_original = lib.ylast_original
+        self._nx_original = lib.nx
+        self._ny_original = lib.ny
+        self._xstep_original = lib.xstep
+        self._ystep_original = lib.ystep
+        self._xfirst_original = lib.xfirst
+        self._yfirst_original = lib.yfirst
+        self._xlast_original = lib.xlast
+        self._ylast_original = lib.ylast
 
         # set working values
         self._nx = self._nx_original
@@ -113,6 +113,7 @@ class PatternCreator:
             raise ValueError("invalid value for type: options are ideal, montecarlo and poisson")
 
     def _gen_mc_pattern(self,sim_pattern,n_total):
+        n_total = int(n_total)
         sim_pattern /= sim_pattern.sum()
         cdf = sim_pattern.reshape(-1).cumsum()
         inv_cdf = lambda value: np.searchsorted(cdf, value, side="left")
