@@ -3,11 +3,13 @@
 '''
 The fits object gets access to a lib2dl object and performs fits and statistical tests to data or MC simulation
 '''
+import patterncreator
 
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
 from lib2dl import lib2dl
+from patterncreator import *
 
 import numpy as np
 import scipy.optimize as op
@@ -36,39 +38,6 @@ class fits:
         self.data_pattern_is_set = False
         self.p0 = (None,)
         self.p0_scale = np.ones((7))
-
-    def runfit(self,XXmesh,YYmesh,Data,patterns,p0,method='1'):
-        pass
-
-    def make_noisy_pattern(self,XXmesh, YYmesh, \
-                           dx, dy, phi, N_total=10000000, f_rand=1, \
-                           p1=None, f_p1=0, p2=None, f_p2=0, p3=None, f_p3=0):
-                           #Todo move to lib2dl
-        self.lib.set_patterns_counts(f_rand * N_total, p1, f_p1 * N_total, p2, f_p2 * N_total, p3, f_p3 * N_total)
-        self.lib.rotate(phi)
-        self.lib.move(dx, dy)
-        sim_pattern = self.lib.grid_interpolation(XXmesh, YYmesh)
-        # add noise
-        sim_pattern = np.random.poisson(sim_pattern)
-        return sim_pattern
-
-    def make_mc_pattern(self,XXmesh, YYmesh, \
-                           dx, dy, phi, N_total=10000000, f_rand=1, \
-                           p1=None, f_p1=0, p2=None, f_p2=0, p3=None, f_p3=0):
-        # note there is no interpolation here
-        # TODO move to lib2dl
-        self.lib.get_patterns(f_rand, p1, f_p1, p2, f_p2, p3, f_p3)
-        self.lib.rotate(phi)
-        self.lib.move(dx, dy)
-        sim_pattern = self.lib.grid_interpolation(XXmesh, YYmesh)
-        sim_pattern /= sim_pattern.sum()
-        cdf = sim_pattern.reshape(-1).cumsum()
-        inv_cdf = lambda value: np.searchsorted(cdf, value, side="left")
-        mc_event = [inv_cdf(x) for x in np.random.uniform(0, 1, N_total)]
-        mc_event_x = XXmesh.reshape(-1)[mc_event]
-        mc_event_y = YYmesh.reshape(-1)[mc_event]
-        H, xedges, yedges = np.histogram2d(mc_event_y,mc_event_x,XXmesh.shape[::-1])
-        return H
 
     def set_data_pattern(self,XXmesh,YYmesh,pattern,mask=None):
         self.XXmesh = XXmesh
@@ -357,8 +326,12 @@ if __name__ == "__main__":
     # set a pattern to fit
     x=np.arange(-1.79,1.8,0.01)
     XXmesh, YYmesh = np.meshgrid(x,x)
-    #patt = ft.make_noisy_pattern(XXmesh, YYmesh, 0.2, -0.2, 5, 1000000, 0.3, 0, 0.7)
-    patt = ft.make_mc_pattern   (XXmesh, YYmesh, 0.2, -0.2, 5, 1000, 0.3, 0, 0.7)
+    xmesh, ymesh = create_detector_mesh(22, 22, 1.4, 300)
+    xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
+
+    creator = PatternCreator(lib, xmesh, ymesh, 0)
+    events_per_sim = np.array([0.5, 0.5]) * 1e6
+    patt = creator.make_pattern(0.2, -0.2, 5, events_per_sim, 'montecarlo')
 
     plt.figure(0)
     plt.contourf(XXmesh, YYmesh, patt)#, np.arange(0, 3000, 100))
