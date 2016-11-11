@@ -100,14 +100,15 @@ class PatternCreator:
         self._move(dx,dy)
         # render normalized pattern
         sim_pattern = self._grid_interpolation()
+        mask = sim_pattern.mask
         # types
         if type == 'ideal':
             return sim_pattern
         elif type == 'montecarlo':
             n_total = self.events_per_sim.sum()
-            return self._gen_mc_pattern(sim_pattern, n_total)
+            return ma.array(self._gen_mc_pattern(sim_pattern, n_total), mask=mask)
         elif type == 'poisson':
-            return np.random.poisson(sim_pattern)
+            return ma.array(np.random.poisson(sim_pattern), mask=mask)
         else:
             raise ValueError("invalid value for type: options are ideal, montecarlo and poisson")
 
