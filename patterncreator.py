@@ -14,8 +14,8 @@ from scipy.interpolate import griddata, interpn
 
 def create_detector_mesh(n_h_pixels, n_v_pixels, pixel_size, distance):
     d_theta = np.arctan(pixel_size/distance) * 180 / np.pi
-    x_i = 0.5 * n_h_pixels * d_theta
-    y_i = 0.5 * n_v_pixels * d_theta
+    x_i = 0.5 * (n_h_pixels-1) * d_theta
+    y_i = 0.5 * (n_v_pixels-1) * d_theta
     x = np.arange(n_h_pixels) * d_theta - x_i
     y = np.arange(n_v_pixels) * d_theta - y_i
     xmesh, ymesh = np.meshgrid(x,y)
@@ -150,6 +150,7 @@ class PatternCreator:
         self._update_coordinates_mesh()
         print('shapes of mesh', self._xmesh.shape, self._ymesh.shape)
         print('shape of pattern', new_pattern_stact.shape)
+        print('ang - ', ang)
         print('ylast-yfirst/step', (self._ylast - self._yfirst) / self._ystep_original)
 
     def _update_coordinates_mesh(self):
@@ -216,13 +217,13 @@ class PatternCreator:
 if __name__ == "__main__":
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl")
     xmesh, ymesh = create_detector_mesh(22, 22, 1.4, 300)
-    xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
+    xmesh, ymesh = create_detector_mesh(40, 40, 0.5, 300)
     gen = PatternCreator(lib, xmesh, ymesh, 0)
-    events_per_sim = np.array([0.5, 0.5]) * 1e6
-    pattern = gen.make_pattern(0.5, -0.5, 10, events_per_sim, 'montecarlo')
+    events_per_sim = np.array([1.5, 0.5]) * 1e6
+    pattern = gen.make_pattern(0.5, -0.5, 4.99, events_per_sim, 'ideal')
 
     plt.figure(1)
     plt.contourf(xmesh, ymesh, pattern)
     plt.colorbar()
 
-    plt.show(block=True)
+    plt.show()

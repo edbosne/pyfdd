@@ -197,21 +197,18 @@ class fits:
         dx = params[0] * self.p0_scale[0]
         dy = params[1] * self.p0_scale[1]
         phi = params[2] * self.p0_scale[2]
-        N_rand = params[3] * self.p0_scale[3]
-        N_p1 = params[4] * self.p0_scale[4] if self.pattern_1_use else 0
-        N_p2 = params[5] * self.p0_scale[5] if self.pattern_2_use else 0
-        N_p3 = params[6] * self.p0_scale[6] if self.pattern_3_use else 0
+        events_per_sim  = (params[3] * self.p0_scale[3],) # random
+        events_per_sim += (params[4] * self.p0_scale[4],) if self.pattern_1_use else () # pattern 1
+        events_per_sim += (params[5] * self.p0_scale[5],) if self.pattern_2_use else () # pattern 2
+        events_per_sim += (params[6] * self.p0_scale[6],) if self.pattern_3_use else () # pattern 3
         # get patterns
-        p1 = self.pattern_1_n if self.pattern_1_use else None
-        p2 = self.pattern_2_n if self.pattern_2_use else None
-        p3 = self.pattern_3_n if self.pattern_3_use else None
-        # call lib.get_patterns() lib.move_rotate(0.5,-0.5,0) lib.grid_interpolation(XXmesh,YYmesh)
-        self.lib.set_patterns_counts(N_rand, p1, N_p1, p2, N_p2, p3, N_p3)
-        self.lib.rotate(phi)
-        self.lib.move(dx, dy)
-        # this scales the fractions with total events
-        sim_pattern = self.lib.grid_interpolation(self.XXmesh, self.YYmesh)#,self.n_events)
-        #sim_pattern *= self.n_events / sim_pattern.size
+        simulations  = (self.pattern_1_n,) if self.pattern_1_use else ()
+        simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
+        simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
+        # generate sim pattern
+        gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations)
+        sim_pattern = gen.make_pattern(dx, dy, phi, events_per_sim, 'ideal')
+        # set data pattern
         data_pattern = self.data_pattern
         #chi2, pval = self.chi_square_fun(data_pattern,sim_pattern)
         chi2 = np.sum((data_pattern - sim_pattern)**2 / np.abs(sim_pattern))
@@ -248,7 +245,7 @@ class fits:
         bnds = ((-0.5,+0.5), (-0.5,+0.5), (None,None), (0, None), (0, None))
 
         return op.minimize(self.chi_square_call,p0,method='L-BFGS-B', bounds=bnds,\
-                           options={'disp':True, 'maxiter':10, 'ftol':1e-7,'maxcor':1000}) #'eps':0.001,
+                           options={'disp':True, 'maxiter':20, 'ftol':1e-7,'maxcor':1000}) #'eps':0.001,
         #return op.minimize(self.chi_square_call,p0,method='Powell',options={'direc':[0.1,0.1,2,-0.1,-0.1]})
 
 # methods for maximum likelihood
@@ -258,36 +255,21 @@ class fits:
         dx = params[0] * self.p0_scale[0]
         dy = params[1] * self.p0_scale[1]
         phi = params[2] * self.p0_scale[2]
-        N_rand = params[3] * self.p0_scale[3]
-        N_p1 = params[4] * self.p0_scale[4] if self.pattern_1_use else 0
-        N_p2 = params[5] * self.p0_scale[5] if self.pattern_2_use else 0
-        N_p3 = params[6] * self.p0_scale[6] if self.pattern_3_use else 0
-        # option to fix total counts
-        if not self.fit_n_events:
-            N_total = self.n_events
-        elif self.pattern_1_use and self.pattern_2_use and self.pattern_3_use:
-            N_total = params[7]
-        elif self.pattern_1_use and self.pattern_2_use:
-            N_total = params[6]
-        elif self.pattern_1_use:
-            N_total = params[5]
-        else:
-            N_total = params[4]
+        events_per_sim  = (params[3] * self.p0_scale[3],) # random
+        events_per_sim += (params[4] * self.p0_scale[4],) if self.pattern_1_use else () # pattern 1
+        events_per_sim += (params[5] * self.p0_scale[5],) if self.pattern_2_use else () # pattern 2
+        events_per_sim += (params[6] * self.p0_scale[6],) if self.pattern_3_use else () # pattern 3
         # get patterns
-        p1 = self.pattern_1_n if self.pattern_1_use else None
-        p2 = self.pattern_2_n if self.pattern_2_use else None
-        p3 = self.pattern_3_n if self.pattern_3_use else None
-        # call lib.get_patterns() lib.move_rotate(0.5,-0.5,0) lib.grid_interpolation(XXmesh,YYmesh)
-        self.lib.set_patterns_counts(N_rand, p1, N_p1, p2, N_p2, p3, N_p3)
-        self.lib.rotate( phi)
-        self.lib.move(dx, dy)
-        # this scales the fractions with total events
-        sim_pattern = self.lib.grid_interpolation(self.XXmesh, self.YYmesh)
-        # scale_factor = 1
-        # sim_pattern *= scale_factor
-        data_pattern = self.data_pattern.copy()
+        simulations  = (self.pattern_1_n,) if self.pattern_1_use else ()
+        simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
+        simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
+        # generate sim pattern
+        gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations)
+        sim_pattern = gen.make_pattern(dx, dy, phi, events_per_sim, 'ideal')
+        # set data pattern
+        data_pattern = self.data_pattern
         # extended log likelihood
-        ll = -(N_rand + N_p1 + N_p2 + N_p3) + np.sum(data_pattern*np.log(sim_pattern))
+        ll = -np.sum(events_per_sim) + np.sum(data_pattern*np.log(sim_pattern))
         print('likelihood - ',ll)
         # =====
         # fg = plt.figure(1)
@@ -316,8 +298,8 @@ class fits:
 if __name__ == "__main__":
 
     test_curve_fit = False
-    test_chi2_min = False
-    test_likelihood_max = True
+    test_chi2_min = True
+    test_likelihood_max = False
 
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl")
 
@@ -325,8 +307,8 @@ if __name__ == "__main__":
 
     # set a pattern to fit
     x=np.arange(-1.79,1.8,0.01)
-    XXmesh, YYmesh = np.meshgrid(x,x)
-    xmesh, ymesh = create_detector_mesh(22, 22, 1.4, 300)
+    #xmesh, ymesh = np.meshgrid(x,x)
+    #xmesh, ymesh = create_detector_mesh(22, 22, 1.4, 300)
     xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
 
     creator = PatternCreator(lib, xmesh, ymesh, 0)
@@ -334,13 +316,13 @@ if __name__ == "__main__":
     patt = creator.make_pattern(0.2, -0.2, 5, events_per_sim, 'montecarlo')
 
     plt.figure(0)
-    plt.contourf(XXmesh, YYmesh, patt)#, np.arange(0, 3000, 100))
+    plt.contourf(xmesh, ymesh, patt)#, np.arange(0, 3000, 100))
     plt.colorbar()
     plt.show(block=False)
 
     # set a fitting routine
     counts_ordofmag = 10**(int(math.log10(patt.sum())))
-    ft.set_data_pattern(XXmesh,YYmesh,patt)
+    ft.set_data_pattern(xmesh,ymesh,patt)
     ft.set_patterns_to_fit(0)
     ft.set_scale_values(dx=1, dy=1, phi=10, f_rand=counts_ordofmag, f_p1=counts_ordofmag)
     ft.set_inicial_values(0.0,0.1,0,counts_ordofmag/3,counts_ordofmag/3)
@@ -357,14 +339,19 @@ if __name__ == "__main__":
     if test_chi2_min:
         res = ft.minimize_chi2()
         print(res)
-        #ft.set_scale_values()
-        ft.print_results(res)
+        x = res['x'] * ft.p0_scale[0:5]
+        ft.set_scale_values()
+        # There is a warning because the hessian starts with a step too big, don't worry about it
+        H = nd.Hessian(ft.log_likelihood_call)#,step=1e-9)
+        hh = H(x)
+        print(hh)
+        print(np.linalg.inv(hh))
+        ft.set_scale_values(dx=1, dy=1, phi=10, f_rand=counts_ordofmag, f_p1=counts_ordofmag)
+        ft.print_results(res,hh)
 
     if test_likelihood_max:
         res = ft.maximize_likelyhood()
         print(res)
-        #ft.set_scale_values()
-        #ft.print_results(res,hh)
         x = res['x'] * ft.p0_scale[0:5]
         ft.set_scale_values()
         # There is a warning because the hessian starts with a step too big, don't worry about it
