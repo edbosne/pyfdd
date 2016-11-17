@@ -249,30 +249,18 @@ class fits:
         #return op.minimize(self.chi_square_call,p0,method='Powell',options={'direc':[0.1,0.1,2,-0.1,-0.1]})
 
 # methods for maximum likelihood
-    # TODO independent log likelyhood
-
-    def log_likelihood_call(self, params):
-        # TODO enable scale option
-        print(params)
-        dx = params[0] * self.p0_scale[0]
-        dy = params[1] * self.p0_scale[1]
-        phi = params[2] * self.p0_scale[2]
-        events_per_sim  = (params[3] * self.p0_scale[3],) # random
-        events_per_sim += (params[4] * self.p0_scale[4],) if self.pattern_1_use else () # pattern 1
-        events_per_sim += (params[5] * self.p0_scale[5],) if self.pattern_2_use else () # pattern 2
-        events_per_sim += (params[6] * self.p0_scale[6],) if self.pattern_3_use else () # pattern 3
-        # get patterns
-        simulations  = (self.pattern_1_n,) if self.pattern_1_use else ()
-        simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
-        simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
+    def log_likelihood(self, dx, dy, phi, rnd_events, simulations, events):
+        if not len(simulations) == len(events):
+            raise ValueError("size o simulations is diferent than size o events")
         # generate sim pattern
         gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations)
+        events_per_sim = np.concatenate((rnd_events, events))
         sim_pattern = gen.make_pattern(dx, dy, phi, events_per_sim, 'ideal')
         # set data pattern
         data_pattern = self.data_pattern
         # extended log likelihood
-        ll = -np.sum(events_per_sim) + np.sum(data_pattern*np.log(sim_pattern))
-        print('likelihood - ',ll)
+        ll = -np.sum(events_per_sim) + np.sum(data_pattern * np.log(sim_pattern))
+        print('likelihood - ', ll)
         # =====
         # fg = plt.figure(1)
         # ax = fg.add_subplot(111)
@@ -284,14 +272,31 @@ class fits:
         # =====
         return -ll
 
+    def log_likelihood_call(self, params, enable_scale=False):
+        #print(params)
+        p0_scale = self.p0_scale if enable_scale else np.ones(len(params))
+        dx = params[0] * p0_scale[0]
+        dy = params[1] * p0_scale[1]
+        phi = params[2] * p0_scale[2]
+        events_rand = (params[3] * p0_scale[3],) # random
+        events_per_sim = ()
+        events_per_sim += (params[4] * p0_scale[4],) if self.pattern_1_use else () # pattern 1
+        events_per_sim += (params[5] * p0_scale[5],) if self.pattern_2_use else () # pattern 2
+        events_per_sim += (params[6] * p0_scale[6],) if self.pattern_3_use else () # pattern 3
+        # get patterns
+        simulations  = (self.pattern_1_n,) if self.pattern_1_use else ()
+        simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
+        simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
+        return self.log_likelihood(dx, dy, phi, events_rand, simulations, events_per_sim)
+
     def maximize_likelyhood(self):
         # TODO raise error is parameters diferent from patterns
         p0 = self.p0
-        print('p0 - ', p0)
+        #print('p0 - ', p0)
 
         bnds = ((-0.5,+0.5), (-0.5,+0.5), (None,None), (0, None), (0, None))
         # TODO return unscaled results
-        return op.minimize(self.log_likelihood_call, p0, method='L-BFGS-B', bounds=bnds,\
+        return op.minimize(self.log_likelihood_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
                            options={'eps': 0.001, 'disp':True, 'maxiter':20, 'ftol':1e-6,'maxcor':1000}) #'eps': 0.00001,
 
         #return op.minimize(self.log_likelihood_call, p0, method='TNC', bounds=bnds, \
@@ -301,8 +306,8 @@ class fits:
 if __name__ == "__main__":
 
     test_curve_fit = False
-    test_chi2_min = True
-    test_likelihood_max = False
+    test_chi2_min = False
+    test_likelihood_max = True
 
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl")
 
@@ -315,8 +320,8 @@ if __name__ == "__main__":
     xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
 
     creator = PatternCreator(lib, xmesh, ymesh, 0)
-    events_per_sim = np.array([0.5, 0.5]) * 1e6
-    patt = creator.make_pattern(0.2, -0.2, 5, events_per_sim, 'montecarlo')
+    events_per_sim = np.array([0.3, 0.7]) * 1e6
+    patt = creator.make_pattern(0.2, -0.2, 5, events_per_sim, 'poisson')
 
     plt.figure(0)
     plt.contourf(xmesh, ymesh, patt)#, np.arange(0, 3000, 100))
@@ -356,12 +361,10 @@ if __name__ == "__main__":
         res = ft.maximize_likelyhood()
         print(res)
         x = res['x'] * ft.p0_scale[0:5]
-        ft.set_scale_values()
         # There is a warning because the hessian starts with a step too big, don't worry about it
         H = nd.Hessian(ft.log_likelihood_call)#,step=1e-9)
         hh = H(x)
         print(hh)
         print(np.linalg.inv(hh))
-        ft.set_scale_values(dx=1, dy=1, phi=10, f_rand=counts_ordofmag, f_p1=counts_ordofmag)
         ft.print_results(res, hh)
 

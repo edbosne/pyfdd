@@ -76,8 +76,6 @@ class PatternCreator:
             if not pattern_stack.size:
                 pattern_stack = temp[np.newaxis].copy()
             else:
-                print(pattern_stack.shape)
-                print(temp.shape)
                 pattern_stack = np.concatenate((pattern_stack, temp[np.newaxis]), 0)
         self._pattern_stack_original = pattern_stack
         self._pattern_stack = pattern_stack
@@ -125,7 +123,6 @@ class PatternCreator:
 
     def _rotate(self, ang=0):
         # Rotation
-        # TODO raise exeption stack not properly set
         new_pattern_stact = np.array([])
         for i in range(self._pattern_stack_original.shape[0]):
             pattern_i = self._pattern_stack_original[i, :, :].copy()
@@ -137,7 +134,6 @@ class PatternCreator:
         self._pattern_stack = ma.masked_equal(new_pattern_stact,0)
 
         # rotation can increase matrix size and therefore the mesh needs to be updates
-        print(self.sim_shape)
         self._xfirst = self._xfirst_original - self._xstep_original * \
                                                0.5 * (self._pattern_stack.shape[2] - self.sim_shape[1])
         self._yfirst = self._yfirst_original - self._ystep_original * \
@@ -146,12 +142,7 @@ class PatternCreator:
                                              0.5 * (self._pattern_stack.shape[2] - self.sim_shape[1])
         self._ylast = self._ylast_original + self._ystep_original * \
                                              0.5 * (self._pattern_stack.shape[1] - self.sim_shape[0])
-        # TODO shapes are not always the same, fix it
         self._update_coordinates_mesh()
-        print('shapes of mesh', self._xmesh.shape, self._ymesh.shape)
-        print('shape of pattern', new_pattern_stact.shape)
-        print('ang - ', ang)
-        print('ylast-yfirst/step', (self._ylast - self._yfirst) / self._ystep_original)
 
     def _update_coordinates_mesh(self):
         '''
@@ -159,8 +150,9 @@ class PatternCreator:
         use for inicial mesh creation with keepasoriginal True
         use to update mesh after a rotation with size change with keepasoriginal false
         '''
-        x = np.arange(self._xfirst, self._xlast + self._xstep, self._xstep)
-        y = np.arange(self._yfirst, self._ylast + self._ystep, self._ystep)
+        #set the stop between last and last+1step
+        x = np.arange(self._xfirst, self._xlast + 0.5*self._xstep, self._xstep)
+        y = np.arange(self._yfirst, self._ylast + 0.5*self._ystep, self._ystep)
         self._xmesh, self._ymesh = np.meshgrid(x, y)
 
     def _move(self, dx=0, dy=0):
@@ -220,7 +212,7 @@ if __name__ == "__main__":
     xmesh, ymesh = create_detector_mesh(40, 40, 0.5, 300)
     gen = PatternCreator(lib, xmesh, ymesh, 0)
     events_per_sim = np.array([1.5, 0.5]) * 1e6
-    pattern = gen.make_pattern(0.5, -0.5, 4.99, events_per_sim, 'ideal')
+    pattern = gen.make_pattern(0.5, -0.5, 0.25, events_per_sim, 'ideal')
 
     plt.figure(1)
     plt.contourf(xmesh, ymesh, pattern)
