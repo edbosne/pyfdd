@@ -75,64 +75,60 @@ class fits:
         p0_scale += (f_p3,)
         self.p0_scale = np.array(p0_scale)
 
-    def print_results(self,results,hess):
-        assert isinstance(results,op.OptimizeResult)
-        scale = np.diag(1/self.p0_scale[0:5])
-        hess_inv = np.linalg.inv(hess) #results['hess_inv'].todense()
-        #hess = np.linalg.inv(hess_inv)
-        #hess_inv = np.linalg.inv(scale.dot(hess).dot(scale))
-        params = results['x']
-        print(hess_inv,params,self.p0_scale)
-        dx = params[0] * self.p0_scale[0]
-        d_dx = np.sqrt(hess_inv[0,0]) * self.p0_scale[0]
-        dy = params[1] * self.p0_scale[1]
-        d_dy = np.sqrt(hess_inv[1,1]) * self.p0_scale[1]
-        phi = params[2] * self.p0_scale[2]
-        d_phi = np.sqrt(hess_inv[2,2])
-        N_rand = params[3] * self.p0_scale[3]
-        d_N_rand = np.sqrt(hess_inv[3,3])
-        N_p1 = params[4] * self.p0_scale[4] if self.pattern_1_use else 0
-        d_N_p1 = np.sqrt(hess_inv[4,4]) if self.pattern_1_use else 0
-        N_p2 = params[5] * self.p0_scale[5] * self.p0_scale[5] if self.pattern_2_use else 0
-        d_N_p2 = np.sqrt(hess_inv[5,5]) * self.p0_scale[5] if self.pattern_2_use else 0
-        N_p3 = params[6] * self.p0_scale[6] if self.pattern_3_use else 0
-        d_N_p3 = np.sqrt(hess_inv[6,6]) * self.p0_scale[6] if self.pattern_3_use else 0
+    def print_variance(self,x,var):
+        params = x
+        dx = params[0]
+        d_dx = var[0]
+        dy = params[1]
+        d_dy = var[1]
+        phi = params[2]
+        d_phi = var[2]
+        N_rand = params[3]
+        d_N_rand = var[3]
+        N_p1 = params[4] if self.pattern_1_use else 0
+        d_N_p1 = var[4] if self.pattern_1_use else 0
+        N_p2 = params[5] if self.pattern_2_use else 0
+        d_N_p2 = var[5] if self.pattern_2_use else 0
+        N_p3 = params[6] if self.pattern_3_use else 0
+        d_N_p3 = var[6] if self.pattern_3_use else 0
 
         total_f = N_rand + N_p1 + N_p2 + N_p3
-        f_rand = N_rand/total_f
-        f_1 = N_p1/total_f
-        f_2 = N_p2/total_f
-        f_3 = N_p3/total_f
-        print('rand',N_rand, d_N_rand)
+        f_rand = N_rand / total_f
+        f_1 = N_p1 / total_f
+        f_2 = N_p2 / total_f
+        f_3 = N_p3 / total_f
+        print('rand', N_rand, d_N_rand)
         print('p1', N_p1, d_N_p1)
         d_f_rand = np.abs(d_N_rand / total_f \
-                   - N_rand * (d_N_rand /total_f**2 + d_N_p1 /total_f**2 + d_N_p2 /total_f**2 + d_N_p3 /total_f**2))
+                          - N_rand * (
+                          d_N_rand / total_f ** 2 + d_N_p1 / total_f ** 2 + d_N_p2 / total_f ** 2 + d_N_p3 / total_f ** 2))
         d_f_1 = np.abs(d_N_p1 / total_f \
-                   - N_p1   * (d_N_rand /total_f**2 + d_N_p1 /total_f**2 + d_N_p2 /total_f**2 + d_N_p3 /total_f**2))
+                       - N_p1 * (
+                       d_N_rand / total_f ** 2 + d_N_p1 / total_f ** 2 + d_N_p2 / total_f ** 2 + d_N_p3 / total_f ** 2))
         d_f_2 = np.abs(d_N_p2 / total_f \
-                   - N_p2 * (d_N_rand /total_f**2 + d_N_p1 /total_f**2 + d_N_p2 /total_f**2 + d_N_p3 /total_f**2))
+                       - N_p2 * (
+                       d_N_rand / total_f ** 2 + d_N_p1 / total_f ** 2 + d_N_p2 / total_f ** 2 + d_N_p3 / total_f ** 2))
         d_f_3 = np.abs(d_N_p3 / total_f \
-                   - N_p3 * (d_N_rand /total_f**2 + d_N_p1 /total_f**2 + d_N_p2 /total_f**2 + d_N_p3 /total_f**2))
+                       - N_p3 * (
+                       d_N_rand / total_f ** 2 + d_N_p1 / total_f ** 2 + d_N_p2 / total_f ** 2 + d_N_p3 / total_f ** 2))
 
-        res = {'dx':dx, 'd_dx':d_dx,
+        res = {'dx': dx, 'd_dx': d_dx,
                'dy': dy, 'd_dy': d_dy,
-               'phi':phi, 'd_phi':d_phi,
-               'f_rand':f_rand,'d_f_rand':d_f_rand,
-               'f_1':f_1, 'd_f_1':d_f_1,
+               'phi': phi, 'd_phi': d_phi,
+               'f_rand': f_rand, 'd_f_rand': d_f_rand,
+               'f_1': f_1, 'd_f_1': d_f_1,
                'f_2': f_2, 'd_f_2': d_f_2,
                'f_3': f_3, 'd_f_3': d_f_3}
 
-
-        print(('dx     = {dx:.4f} +- {d_dx:.4f}\n'+
-              'dy     = {dy:.4f} +- {d_dy:.4f}\n'+
-              'phi    = {phi:.4f} +- {d_phi:.4f}\n'+
-              'f_rand = {f_rand:.4f} +- {d_f_rand:.4f}\n'+
-              'f_1    = {f_1:.4f} +- {d_f_1:.4f}\n'+
-              'f_2    = {f_2:.4f} +- {d_f_2:.4f}\n'+
-              'f_3    = {f_3:.4f} +- {d_f_3:.4f}').format(**res))
+        print(('dx     = {dx:.4f} +- {d_dx:.4f}\n' +
+               'dy     = {dy:.4f} +- {d_dy:.4f}\n' +
+               'phi    = {phi:.4f} +- {d_phi:.4f}\n' +
+               'f_rand = {f_rand:.4f} +- {d_f_rand:.4f}\n' +
+               'f_1    = {f_1:.4f} +- {d_f_1:.4f}\n' +
+               'f_2    = {f_2:.4f} +- {d_f_2:.4f}\n' +
+               'f_3    = {f_3:.4f} +- {d_f_3:.4f}').format(**res))
 
         return res
-
 
 # methods for scipy.optimize.curve_fit
 # https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html#scipy.optimize.curve_fit
@@ -192,28 +188,19 @@ class fits:
         ddof += 1 if self.pattern_2_use else 0
         return st.chisquare(experimental_data, simlulation_data,ddof,axis=None)
 
-    def chi_square_call(self, params):
-        print(params)
-        dx = params[0] * self.p0_scale[0]
-        dy = params[1] * self.p0_scale[1]
-        phi = params[2] * self.p0_scale[2]
-        events_per_sim  = (params[3] * self.p0_scale[3],) # random
-        events_per_sim += (params[4] * self.p0_scale[4],) if self.pattern_1_use else () # pattern 1
-        events_per_sim += (params[5] * self.p0_scale[5],) if self.pattern_2_use else () # pattern 2
-        events_per_sim += (params[6] * self.p0_scale[6],) if self.pattern_3_use else () # pattern 3
-        # get patterns
-        simulations  = (self.pattern_1_n,) if self.pattern_1_use else ()
-        simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
-        simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
+    def chi_square(self, dx, dy, phi, rnd_events, simulations, events):
+        if not len(simulations) == len(events):
+            raise ValueError("size o simulations is diferent than size o events")
         # generate sim pattern
         gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations)
+        events_per_sim = np.concatenate((rnd_events, events))
         sim_pattern = gen.make_pattern(dx, dy, phi, events_per_sim, 'ideal')
         # set data pattern
         data_pattern = self.data_pattern
-        #chi2, pval = self.chi_square_fun(data_pattern,sim_pattern)
-        chi2 = np.sum((data_pattern - sim_pattern)**2 / np.abs(sim_pattern))
-        print('chi2 - ',chi2)
-        #print('p-value - ',pval)
+        # chi2, pval = self.chi_square_fun(data_pattern,sim_pattern)
+        chi2 = np.sum((data_pattern - sim_pattern) ** 2 / np.abs(sim_pattern))
+        print('chi2 - ', chi2)
+        # print('p-value - ',pval)
         # =====
         # fg = plt.figure(1)
         # ax = fg.add_subplot(111)
@@ -221,22 +208,27 @@ class fits:
         # cont = None
         # plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)
         # fg.canvas.draw()
-        # TODO fix bug in lib.XXmesh shape
-        # fg = plt.figure(2)
-        # ax = fg.add_subplot(111)
-        # plt.ion()
-        # cont = None
-        # plt.contourf(lib.XXmesh, lib.YYmesh, lib.pattern_current)
-        # fg.canvas.draw()
-        # fg = plt.figure(3)
-        # ax = fg.add_subplot(111)
-        # plt.ion()
-        # cont = None
-        # plt.contourf(lib.XXmesh_original, lib.YYmesh_original, lib.pattern_original)
-        # fg.canvas.draw()
         # plt.show(block=False)
         # =====
         return chi2
+
+    def chi_square_call(self, params, enable_scale=False):
+        print(params)
+        p0_scale = self.p0_scale.copy() if enable_scale else np.ones(len(params))
+        print(p0_scale)
+        dx = params[0] * p0_scale[0]
+        dy = params[1] * p0_scale[1]
+        phi = params[2] * p0_scale[2]
+        events_rand = (params[3] * p0_scale[3],) # random
+        events_per_sim = ()
+        events_per_sim += (params[4] * p0_scale[4],) if self.pattern_1_use else () # pattern 1
+        events_per_sim += (params[5] * p0_scale[5],) if self.pattern_2_use else () # pattern 2
+        events_per_sim += (params[6] * p0_scale[6],) if self.pattern_3_use else () # pattern 3
+        # get patterns
+        simulations  = (self.pattern_1_n,) if self.pattern_1_use else ()
+        simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
+        simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
+        return self.chi_square(dx, dy, phi, events_rand, simulations, events_per_sim)
 
     def minimize_chi2(self):
         p0 = self.p0
@@ -244,9 +236,10 @@ class fits:
 
         bnds = ((-0.5,+0.5), (-0.5,+0.5), (None,None), (0, None), (0, None))
 
-        return op.minimize(self.chi_square_call,p0,method='L-BFGS-B', bounds=bnds,\
+        res = op.minimize(self.chi_square_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
                            options={'disp':True, 'maxiter':20, 'ftol':1e-7,'maxcor':1000}) #'eps':0.001,
-        #return op.minimize(self.chi_square_call,p0,method='Powell',options={'direc':[0.1,0.1,2,-0.1,-0.1]})
+        res['x'] *= ft.p0_scale[0:5]
+        return res
 
 # methods for maximum likelihood
     def log_likelihood(self, dx, dy, phi, rnd_events, simulations, events):
@@ -260,7 +253,7 @@ class fits:
         data_pattern = self.data_pattern
         # extended log likelihood
         ll = -np.sum(events_per_sim) + np.sum(data_pattern * np.log(sim_pattern))
-        print('likelihood - ', ll)
+        #print('likelihood - ', ll)
         # =====
         # fg = plt.figure(1)
         # ax = fg.add_subplot(111)
@@ -274,7 +267,8 @@ class fits:
 
     def log_likelihood_call(self, params, enable_scale=False):
         #print(params)
-        p0_scale = self.p0_scale if enable_scale else np.ones(len(params))
+        p0_scale = self.p0_scale.copy() if enable_scale else np.ones(len(params))
+        #print(p0_scale)
         dx = params[0] * p0_scale[0]
         dy = params[1] * p0_scale[1]
         phi = params[2] * p0_scale[2]
@@ -290,24 +284,36 @@ class fits:
         return self.log_likelihood(dx, dy, phi, events_rand, simulations, events_per_sim)
 
     def maximize_likelyhood(self):
-        # TODO raise error is parameters diferent from patterns
-        p0 = self.p0
-        #print('p0 - ', p0)
-
+        #print('p0 - ', self.p0)
         bnds = ((-0.5,+0.5), (-0.5,+0.5), (None,None), (0, None), (0, None))
-        # TODO return unscaled results
-        return op.minimize(self.log_likelihood_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
+        res = op.minimize(self.log_likelihood_call, self.p0, args=True, method='L-BFGS-B', bounds=bnds,\
                            options={'eps': 0.001, 'disp':True, 'maxiter':20, 'ftol':1e-6,'maxcor':1000}) #'eps': 0.00001,
+        res['x'] *= ft.p0_scale[0:5]
+        return res
 
-        #return op.minimize(self.log_likelihood_call, p0, method='TNC', bounds=bnds, \
-        #                 options={'disp': True, 'maxiter': 20, 'ftol': 1e-6,
-         #                           'scale':self.p0_scale_1[0:5]})  # 'eps': 0.00001,
+# methods for calculating error
+    def get_variance_from_hessian(self, x, enable_scale=False, func=''):
+        x = np.array(x)
+        x /= ft.p0_scale[0:5] if enable_scale else np.ones(len(x))
+        if func == 'likelihood':
+            f = lambda x: ft.log_likelihood_call(x, enable_scale)
+        elif func == 'poisson':
+            # TODO
+            f = lambda x: ft.chi_square_call(x, enable_scale)
+        else:
+            raise ValueError('undefined function, should be likelihood or poisson')
+        H = nd.Hessian(f)  # ,step=1e-9)
+        hh = H(x)
+        hh_inv = np.linalg.inv(hh)
+        variance = np.sqrt(np.diag(hh_inv))
+        variance *= ft.p0_scale[0:5] if enable_scale else np.ones(len(x))
+        return variance
 
 if __name__ == "__main__":
 
     test_curve_fit = False
-    test_chi2_min = False
-    test_likelihood_max = True
+    test_chi2_min = True
+    test_likelihood_max = False
 
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl")
 
@@ -346,25 +352,24 @@ if __name__ == "__main__":
 
     if test_chi2_min:
         res = ft.minimize_chi2()
-        print(res)
-        x = res['x'] * ft.p0_scale[0:5]
-        ft.set_scale_values()
-        # There is a warning because the hessian starts with a step too big, don't worry about it
-        H = nd.Hessian(ft.log_likelihood_call)#,step=1e-9)
-        hh = H(x)
-        print(hh)
-        print(np.linalg.inv(hh))
-        ft.set_scale_values(dx=1, dy=1, phi=10, f_rand=counts_ordofmag, f_p1=counts_ordofmag)
-        ft.print_results(res,hh)
+        var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='poisson')
+        print('Calculating errors ...')
+        ft.print_variance(res['x'],var)
+        # print(res)
+        # x = res['x'] * ft.p0_scale[0:5]
+        # ft.set_scale_values()
+        # # There is a warning because the hessian starts with a step too big, don't worry about it
+        # H = nd.Hessian(ft.log_likelihood_call)#,step=1e-9)
+        # hh = H(x)
+        # print(hh)
+        # print(np.linalg.inv(hh))
+        # ft.set_scale_values(dx=1, dy=1, phi=10, f_rand=counts_ordofmag, f_p1=counts_ordofmag)
+        # ft.print_results(res,hh)
 
     if test_likelihood_max:
         res = ft.maximize_likelyhood()
-        print(res)
-        x = res['x'] * ft.p0_scale[0:5]
-        # There is a warning because the hessian starts with a step too big, don't worry about it
-        H = nd.Hessian(ft.log_likelihood_call)#,step=1e-9)
-        hh = H(x)
-        print(hh)
-        print(np.linalg.inv(hh))
-        ft.print_results(res, hh)
+        var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='likelihood')
+        print('Calculating errors ...')
+        ft.print_variance(res['x'],var)
+
 
