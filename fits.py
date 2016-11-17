@@ -249,8 +249,10 @@ class fits:
         #return op.minimize(self.chi_square_call,p0,method='Powell',options={'direc':[0.1,0.1,2,-0.1,-0.1]})
 
 # methods for maximum likelihood
+    # TODO independent log likelyhood
 
     def log_likelihood_call(self, params):
+        # TODO enable scale option
         print(params)
         dx = params[0] * self.p0_scale[0]
         dy = params[1] * self.p0_scale[1]
@@ -283,11 +285,12 @@ class fits:
         return -ll
 
     def maximize_likelyhood(self):
+        # TODO raise error is parameters diferent from patterns
         p0 = self.p0
         print('p0 - ', p0)
 
         bnds = ((-0.5,+0.5), (-0.5,+0.5), (None,None), (0, None), (0, None))
-
+        # TODO return unscaled results
         return op.minimize(self.log_likelihood_call, p0, method='L-BFGS-B', bounds=bnds,\
                            options={'eps': 0.001, 'disp':True, 'maxiter':20, 'ftol':1e-6,'maxcor':1000}) #'eps': 0.00001,
 
