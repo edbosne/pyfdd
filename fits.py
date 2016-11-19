@@ -191,6 +191,8 @@ class fits:
     def chi_square(self, dx, dy, phi, rnd_events, simulations, events):
         if not len(simulations) == len(events):
             raise ValueError("size o simulations is diferent than size o events")
+        rnd_events = np.array(rnd_events)
+        events = np.array(events)
         # generate sim pattern
         gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations)
         events_per_sim = np.concatenate((rnd_events, events))
@@ -245,6 +247,9 @@ class fits:
     def log_likelihood(self, dx, dy, phi, rnd_events, simulations, events):
         if not len(simulations) == len(events):
             raise ValueError("size o simulations is diferent than size o events")
+        rnd_events = np.array(rnd_events)
+        events = np.array(events)
+        #print(simulations)
         # generate sim pattern
         gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations)
         events_per_sim = np.concatenate((rnd_events, events))
@@ -297,11 +302,10 @@ class fits:
         x /= ft.p0_scale[0:5] if enable_scale else np.ones(len(x))
         if func == 'likelihood':
             f = lambda x: ft.log_likelihood_call(x, enable_scale)
-        elif func == 'poisson':
-            # TODO
+        elif func == 'chi_square':
             f = lambda x: ft.chi_square_call(x, enable_scale)
         else:
-            raise ValueError('undefined function, should be likelihood or poisson')
+            raise ValueError('undefined function, should be likelihood or chi_square')
         H = nd.Hessian(f)  # ,step=1e-9)
         hh = H(x)
         hh_inv = np.linalg.inv(hh)
@@ -309,11 +313,65 @@ class fits:
         variance *= ft.p0_scale[0:5] if enable_scale else np.ones(len(x))
         return variance
 
+    def get_location_errors(self, params, simulations, func='', first=None, last=None, delta=None):
+        dx = params[0]
+        dy = params[1]
+        phi = params[2]
+        events_rand = (params[3],)  # random
+        events_per_sim = ()
+        events_per_sim += (params[4],) if self.pattern_1_use else ()  # pattern 1
+        events_per_sim += (params[5],) if self.pattern_2_use else ()  # pattern 2
+        events_per_sim += (params[6],) if self.pattern_3_use else ()  # pattern 3
+        # get patterns
+        sims = ()
+        sims += (simulations[0],) if self.pattern_1_use else ()
+        sims += (simulations[1],) if self.pattern_2_use else ()
+        sims += (simulations[2],) if self.pattern_3_use else ()
+        print(events_rand, events_per_sim, sims)
+        if first is None:
+            first = 0
+        if last is None:
+            last = len(ft.lib.sim_list)
+        if func == 'likelihood':
+            if delta is None:
+                delta = 0.5
+            f = lambda s: -ft.log_likelihood(dx, dy, phi, events_rand, s, events_per_sim)
+        elif func == 'chi_square':
+            if delta is None:
+                delta = 1.0
+            f = lambda s: ft.chi_square(dx, dy, phi, events_rand, s, events_per_sim)
+        else:
+            raise ValueError('undefined function, should be likelihood or chi_square')
+        estim_max = f(sims)
+        crossings = []
+        crossings_idx = []
+        for i in range(len(sims)):
+            estim = []
+            temp_sims = np.array(sims)
+            for x_sims in range(first, last):
+                temp_sims[i] = x_sims
+                estim.append(f(temp_sims))
+                print(estim[x_sims]-(estim_max-delta))
+            estim_diff = np.diff(estim)
+            crossings_idx_temp = np.where(np.diff(np.sign(estim-(estim_max-delta))))[0]
+            crossings_temp = crossings_idx - (estim-(estim_max-delta))[crossings_idx] / estim_diff[crossings_idx]
+            crossings.append(crossings_temp)
+            crossings_idx.append(crossings_idx_temp)
+            print('crossings_idx - ', crossings_idx_temp)
+            print('crossings - ', crossings_temp)
+        return crossings, crossings_idx
+
+
+
+
+
+
+
 if __name__ == "__main__":
 
     test_curve_fit = False
-    test_chi2_min = True
-    test_likelihood_max = False
+    test_chi2_min = False
+    test_likelihood_max = True
 
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl")
 
@@ -322,11 +380,11 @@ if __name__ == "__main__":
     # set a pattern to fit
     x=np.arange(-1.79,1.8,0.01)
     #xmesh, ymesh = np.meshgrid(x,x)
-    #xmesh, ymesh = create_detector_mesh(22, 22, 1.4, 300)
-    xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
+    xmesh, ymesh = create_detector_mesh(20, 20, 1.4, 300)
+    #xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
 
     creator = PatternCreator(lib, xmesh, ymesh, 0)
-    events_per_sim = np.array([0.3, 0.7]) * 1e6
+    events_per_sim = np.array([0.3, 0.7]) * 1e4
     patt = creator.make_pattern(0.2, -0.2, 5, events_per_sim, 'poisson')
 
     plt.figure(0)
@@ -352,7 +410,7 @@ if __name__ == "__main__":
 
     if test_chi2_min:
         res = ft.minimize_chi2()
-        var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='poisson')
+        var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='chi_square')
         print('Calculating errors ...')
         ft.print_variance(res['x'],var)
         # print(res)
@@ -368,8 +426,9 @@ if __name__ == "__main__":
 
     if test_likelihood_max:
         res = ft.maximize_likelyhood()
-        var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='likelihood')
         print('Calculating errors ...')
-        ft.print_variance(res['x'],var)
+        #var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='likelihood')
+        #ft.print_variance(res['x'],var)
+        ft.get_location_errors(res['x'], (0,), last=300, func='likelihood')
 
 

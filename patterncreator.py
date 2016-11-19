@@ -30,6 +30,8 @@ class PatternCreator:
     '''
     def __init__(self, lib, xmesh=None, ymesh=None, simulations=0):
         simulations = np.array(simulations)
+        if len(simulations.shape) == 0:
+            simulations = simulations[np.newaxis]
         xmesh = np.array(xmesh)
         ymesh = np.array(ymesh)
         assert isinstance(lib, lib2dl)
@@ -72,7 +74,7 @@ class PatternCreator:
         temp = np.ones(self._xmesh.shape)
         pattern_stack = temp[np.newaxis]
         for i in np.arange(simulations.size):
-            temp = lib.get_simulation_patt(i)
+            temp = lib.get_simulation_patt(simulations[i])
             if not pattern_stack.size:
                 pattern_stack = temp[np.newaxis].copy()
             else:
