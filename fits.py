@@ -16,7 +16,7 @@ import scipy.optimize as op
 import scipy.stats as st
 import matplotlib.pyplot as plt
 import math
-import numdifftools as nd
+#import numdifftools as nd
 
 
 class fits:
@@ -260,13 +260,13 @@ class fits:
         ll = -np.sum(events_per_sim) + np.sum(data_pattern * np.log(sim_pattern))
         #print('likelihood - ', ll)
         # =====
-        # fg = plt.figure(1)
-        # ax = fg.add_subplot(111)
-        # plt.ion()
-        # cont = None
-        # plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)
-        # fg.canvas.draw()
-        # plt.show(block=False)
+        fg = plt.figure(1)
+        ax = fg.add_subplot(111)
+        plt.ion()
+        cont = None
+        plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)
+        fg.canvas.draw()
+        plt.show(block=False)
         # =====
         return -ll
 
@@ -379,13 +379,13 @@ if __name__ == "__main__":
 
     # set a pattern to fit
     x=np.arange(-1.79,1.8,0.01)
-    #xmesh, ymesh = np.meshgrid(x,x)
-    xmesh, ymesh = create_detector_mesh(20, 20, 1.4, 300)
+    xmesh, ymesh = np.meshgrid(x,x)
+    #xmesh, ymesh = create_detector_mesh(20, 20, 1.4, 300)
     #xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
 
     creator = PatternCreator(lib, xmesh, ymesh, 0)
     events_per_sim = np.array([0.3, 0.7]) * 1e4
-    patt = creator.make_pattern(0.2, -0.2, 5, events_per_sim, 'poisson')
+    patt = creator.make_pattern(0.2, -0.2, 5, events_per_sim, 'montecarlo')
 
     plt.figure(0)
     plt.contourf(xmesh, ymesh, patt)#, np.arange(0, 3000, 100))
@@ -429,6 +429,6 @@ if __name__ == "__main__":
         print('Calculating errors ...')
         #var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='likelihood')
         #ft.print_variance(res['x'],var)
-        ft.get_location_errors(res['x'], (0,), last=300, func='likelihood')
+        #ft.get_location_errors(res['x'], (0,), last=300, func='likelihood')
 
 
