@@ -29,8 +29,15 @@ class PatternCreator:
     Can create ideal patterns, patterns with poisson noise and by Monte Carlo
     '''
     def __init__(self, lib, xmesh=None, ymesh=None, simulations=0):
+        """
+        __init__ method for PatternCreator. Simulation and mesh are to be stated here.
+        :param lib: A lib2dl type object that points to the desired library
+        :param xmesh: The horizontal mesh of the detector
+        :param ymesh: The vertical mesh of the detector
+        :param simulations: List of simulations to be used for creating the pattern. Order is kept as stated.
+        """
         simulations = np.array(simulations)
-        if len(simulations.shape) == 0:
+        if len(simulations.shape) == 0: # ensures that dimention is 1
             simulations = simulations[np.newaxis]
         xmesh = np.array(xmesh)
         ymesh = np.array(ymesh)
