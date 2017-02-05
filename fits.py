@@ -37,7 +37,7 @@ class fits:
         self.data_pattern = None
         self.data_pattern_is_set = False
         self.p0 = (None,)
-        self.p0_scale = np.ones((7))
+        self.p0_scale = np.ones((8))
 
     def set_data_pattern(self,XXmesh,YYmesh,pattern,mask=None):
         self.XXmesh = XXmesh
@@ -55,20 +55,22 @@ class fits:
         self.pattern_3_n = p3_n
         self.pattern_3_use = False if p3_n == None else True
 
-    def set_inicial_values(self,dx=1,dy=1,phi=5,f_rand=0.5,f_p1=0.5,f_p2=0.5,f_p3=0.5):
+    def set_inicial_values(self,dx=1,dy=1,phi=5,total_cts=1,f_rand=0.5,f_p1=0.5,f_p2=0.5,f_p3=0.5):
         p0 = (dx/self.p0_scale[0],)
         p0 += (dy/self.p0_scale[1],)
         p0 += (phi/self.p0_scale[2],)
-        p0 += (f_rand/self.p0_scale[3],)
-        p0 += (f_p1/self.p0_scale[4],) if self.pattern_1_use else ()
-        p0 += (f_p2/self.p0_scale[5],) if self.pattern_2_use else ()
-        p0 += (f_p3/self.p0_scale[6],) if self.pattern_3_use else ()
+        p0 += (total_cts / self.p0_scale[3],)
+        p0 += (f_rand/self.p0_scale[4],)
+        p0 += (f_p1/self.p0_scale[5],) if self.pattern_1_use else ()
+        p0 += (f_p2/self.p0_scale[6],) if self.pattern_2_use else ()
+        p0 += (f_p3/self.p0_scale[7],) if self.pattern_3_use else ()
         self.p0 = np.array(p0)
 
-    def set_scale_values(self, dx=1, dy=1, phi=1, f_rand=1, f_p1=1, f_p2=1, f_p3=1):
+    def set_scale_values(self, dx=1, dy=1, phi=1, total_cts=1, f_rand=1, f_p1=1, f_p2=1, f_p3=1):
         p0_scale = (dx,)
         p0_scale += (dy,)
         p0_scale += (phi,)
+        p0_scale += (total_cts,)
         p0_scale += (f_rand,)
         p0_scale += (f_p1,)
         p0_scale += (f_p2,)
@@ -215,6 +217,8 @@ class fits:
         return chi2
 
     def chi_square_call(self, params, enable_scale=False):
+        # TODO adpt p0_scale to fractions
+        # TODO adpt params to fractions
         print(params)
         p0_scale = self.p0_scale.copy() if enable_scale else np.ones(len(params))
         print(p0_scale)
@@ -233,6 +237,8 @@ class fits:
         return self.chi_square(dx, dy, phi, events_rand, simulations, events_per_sim)
 
     def minimize_chi2(self):
+        # TODO adpt p0_scale to fractions
+
         p0 = self.p0
         print('p0 - ', p0)
 
@@ -272,6 +278,8 @@ class fits:
 
     def log_likelihood_call(self, params, enable_scale=False):
         #print(params)
+        # TODO adpt p0_scale to fractions
+        # TODO adpt params to fractions
         p0_scale = self.p0_scale.copy() if enable_scale else np.ones(len(params))
         #print(p0_scale)
         dx = params[0] * p0_scale[0]
@@ -290,6 +298,8 @@ class fits:
 
     def maximize_likelyhood(self):
         #print('p0 - ', self.p0)
+        # TODO adpt p0_scale to fractions
+
         bnds = ((-0.5,+0.5), (-0.5,+0.5), (None,None), (0, None), (0, None))
         res = op.minimize(self.log_likelihood_call, self.p0, args=True, method='L-BFGS-B', bounds=bnds,\
                            options={'eps': 0.001, 'disp':True, 'maxiter':20, 'ftol':1e-6,'maxcor':1000}) #'eps': 0.00001,
@@ -298,6 +308,7 @@ class fits:
 
 # methods for calculating error
     def get_variance_from_hessian(self, x, enable_scale=False, func=''):
+        # TODO adpt p0_scale to fractions
         x = np.array(x)
         x /= ft.p0_scale[0:5] if enable_scale else np.ones(len(x))
         if func == 'likelihood':
@@ -362,11 +373,6 @@ class fits:
         return crossings, crossings_idx
 
 
-
-
-
-
-
 if __name__ == "__main__":
 
     test_curve_fit = False
@@ -384,8 +390,9 @@ if __name__ == "__main__":
     #xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
 
     creator = PatternCreator(lib, xmesh, ymesh, 0)
-    events_per_sim = np.array([0.3, 0.7]) * 1e4
-    patt = creator.make_pattern(0.2, -0.2, 5, events_per_sim, 'montecarlo')
+    fractions_per_sim = np.array([0.3, 0.7])
+    total_events = 1e4
+    patt = creator.make_pattern(0.2, -0.2, 5, fractions_per_sim, total_events, 'montecarlo')
 
     plt.figure(0)
     plt.contourf(xmesh, ymesh, patt)#, np.arange(0, 3000, 100))
@@ -396,8 +403,8 @@ if __name__ == "__main__":
     counts_ordofmag = 10**(int(math.log10(patt.sum())))
     ft.set_data_pattern(xmesh,ymesh,patt)
     ft.set_patterns_to_fit(0)
-    ft.set_scale_values(dx=1, dy=1, phi=10, f_rand=counts_ordofmag, f_p1=counts_ordofmag)
-    ft.set_inicial_values(0.0,0.1,0,counts_ordofmag/3,counts_ordofmag/3)
+    ft.set_scale_values(dx=1, dy=1, phi=10, total_cts=counts_ordofmag, f_rand=1, f_p1=1)
+    ft.set_inicial_values(0.1,0.1,1,counts_ordofmag)
 
     if test_curve_fit:
         popt, pcov = ft.call_curve_fit()
