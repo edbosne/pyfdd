@@ -250,9 +250,9 @@ class PatternCreator:
         for i in range(self._pattern_stack.shape[0]):
             temp_pattern = map_coordinates(self._pattern_stack[i, :, :], (grid_y_temp, grid_x_temp),
                                            order=1, prefilter=True, mode='constant', cval=0)[np.newaxis]
-            norm_factor = temp_pattern.size
+            norm_factor = temp_pattern.size # the sum of the rand pattern is the same as the number os pixels
             if not norm_factor == 0:
-                temp_pattern = (temp_pattern / norm_factor) * self.fractions_per_sim[i] # number of events
+                temp_pattern = (temp_pattern / norm_factor) * self.fractions_per_sim[i] #normalize to the random
             else:
                 temp_pattern = np.zeros(temp_pattern.shape)[np.newaxis]
             if not new_pattern_stact.size:
@@ -260,7 +260,7 @@ class PatternCreator:
             else:
                 new_pattern_stact = np.concatenate((new_pattern_stact,temp_pattern),0)
         pattern_temp = new_pattern_stact.sum(0)
-        pattern_temp =  pattern_temp / pattern_temp.sum() * self.total_events
+        pattern_temp =  pattern_temp / pattern_temp.sum() * self.total_events # number of events
         return ma.masked_equal(pattern_temp,0)
         #rtrn_data = map_coordinates(self.pattern_current, (grid_y_temp, grid_x_temp),order=3,prefilter=False)
         #return ma.masked_equal(rtrn_data,0)

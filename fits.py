@@ -55,29 +55,31 @@ class fits:
         self.pattern_3_n = p3_n
         self.pattern_3_use = False if p3_n == None else True
 
-    def set_inicial_values(self,dx=1,dy=1,phi=5,total_cts=1,f_rand=0.5,f_p1=0.5,f_p2=0.5,f_p3=0.5):
+    def set_inicial_values(self,dx=1,dy=1,phi=5,total_cts=1,f_p1=0.25,f_p2=0.25,f_p3=0.25):
+        # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         p0 = (dx/self.p0_scale[0],)
         p0 += (dy/self.p0_scale[1],)
         p0 += (phi/self.p0_scale[2],)
-        p0 += (total_cts / self.p0_scale[3],)
-        p0 += (f_rand/self.p0_scale[4],)
-        p0 += (f_p1/self.p0_scale[5],) if self.pattern_1_use else ()
-        p0 += (f_p2/self.p0_scale[6],) if self.pattern_2_use else ()
-        p0 += (f_p3/self.p0_scale[7],) if self.pattern_3_use else ()
+        p0 += (total_cts / self.p0_scale[3],) if total_cts > 0 else ()
+        p0 += (f_p1/self.p0_scale[4],) if self.pattern_1_use else ()
+        p0 += (f_p2/self.p0_scale[5],) if self.pattern_2_use else ()
+        p0 += (f_p3/self.p0_scale[6],) if self.pattern_3_use else ()
         self.p0 = np.array(p0)
 
-    def set_scale_values(self, dx=1, dy=1, phi=1, total_cts=1, f_rand=1, f_p1=1, f_p2=1, f_p3=1):
+    def set_scale_values(self, dx=1, dy=1, phi=1, total_cts=1, f_p1=1, f_p2=1, f_p3=1):
+        # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         p0_scale = (dx,)
         p0_scale += (dy,)
         p0_scale += (phi,)
-        p0_scale += (total_cts,)
-        p0_scale += (f_rand,)
+        p0_scale += (total_cts,) if total_cts > 0 else ()
         p0_scale += (f_p1,)
         p0_scale += (f_p2,)
         p0_scale += (f_p3,)
         self.p0_scale = np.array(p0_scale)
 
     def print_variance(self,x,var):
+        # TODO add number of events
+        # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         params = x
         dx = params[0]
         d_dx = var[0]
@@ -190,15 +192,25 @@ class fits:
         ddof += 1 if self.pattern_2_use else 0
         return st.chisquare(experimental_data, simlulation_data,ddof,axis=None)
 
-    def chi_square(self, dx, dy, phi, rnd_events, simulations, events):
-        if not len(simulations) == len(events):
+    def chi_square(self, dx, dy, phi, total_events, simulations, fractions_sims):
+        """
+        Calculates the Pearson chi2 for the given conditions.
+        :param dx: delta x in angles
+        :param dy: delta y in angles
+        :param phi: delta phi in anlges
+        :param total_events: total number of events
+        :param simulations: simulations id number
+        :param fractions_sims: fractions of each simulated pattern
+        :return: Pearson's chi2
+        """
+        if not len(simulations) == len(fractions_sims):
             raise ValueError("size o simulations is diferent than size o events")
-        rnd_events = np.array(rnd_events)
-        events = np.array(events)
+        fractions_sims = np.array(fractions_sims)
+        rnd_events = np.array([1 - fractions_sims.sum()])
         # generate sim pattern
         gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations)
-        events_per_sim = np.concatenate((rnd_events, events))
-        sim_pattern = gen.make_pattern(dx, dy, phi, events_per_sim, 'ideal')
+        fractions = np.concatenate((rnd_events, fractions_sims))
+        sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, 'ideal')
         # set data pattern
         data_pattern = self.data_pattern
         # chi2, pval = self.chi_square_fun(data_pattern,sim_pattern)
@@ -217,100 +229,129 @@ class fits:
         return chi2
 
     def chi_square_call(self, params, enable_scale=False):
-        # TODO adpt p0_scale to fractions
-        # TODO adpt params to fractions
-        print(params)
+        # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
+        print('params ', params)
         p0_scale = self.p0_scale.copy() if enable_scale else np.ones(len(params))
-        print(p0_scale)
+        print('p0_scale ', p0_scale)
         dx = params[0] * p0_scale[0]
         dy = params[1] * p0_scale[1]
         phi = params[2] * p0_scale[2]
-        events_rand = (params[3] * p0_scale[3],) # random
-        events_per_sim = ()
-        events_per_sim += (params[4] * p0_scale[4],) if self.pattern_1_use else () # pattern 1
-        events_per_sim += (params[5] * p0_scale[5],) if self.pattern_2_use else () # pattern 2
-        events_per_sim += (params[6] * p0_scale[6],) if self.pattern_3_use else () # pattern 3
+        total_cts = (params[3] * p0_scale[3],)  # total counts
+        fractions_sims = ()
+        fractions_sims += (params[4] * p0_scale[4],) if self.pattern_1_use else () # pattern 1
+        fractions_sims += (params[5] * p0_scale[5],) if self.pattern_2_use else () # pattern 2
+        fractions_sims += (params[6] * p0_scale[6],) if self.pattern_3_use else () # pattern 3
         # get patterns
         simulations  = (self.pattern_1_n,) if self.pattern_1_use else ()
         simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
         simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
-        return self.chi_square(dx, dy, phi, events_rand, simulations, events_per_sim)
+        return self.chi_square(dx, dy, phi, total_cts, simulations, fractions_sims=fractions_sims)
 
     def minimize_chi2(self):
-        # TODO adpt p0_scale to fractions
-
+        # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         p0 = self.p0
         print('p0 - ', p0)
-
-        bnds = ((-0.5,+0.5), (-0.5,+0.5), (None,None), (0, None), (0, None))
+        bnds = ((-0.5,+0.5), (-0.5,+0.5), (None,None), (0, None))
+        bnds += ((0, 1),) if self.pattern_1_use else ()
+        bnds += ((0, 1),) if self.pattern_2_use else ()
+        bnds += ((0, 1),) if self.pattern_3_use else ()
 
         res = op.minimize(self.chi_square_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
                            options={'disp':True, 'maxiter':20, 'ftol':1e-7,'maxcor':1000}) #'eps':0.001,
-        res['x'] *= ft.p0_scale[0:5]
+        if self.pattern_1_use:
+            if self.pattern_2_use:
+                if self.pattern_3_use:
+                    res['x'] *= ft.p0_scale[0:7]
+                else:
+                    res['x'] *= ft.p0_scale[0:6]
+            else:
+                res['x'] *= ft.p0_scale[0:5]
+        else:
+            res['x'] *= ft.p0_scale[0:4]
         return res
 
 # methods for maximum likelihood
-    def log_likelihood(self, dx, dy, phi, rnd_events, simulations, events):
-        if not len(simulations) == len(events):
+    def log_likelihood(self, dx, dy, phi, simulations, fractions_sims):
+        """
+        Calculates the Pearson chi2 for the given conditions.
+        :param dx: delta x in angles
+        :param dy: delta y in angles
+        :param phi: delta phi in anlges
+        :param simulations: simulations id number
+        :param fractions_sims: fractions of each simulated pattern
+        :return: likelihood
+        """
+        if not len(simulations) == len(fractions_sims):
             raise ValueError("size o simulations is diferent than size o events")
-        rnd_events = np.array(rnd_events)
-        events = np.array(events)
-        #print(simulations)
+        total_events = 1
+        fractions_sims = np.array(fractions_sims)
+        rnd_events = np.array([1 - fractions_sims.sum()])
         # generate sim pattern
         gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations)
-        events_per_sim = np.concatenate((rnd_events, events))
-        sim_pattern = gen.make_pattern(dx, dy, phi, events_per_sim, 'ideal')
+        fractions = np.concatenate((rnd_events, fractions_sims))
+        sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, 'ideal')
         # set data pattern
         data_pattern = self.data_pattern
-        # extended log likelihood
-        ll = -np.sum(events_per_sim) + np.sum(data_pattern * np.log(sim_pattern))
+        # log likelihood
+        ll = np.sum(data_pattern * np.log(sim_pattern))
+        # extended log likelihood - no need to fit events
+        #ll = -np.sum(events_per_sim) + np.sum(data_pattern * np.log(sim_pattern))
         #print('likelihood - ', ll)
         # =====
-        fg = plt.figure(1)
-        ax = fg.add_subplot(111)
-        plt.ion()
-        cont = None
-        plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)
-        fg.canvas.draw()
-        plt.show(block=False)
+        # fg = plt.figure(1)
+        # ax = fg.add_subplot(111)
+        # plt.ion()
+        # cont = None
+        # plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)
+        # fg.canvas.draw()
+        # plt.show(block=False)
         # =====
         return -ll
 
     def log_likelihood_call(self, params, enable_scale=False):
         #print(params)
-        # TODO adpt p0_scale to fractions
-        # TODO adpt params to fractions
+        print('params ', params)
         p0_scale = self.p0_scale.copy() if enable_scale else np.ones(len(params))
         #print(p0_scale)
         dx = params[0] * p0_scale[0]
         dy = params[1] * p0_scale[1]
         phi = params[2] * p0_scale[2]
-        events_rand = (params[3] * p0_scale[3],) # random
-        events_per_sim = ()
-        events_per_sim += (params[4] * p0_scale[4],) if self.pattern_1_use else () # pattern 1
-        events_per_sim += (params[5] * p0_scale[5],) if self.pattern_2_use else () # pattern 2
-        events_per_sim += (params[6] * p0_scale[6],) if self.pattern_3_use else () # pattern 3
+        fractions_sims = ()
+        fractions_sims += (params[3] * p0_scale[3],) if self.pattern_1_use else () # pattern 1
+        fractions_sims += (params[4] * p0_scale[4],) if self.pattern_2_use else () # pattern 2
+        fractions_sims += (params[5] * p0_scale[5],) if self.pattern_3_use else () # pattern 3
         # get patterns
         simulations  = (self.pattern_1_n,) if self.pattern_1_use else ()
         simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
         simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
-        return self.log_likelihood(dx, dy, phi, events_rand, simulations, events_per_sim)
+        return self.log_likelihood(dx, dy, phi, simulations, fractions_sims)
 
     def maximize_likelyhood(self):
         #print('p0 - ', self.p0)
-        # TODO adpt p0_scale to fractions
-
-        bnds = ((-0.5,+0.5), (-0.5,+0.5), (None,None), (0, None), (0, None))
+        bnds = ((-0.5, +0.5), (-0.5, +0.5), (None, None)) # no need for number of cts
+        bnds += ((0, 1),) if self.pattern_1_use else ()
+        bnds += ((0, 1),) if self.pattern_2_use else ()
+        bnds += ((0, 1),) if self.pattern_3_use else ()
+        print('self.p0', self.p0)
         res = op.minimize(self.log_likelihood_call, self.p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options={'eps': 0.001, 'disp':True, 'maxiter':20, 'ftol':1e-6,'maxcor':1000}) #'eps': 0.00001,
-        res['x'] *= ft.p0_scale[0:5]
+                           options={'eps': 0.0001, 'disp':True, 'maxiter':20, 'ftol':1e-7,'maxcor':1000}) #'eps': 0.001,
+        if self.pattern_1_use:
+            if self.pattern_2_use:
+                if self.pattern_3_use:
+                    res['x'] *= ft.p0_scale[0:6]
+                else:
+                    res['x'] *= ft.p0_scale[0:5]
+            else:
+                res['x'] *= ft.p0_scale[0:4]
+        else:
+            res['x'] *= ft.p0_scale[0:3]
+        return res
         return res
 
 # methods for calculating error
     def get_variance_from_hessian(self, x, enable_scale=False, func=''):
-        # TODO adpt p0_scale to fractions
         x = np.array(x)
-        x /= ft.p0_scale[0:5] if enable_scale else np.ones(len(x))
+        x /= ft.p0_scale[0:len(x)] if enable_scale else np.ones(len(x))
         if func == 'likelihood':
             f = lambda x: ft.log_likelihood_call(x, enable_scale)
         elif func == 'chi_square':
@@ -384,14 +425,14 @@ if __name__ == "__main__":
     ft = fits(lib)
 
     # set a pattern to fit
-    x=np.arange(-1.79,1.8,0.01)
+    x=np.arange(-1.79,1.8,0.1)
     xmesh, ymesh = np.meshgrid(x,x)
     #xmesh, ymesh = create_detector_mesh(20, 20, 1.4, 300)
     #xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
 
-    creator = PatternCreator(lib, xmesh, ymesh, 0)
-    fractions_per_sim = np.array([0.3, 0.7])
-    total_events = 1e4
+    creator = PatternCreator(lib, xmesh, ymesh, (0,10))
+    fractions_per_sim = np.array([0.7, 0.2, 0.1])
+    total_events = 1e6
     patt = creator.make_pattern(0.2, -0.2, 5, fractions_per_sim, total_events, 'montecarlo')
 
     plt.figure(0)
@@ -402,9 +443,8 @@ if __name__ == "__main__":
     # set a fitting routine
     counts_ordofmag = 10**(int(math.log10(patt.sum())))
     ft.set_data_pattern(xmesh,ymesh,patt)
-    ft.set_patterns_to_fit(0)
-    ft.set_scale_values(dx=1, dy=1, phi=10, total_cts=counts_ordofmag, f_rand=1, f_p1=1)
-    ft.set_inicial_values(0.1,0.1,1,counts_ordofmag)
+    ft.set_patterns_to_fit(0,10)
+
 
     if test_curve_fit:
         popt, pcov = ft.call_curve_fit()
@@ -416,11 +456,13 @@ if __name__ == "__main__":
         print(pcov)
 
     if test_chi2_min:
+        ft.set_scale_values(dx=1, dy=1, phi=10, total_cts=counts_ordofmag, f_p1=1)
+        ft.set_inicial_values(0.1, 0.1, 1, counts_ordofmag)
         res = ft.minimize_chi2()
-        var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='chi_square')
-        print('Calculating errors ...')
-        ft.print_variance(res['x'],var)
-        # print(res)
+        #var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='chi_square')
+        #print('Calculating errors ...')
+        #ft.print_variance(res['x'],var)
+        print(res)
         # x = res['x'] * ft.p0_scale[0:5]
         # ft.set_scale_values()
         # # There is a warning because the hessian starts with a step too big, don't worry about it
@@ -432,7 +474,10 @@ if __name__ == "__main__":
         # ft.print_results(res,hh)
 
     if test_likelihood_max:
+        ft.set_scale_values(dx=1, dy=1, phi=10, total_cts=-1, f_p1=1, f_p2=1)
+        ft.set_inicial_values(0.1, 0.1, 1, -1)
         res = ft.maximize_likelyhood()
+        print(res)
         print('Calculating errors ...')
         #var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='likelihood')
         #ft.print_variance(res['x'],var)
