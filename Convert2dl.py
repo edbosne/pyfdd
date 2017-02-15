@@ -12,18 +12,18 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv,"hi:o:")
     except getopt.GetoptError:
-        print 'Convert2dl.py -i <inputfile> -o <outputfile>'
+        print('Convert2dl.py -i <inputfile> -o <outputfile>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print 'test.py -i <inputfile> -o <outputfile>'
+            print('test.py -i <inputfile> -o <outputfile>')
             sys.exit()
         elif opt in ("-i"):
             inputfile = arg
         elif opt in ("-o"):
             outputfile = arg
-    print 'Input file is "', inputfile
-    print 'Output file is "', outputfile
+    print('Input file is "', inputfile)
+    print('Output file is "', outputfile)
 
     print('creating matrix')
     Mpx = MedipixMatrix(
