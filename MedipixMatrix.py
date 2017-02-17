@@ -7,6 +7,7 @@
 from CustomWidgets import *
 
 import numpy as np
+import numpy.ma as ma
 import os
 import bisect as bis
 import scipy.ndimage
@@ -149,7 +150,7 @@ class MedipixMatrix:
 
         # importing matrix
         if not pattern_array is None:
-            self.matrixOriginal = pattern_array.copy()
+            self.matrixOriginal = ma.array(data=pattern_array.copy(),mask=False)
             (self.ny, self.nx) = self.matrixOriginal.shape
         elif not file_path is None:
             if os.path.isfile(file_path):
@@ -211,7 +212,7 @@ class MedipixMatrix:
         """
         loads an ascii file containing a matrix
         """
-        self.matrixOriginal = np.loadtxt(os.path.join(self.path_in, self.filename_in))
+        self.matrixOriginal = ma.array(data=np.loadtxt(os.path.join(self.path_in, self.filename_in)), mask=False)
         (self.ny, self.nx) = self.matrixOriginal.shape
 
     def io_save_ascii(self, filename):
@@ -236,7 +237,7 @@ class MedipixMatrix:
         self.ny = struct.unpack("<h", self.fileContent[2:2+short_sz])[0]
         type = struct.unpack("?", bytes(self.fileContent[4:5]))[0]
         temp = struct.unpack(self.ny*self.nx*"f", self.fileContent[5:5+self.ny*self.nx*float_sz])
-        self.matrixOriginal = np.array(temp).reshape((self.ny,self.nx))
+        self.matrixOriginal = ma.array(data=np.array(temp).reshape((self.ny,self.nx)), mask=False)
 
     def io_save_origin(self, filename):
         """
