@@ -26,22 +26,36 @@ def main(argv):
     print('Output file is "', outputfile)
 
     print('creating matrix')
-    Mpx = MedipixMatrix(
-        nx=512,
-        ny=512,
-        nChipsX=2,
-        nChipsY=2,
-        filename=inputfile,
-        smooth_fwhm=0,
-        percentiles=(0.1,1),
-        range=(0, 516),
-        compress_factor=2,
-        rm_central_pixels=1,
-        rm_edge_pixels=0
-    )
-    f = plt.figure('fig1')
-    Mpx.draw(f)
+    # Mpx = MedipixMatrix(
+    #     nx=512,
+    #     ny=512,
+    #     nChipsX=2,
+    #     nChipsY=2,
+    #     filename=inputfile,
+    #     smooth_fwhm=0,
+    #     percentiles=(0.1,1),
+    #     range=(0, 516),
+    #     compress_factor=2,
+    #     rm_central_pixels=1,
+    #     rm_edge_pixels=0
+    # )
+    # f = plt.figure('fig1')
+    # Mpx.draw(f)
 
+    Mpx = MedipixMatrix(file_path=inputfile, nChipsX=2, nChipsY=2, real_size=3)
+
+    # Manipulation methods
+    # -Orient
+    Mpx.manip_orient('rr,mh')  # TimepixQuad orientation
+
+    # Zero central pix
+    Mpx.zero_central_pix(1)
+
+    # Add extra pixels to account for bigger central pixels
+    Mpx.manip_correct_central_pix()
+
+    # -Sum pixels, zero central pixels and remove edge pixels all in one
+    Mpx.manip_compress(factor=2, rm_central_pix=1, rm_edge_pix=0)
 
     print('save as 2dl')
     savename = "/home/eric/Desktop/test.2dl"
@@ -49,7 +63,7 @@ def main(argv):
 
 if __name__ == "__main__":
     argv = sys.argv[1:]
-    infile = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/800C/-1101/pattern_d3_Npix0-20.txt'
+    infile = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-1101/pattern_d3_Npix0-20.txt'
     path_in, filename_in = os.path.split(infile)
     name, filetype_in = os.path.splitext(filename_in)
     outfile = os.path.join(path_in,name+"rebin2x2.2db")

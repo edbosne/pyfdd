@@ -487,7 +487,7 @@ if __name__ == '__main__':
     mm2.manip_correct_central_pix()
 
     # -Sum pixels, zero central pixels and remove edge pixels all in one
-    #mm2.manip_compress(factor=3, rm_central_pix=1, rm_edge_pix=2)
+    mm2.manip_compress(factor=3, rm_central_pix=1, rm_edge_pix=2)
 
     # -Mask pixels
 
