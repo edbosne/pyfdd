@@ -157,8 +157,8 @@ class MedipixMatrix:
                 self.__io_load(file_path)
             else:
                 raise IOError('File does not exist: %s' % file_path)
-        self.matrixCurrent = self.matrixOriginal
-        self.matrixDrawable = self.matrixOriginal
+        self.matrixCurrent = self.matrixOriginal.copy()
+        self.matrixDrawable = self.matrixOriginal.copy()
 
         # create detector mesh
         self.is_mesh_defined = False
@@ -179,7 +179,6 @@ class MedipixMatrix:
         # inicialization medipix histogram
         self.hist = MpxHist(self.matrixCurrent)
 
-        # mask
 
     # ===== - IO Methods - =====
     def __io_load(self, filename):
@@ -287,9 +286,9 @@ class MedipixMatrix:
         print("smoothing" , fwhm)
         gauss_smooth = fwhm/2.32
         if matrix == 'Current':
-            self.matrixCurrent = scipy.ndimage.gaussian_filter(self.matrixCurrent, gauss_smooth)  #, mode='nearest')
+            self.matrixCurrent.data[:,:] = scipy.ndimage.gaussian_filter(self.matrixCurrent.data, gauss_smooth)  #, mode='nearest')
         elif matrix == 'Drawable':
-            self.matrixDrawable = scipy.ndimage.gaussian_filter(self.matrixDrawable, gauss_smooth)
+            self.matrixDrawable.data[:,:] = scipy.ndimage.gaussian_filter(self.matrixDrawable.data, gauss_smooth)
 
     def manip_correct_central_pix(self):
         if self.real_size <= 1 and (self.nChipsX > 1 or self.nChipsY > 1):
@@ -299,18 +298,22 @@ class MedipixMatrix:
         # temp_matrix = -np.ones((ny, nx))
         temp_matrix1 = np.zeros((self.matrixCurrent.shape[0], nx))
         temp_matrix2 = np.zeros((ny, nx))
+        mask_update1 = np.ones((self.matrixCurrent.shape[0], nx))==1
+        mask_update2 = np.ones((ny, nx))==1
 
         for interX in range(0, self.nChipsX):
             dock_i = interX * (256 + 2 * self.real_size - 2)
             dock_f = dock_i + 256
-            temp_matrix1[:, dock_i:dock_f] = self.matrixCurrent[:, interX*256:interX*256 + 256]
+            temp_matrix1[:, dock_i:dock_f] = self.matrixCurrent.data[:, interX*256:interX*256 + 256]
+            mask_update1[:, dock_i:dock_f] = self.matrixCurrent.mask[:, interX*256:interX*256 + 256]
 
         for interY in range(0, self.nChipsY):
             dock_i = interY * (256 + 2 * self.real_size - 2)
             dock_f = dock_i + 256
             temp_matrix2[dock_i:dock_f, :] = temp_matrix1[interY*256:interY*256 + 256, :]
+            mask_update2[dock_i:dock_f, :] = mask_update1[interY*256:interY*256 + 256, :]
 
-        self.matrixCurrent = temp_matrix2.copy()
+        self.matrixCurrent = ma.array(data=temp_matrix2,mask=mask_update2)
         # Update mesh
         self.manip_create_mesh()
 
@@ -318,16 +321,14 @@ class MedipixMatrix:
         if rm_central_pix is not None:
             self.rm_central_pix = rm_central_pix
         print('Number of chips - ', self.nChipsX*self.nChipsY)
-        matrix = self.matrixCurrent.copy()
-        (ny, nx) = matrix.shape
+        (ny, nx) = self.matrixCurrent.shape
         xstep = nx // self.nChipsX
         ystep = nx // self.nChipsY
         # print(xstep, ystep, rm_central_pix)
         for ix in range(self.nChipsX-1):
-            matrix[:,xstep-rm_central_pix:xstep+rm_central_pix] = 0
+            self.matrixCurrent.mask[:,xstep-rm_central_pix:xstep+rm_central_pix] = True
         for iy in range(self.nChipsY - 1):
-            matrix[ystep - rm_central_pix:ystep + rm_central_pix,:] = 0
-        self.matrixCurrent = matrix.copy()
+            self.matrixCurrent.mask[ystep - rm_central_pix:ystep + rm_central_pix,:] = True
 
     def manip_compress(self, factor=2, rm_central_pix=0, rm_edge_pix=0):
         '''
@@ -338,6 +339,7 @@ class MedipixMatrix:
         :param factor:
         :return:
         '''
+        # TODO mask
         if rm_central_pix is not None:
             self.rm_central_pix = rm_central_pix
         if self.real_size <= 1:
@@ -369,9 +371,11 @@ class MedipixMatrix:
         final_size = int((nx - rm_edge_pix*2)/factor)
         print('final_size',final_size)
         #big.reshape([Nsmall, Nbig/Nsmall, Nsmall, Nbig/Nsmall]).mean(3).mean(1)
-        retrnArr = self.matrixCurrent[rm_edge_pix:ny-rm_edge_pix,rm_edge_pix:nx-rm_edge_pix]\
+        retrnArr = self.matrixCurrent.data[rm_edge_pix:ny-rm_edge_pix,rm_edge_pix:nx-rm_edge_pix]\
                        .reshape([final_size, factor, final_size, factor]).sum(3).sum(1)
-        self.matrixCurrent = retrnArr.copy()
+        retrnMa = self.matrixCurrent.mask[rm_edge_pix:ny - rm_edge_pix, rm_edge_pix:nx - rm_edge_pix] \
+                        .reshape([final_size, factor, final_size, factor]).sum(3).sum(1)
+        self.matrixCurrent = ma.array(data=retrnArr, mask=(retrnMa>=1))
         print(self.matrixCurrent.shape)
         # Update mesh
         self.pixel_size_mm *= factor
@@ -424,7 +428,7 @@ class MedipixMatrix:
             raise ValueError('Pattern and mesh shape dont match')
 
 
-        self.matrixDrawable = self.matrixCurrent
+        self.matrixDrawable = self.matrixCurrent.copy()
 
         if not smooth_fwhm <= 0:
             self.manip_smooth(smooth_fwhm, matrix='Drawable')
@@ -488,7 +492,9 @@ if __name__ == '__main__':
     mm2.manip_correct_central_pix()
 
     # -Sum pixels, zero central pixels and remove edge pixels all in one
-    mm2.manip_compress(factor=3, rm_central_pix=1, rm_edge_pix=2)
+    mm2.manip_compress(factor=2, rm_central_pix=2, rm_edge_pix=0)
+
+    mm2.manip_smooth(2.0)
 
     # -Mask pixels
 
