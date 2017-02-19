@@ -179,7 +179,6 @@ class MedipixMatrix:
         # inicialization medipix histogram
         self.hist = MpxHist(self.matrixCurrent)
 
-
     # ===== - IO Methods - =====
     def __io_load(self, filename):
         """
@@ -261,7 +260,20 @@ class MedipixMatrix:
     def io_load_json(self):
         pass
 
+    def load_mask(self,filename):
+        # TODO
+        pass
+
+    def set_mask(self, mask):
+        mask = np.array(mask)
+        self.matrixCurrent.mask = mask
+
     # ===== - Matrix Manipulation Methods - =====
+
+    def undo_all(self):
+        self.matrixCurrent = self.matrixOriginal.copy()
+        self.matrixDrawable = self.matrixOriginal.copy()
+
     def manip_orient(self, strg):
         assert isinstance(strg, str)
         temp_matrix = self.matrixCurrent
@@ -339,7 +351,6 @@ class MedipixMatrix:
         :param factor:
         :return:
         '''
-        # TODO mask
         if rm_central_pix is not None:
             self.rm_central_pix = rm_central_pix
         if self.real_size <= 1:
@@ -494,7 +505,8 @@ if __name__ == '__main__':
     # -Sum pixels, zero central pixels and remove edge pixels all in one
     mm2.manip_compress(factor=2, rm_central_pix=2, rm_edge_pix=0)
 
-    mm2.manip_smooth(2.0)
+    # Smooth
+    #mm2.manip_smooth(2.0)
 
     # -Mask pixels
 
