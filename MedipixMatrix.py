@@ -219,7 +219,7 @@ class MedipixMatrix:
         :param filename: is the name or full path to the file
         :return:
         """
-        np.savetxt(filename, self.matrixCurrent, "%d")
+        np.savetxt(filename, self.matrixCurrent.filled(0), "%d")
 
     def __io_load_origin(self):
         """
@@ -244,7 +244,7 @@ class MedipixMatrix:
         :return:
         """
         #matrix = MedipixMatrix.manip_correct_central_pix(self.matrixCurrent, self.nChipsX, self.nChipsY, real_size=real_size)
-        matrix = self.matrixCurrent
+        matrix = self.matrixCurrent.filled(0)
         (ny, nx) = matrix.shape
         print(nx,ny)
         with open(filename, mode='wb') as newfile:  # b is important -> binary
@@ -261,8 +261,8 @@ class MedipixMatrix:
         pass
 
     def load_mask(self,filename):
-        # TODO
-        pass
+        mask = np.loadtxt(filename)
+        self.matrixCurrent.mask = (mask == 1)
 
     def set_mask(self, mask):
         mask = np.array(mask)
@@ -511,6 +511,7 @@ if __name__ == '__main__':
     # -Mask pixels
 
     # Save
+    mm2.io_save_ascii('/home/eric/Desktop/test.txt')
 
     # Plotting
     f2 = plt.figure(2)
