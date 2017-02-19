@@ -4,7 +4,7 @@
 #sys.path.append('/home/eric/ericathome/home/eric/PycharmProjects/CustomWidgets')
 #print(sys.path)
 
-from CustomWidgets import *
+from CustomWidgets import AngleMeasure, RectangleSelector
 
 import numpy as np
 import numpy.ma as ma
@@ -178,6 +178,14 @@ class MedipixMatrix:
 
         # inicialization medipix histogram
         self.hist = MpxHist(self.matrixCurrent)
+
+        # Draw variables
+        self.ax = None
+        self.center = (0,0)
+        self.angle = 0
+        self.ang_wid = None
+        self.rectangle_limits = None
+        self.RS = None
 
     # ===== - IO Methods - =====
     def __io_load(self, filename):
@@ -465,13 +473,35 @@ class MedipixMatrix:
         axes.set_xlabel(r'$\theta$')
         axes.set_ylabel(r'$\omega$')
         axes.axis('image')
-        cursor = AngleMeasure(axes)
+
+    def callonangle(self, center, angle):
+        self.center = center
+        self.angle = angle
+        self.ang_wid = None
+
+    def get_angle_tool(self):
+        if self.ax is None:
+            raise ValueError('No axes are defined')
+        self.center = (0,0)
+        self.angle = 0
+        self.ang_wid = AngleMeasure(self.ax, self.callonangle)
+
+    def onselect_RS(self, eclick, erelease):
+        'eclick and erelease are matplotlib events at press and release'
+        self.rectangle_limits = (eclick.xdata, erelease.xdata, eclick.ydata, erelease.ydata)
+        self.RS = None
+
+    def get_rectangle_tool(self):
+        if self.ax is None:
+            raise ValueError('No axes are defined')
+        self.rectangle_limits = None
+        self.RS = RectangleSelector(self.ax, self.onselect_RS, drawtype='box')
 
 
 if __name__ == '__main__':
     print('Step by step example of using MedipixMatrix')
 
-    # Create Medipix matrix from array
+    # Create MedipixMatrix from array
     pattern = np.random.poisson(1000,(22,22))
     pattern[0, 0] = 0
     pattern[0, 1] = 0
@@ -517,8 +547,19 @@ if __name__ == '__main__':
     f2 = plt.figure(2)
     ax2 = plt.subplot('111')
     mm2.draw(ax2, percentiles=(0.01, 0.99))
-    plt.show()
+
+    # get rectangle
+    mm2.get_rectangle_tool()
 
     # Measure angles - widget
+    #mm2.get_angle_tool()
 
+    # Show
+    plt.show(block=False)
 
+    # close figure to continue
+
+    # print measured anlges
+    print('angle widget, center ', mm2.center, ', angle ', mm2.angle)
+
+    # mask array
