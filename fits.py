@@ -434,6 +434,7 @@ if __name__ == "__main__":
     fractions_per_sim = np.array([0.7, 0.2, 0.1])
     total_events = 1e5
     patt = creator.make_pattern(0.2, -0.2, 5, fractions_per_sim, total_events, 'montecarlo')
+    patt = ma.masked_where(xmesh >=1.5,patt)
 
     plt.figure(0)
     plt.contourf(xmesh, ymesh, patt)#, np.arange(0, 3000, 100))
