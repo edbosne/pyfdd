@@ -298,13 +298,13 @@ class fits:
         #ll = -np.sum(events_per_sim) + np.sum(data_pattern * np.log(sim_pattern))
         #print('likelihood - ', ll)
         # =====
-        # fg = plt.figure(1)
-        # ax = fg.add_subplot(111)
-        # plt.ion()
-        # cont = None
-        # plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)
-        # fg.canvas.draw()
-        # plt.show(block=False)
+        fg = plt.figure(1)
+        ax = fg.add_subplot(111)
+        plt.ion()
+        cont = None
+        plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)
+        fg.canvas.draw()
+        plt.show(block=False)
         # =====
         return -ll
 
@@ -425,20 +425,21 @@ if __name__ == "__main__":
     ft = fits(lib)
 
     # set a pattern to fit
-    x=np.arange(-1.79,1.8,0.1)
+    x=np.arange(-1.79,1.8,0.01)
     xmesh, ymesh = np.meshgrid(x,x)
     #xmesh, ymesh = create_detector_mesh(20, 20, 1.4, 300)
     #xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
 
-    creator = PatternCreator(lib, xmesh, ymesh, (0,10))
+    creator = PatternCreator(lib, xmesh, ymesh, (0,100))
     fractions_per_sim = np.array([0.7, 0.2, 0.1])
-    total_events = 1e6
+    total_events = 1e5
     patt = creator.make_pattern(0.2, -0.2, 5, fractions_per_sim, total_events, 'montecarlo')
 
     plt.figure(0)
     plt.contourf(xmesh, ymesh, patt)#, np.arange(0, 3000, 100))
     plt.colorbar()
     plt.show(block=False)
+    #plt.show()
 
     # set a fitting routine
     counts_ordofmag = 10**(int(math.log10(patt.sum())))
