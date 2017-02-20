@@ -268,6 +268,8 @@ class MedipixMatrix:
     def io_load_json(self):
         pass
 
+    # ===== - Mask Methods - =====
+
     def load_mask(self,filename):
         mask = np.loadtxt(filename)
         self.matrixCurrent.mask = (mask == 1)
@@ -275,6 +277,20 @@ class MedipixMatrix:
     def set_mask(self, mask):
         mask = np.array(mask)
         self.matrixCurrent.mask = mask
+
+    def mask_limits(self,limits=None):
+        assert isinstance(self.matrixCurrent, ma.MaskedArray)
+        if limits is None:
+            if self.rectangle_limits is not None:
+                limits = self.rectangle_limits
+            else:
+                raise ValueError('Limits not set')
+        if len(limits) != 4:
+            raise ValueError('limits need length 4')
+        condition = ((limits[0] >= self.xmesh) | (self.xmesh >= limits[1]) |
+                     (limits[2] >= self.ymesh) | (self.ymesh >= limits[3]))
+
+        self.matrixCurrent = ma.masked_where(condition, self.matrixCurrent)
 
     # ===== - Matrix Manipulation Methods - =====
 
@@ -555,7 +571,7 @@ if __name__ == '__main__':
     #mm2.get_angle_tool()
 
     # Show
-    plt.show(block=False)
+    plt.show()
 
     # close figure to continue
 
@@ -563,3 +579,9 @@ if __name__ == '__main__':
     print('angle widget, center ', mm2.center, ', angle ', mm2.angle)
 
     # mask array
+    mm2.mask_limits()
+
+    f2 = plt.figure(2)
+    ax2 = plt.subplot('111')
+    mm2.draw(ax2, percentiles=(0.01, 0.99))
+    plt.show()
