@@ -39,7 +39,7 @@ class PatternCreator:
     Can create patterns for a specific detector configuration
     Can create ideal patterns, patterns with poisson noise and by Monte Carlo
     '''
-    def __init__(self, lib, xmesh=None, ymesh=None, simulations=0):
+    def __init__(self, lib, xmesh=None, ymesh=None, simulations=0, mask=ma.nomask):
         """
         __init__ method for PatternCreator. Simulation and mesh are to be stated here.
         :type lib: lib2dl
@@ -88,6 +88,7 @@ class PatternCreator:
         self._ymesh = np.array([])
         self._update_coordinates_mesh()
         self.sim_shape = self._xmesh.shape
+        self.mask = mask
 
         # set orriginal pattern stack
         # TODO no stack
@@ -138,7 +139,7 @@ class PatternCreator:
         self._move(dx,dy)
         # render normalized pattern
         sim_pattern = self._grid_interpolation()
-        mask = sim_pattern.mask
+        mask = sim_pattern.mask.copy()
         # types
         if type == 'ideal':
             return sim_pattern
@@ -174,6 +175,8 @@ class PatternCreator:
         Rotates self._pattern_stack_original by ang
         :param ang: angle in degrees
         """
+        # positive counterclockwise
+        ang = -ang
         new_pattern_stact = np.array([])
         for i in range(self._pattern_stack_original.shape[0]):
             pattern_i = self._pattern_stack_original[i, :, :].copy()
@@ -260,6 +263,7 @@ class PatternCreator:
             else:
                 new_pattern_stact = np.concatenate((new_pattern_stact,temp_pattern),0)
         pattern_temp = new_pattern_stact.sum(0)
+        pattern_temp = ma.array(data=pattern_temp, mask=self.mask)
         pattern_temp =  pattern_temp / pattern_temp.sum() * self.total_events # number of events
         return ma.masked_equal(pattern_temp,0)
         #rtrn_data = map_coordinates(self.pattern_current, (grid_y_temp, grid_x_temp),order=3,prefilter=False)

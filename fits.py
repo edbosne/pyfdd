@@ -10,6 +10,7 @@ __email__ = 'eric.bosne@cern.ch'
 
 from lib2dl import lib2dl
 from patterncreator import *
+from MedipixMatrix import *
 
 import numpy as np
 import scipy.optimize as op
@@ -40,9 +41,9 @@ class fits:
         self.p0_scale = np.ones((8))
 
     def set_data_pattern(self,XXmesh,YYmesh,pattern,mask=None):
-        self.XXmesh = XXmesh
-        self.YYmesh = YYmesh
-        self.data_pattern = pattern
+        self.XXmesh = XXmesh.copy()
+        self.YYmesh = YYmesh.copy()
+        self.data_pattern = pattern.copy()
         self.data_pattern_is_set = True
         self.n_events = self.data_pattern.sum()
         self.n_events_set = True
@@ -65,6 +66,7 @@ class fits:
         p0 += (f_p2/self.p0_scale[5],) if self.pattern_2_use else ()
         p0 += (f_p3/self.p0_scale[6],) if self.pattern_3_use else ()
         self.p0 = np.array(p0)
+        print('p0 - ', p0)
 
     def set_scale_values(self, dx=1, dy=1, phi=1, total_cts=1, f_p1=1, f_p2=1, f_p3=1):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
@@ -203,28 +205,28 @@ class fits:
         :param fractions_sims: fractions of each simulated pattern
         :return: Pearson's chi2
         """
+        # set data pattern
+        data_pattern = self.data_pattern.copy()
         if not len(simulations) == len(fractions_sims):
             raise ValueError("size o simulations is diferent than size o events")
         fractions_sims = np.array(fractions_sims)
         rnd_events = np.array([1 - fractions_sims.sum()])
         # generate sim pattern
-        gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations)
+        gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations, mask=data_pattern.mask)
         fractions = np.concatenate((rnd_events, fractions_sims))
         sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, 'ideal')
-        # set data pattern
-        data_pattern = self.data_pattern
         # chi2, pval = self.chi_square_fun(data_pattern,sim_pattern)
         chi2 = np.sum((data_pattern - sim_pattern) ** 2 / np.abs(sim_pattern))
         print('chi2 - ', chi2)
         # print('p-value - ',pval)
         # =====
-        # fg = plt.figure(1)
-        # ax = fg.add_subplot(111)
-        # plt.ion()
-        # cont = None
-        # plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)
-        # fg.canvas.draw()
-        # plt.show(block=False)
+        fg = plt.figure(1)
+        ax = fg.add_subplot(111)
+        plt.ion()
+        cont = None
+        plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)
+        fg.canvas.draw()
+        plt.show(block=False)
         # =====
         return chi2
 
@@ -232,7 +234,7 @@ class fits:
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         print('params ', params)
         p0_scale = self.p0_scale.copy() if enable_scale else np.ones(len(params))
-        print('p0_scale ', p0_scale)
+        #print('p0_scale ', p0_scale)
         dx = params[0] * p0_scale[0]
         dy = params[1] * p0_scale[1]
         phi = params[2] * p0_scale[2]
@@ -251,7 +253,7 @@ class fits:
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         p0 = self.p0
         print('p0 - ', p0)
-        bnds = ((-0.5,+0.5), (-0.5,+0.5), (None,None), (0, None))
+        bnds = ((-3,+3), (-3,+3), (None,None), (0, None))
         bnds += ((0, 1),) if self.pattern_1_use else ()
         bnds += ((0, 1),) if self.pattern_2_use else ()
         bnds += ((0, 1),) if self.pattern_3_use else ()
@@ -281,30 +283,30 @@ class fits:
         :param fractions_sims: fractions of each simulated pattern
         :return: likelihood
         """
+        # set data pattern
+        data_pattern = self.data_pattern.copy()
         if not len(simulations) == len(fractions_sims):
             raise ValueError("size o simulations is diferent than size o events")
         total_events = 1
         fractions_sims = np.array(fractions_sims)
         rnd_events = np.array([1 - fractions_sims.sum()])
         # generate sim pattern
-        gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations)
+        gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations, mask=data_pattern.mask)
         fractions = np.concatenate((rnd_events, fractions_sims))
         sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, 'ideal')
-        # set data pattern
-        data_pattern = self.data_pattern
         # log likelihood
         ll = np.sum(data_pattern * np.log(sim_pattern))
         # extended log likelihood - no need to fit events
         #ll = -np.sum(events_per_sim) + np.sum(data_pattern * np.log(sim_pattern))
         #print('likelihood - ', ll)
         # =====
-        fg = plt.figure(1)
-        ax = fg.add_subplot(111)
-        plt.ion()
-        cont = None
-        plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)
-        fg.canvas.draw()
-        plt.show(block=False)
+        # fg = plt.figure(1)
+        # ax = fg.add_subplot(111)
+        # plt.ion()
+        # cont = None
+        # plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)
+        # fg.canvas.draw()
+        # plt.show(block=False)
         # =====
         return -ll
 
@@ -328,13 +330,13 @@ class fits:
 
     def maximize_likelyhood(self):
         #print('p0 - ', self.p0)
-        bnds = ((-0.5, +0.5), (-0.5, +0.5), (None, None)) # no need for number of cts
+        bnds = ((-3, +3), (-3, +3), (None, None)) #(self.p0[2]-5/self.p0_scale[2],self.p0[2]+5/self.p0_scale[2])) # no need for number of cts
         bnds += ((0, 1),) if self.pattern_1_use else ()
         bnds += ((0, 1),) if self.pattern_2_use else ()
         bnds += ((0, 1),) if self.pattern_3_use else ()
         print('self.p0', self.p0)
         res = op.minimize(self.log_likelihood_call, self.p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options={'eps': 0.0001, 'disp':True, 'maxiter':20, 'ftol':1e-7,'maxcor':1000}) #'eps': 0.001,
+                           options={'eps': 0.0001, 'disp':True, 'maxiter':20, 'ftol':1e-7,'maxcor':1000}) #'eps': 0.0001,
         if self.pattern_1_use:
             if self.pattern_2_use:
                 if self.pattern_3_use:
@@ -417,10 +419,10 @@ class fits:
 if __name__ == "__main__":
 
     test_curve_fit = False
-    test_chi2_min = False
-    test_likelihood_max = True
+    test_chi2_min = True
+    test_likelihood_max = False
 
-    lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl")
+    lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl")
 
     ft = fits(lib)
 
@@ -430,11 +432,18 @@ if __name__ == "__main__":
     #xmesh, ymesh = create_detector_mesh(20, 20, 1.4, 300)
     #xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
 
-    creator = PatternCreator(lib, xmesh, ymesh, (0,100))
-    fractions_per_sim = np.array([0.7, 0.2, 0.1])
-    total_events = 1e5
-    patt = creator.make_pattern(0.2, -0.2, 5, fractions_per_sim, total_events, 'montecarlo')
-    patt = ma.masked_where(xmesh >=1.5,patt)
+    mm = MedipixMatrix(file_path='/home/eric/Desktop/jsontest.json')
+    patt = mm.matrixOriginal
+    xmesh = mm.xmesh
+    ymesh = mm.ymesh
+
+    creator = PatternCreator(lib, xmesh, ymesh, (249,377)
+)
+    #fractions_per_sim = np.array([0.7, 0.2, 0.1])
+    #total_events = 1e6
+    #patt = creator.make_pattern(0, 0, 5, fractions_per_sim, total_events, 'montecarlo')
+    #patt = ma.masked_where(xmesh >=1.5,patt)
+    #patt = ma.array(data=patt, mask=mm.matrixOriginal.mask)
 
     plt.figure(0)
     plt.contourf(xmesh, ymesh, patt)#, np.arange(0, 3000, 100))
@@ -444,8 +453,8 @@ if __name__ == "__main__":
 
     # set a fitting routine
     counts_ordofmag = 10**(int(math.log10(patt.sum())))
-    ft.set_data_pattern(xmesh,ymesh,patt)
-    ft.set_patterns_to_fit(0,10)
+    ft.set_data_pattern(xmesh, ymesh, patt)
+    ft.set_patterns_to_fit(249,377)
 
 
     if test_curve_fit:
@@ -458,8 +467,9 @@ if __name__ == "__main__":
         print(pcov)
 
     if test_chi2_min:
-        ft.set_scale_values(dx=1, dy=1, phi=10, total_cts=counts_ordofmag, f_p1=1)
-        ft.set_inicial_values(0.1, 0.1, 1, counts_ordofmag)
+        ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag, f_p1=1)
+        #ft.set_inicial_values(0.1, 0.1, 1, counts_ordofmag)
+        ft.set_inicial_values(mm.center[0], mm.center[1], 175, counts_ordofmag)
         res = ft.minimize_chi2()
         #var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='chi_square')
         #print('Calculating errors ...')
@@ -476,8 +486,9 @@ if __name__ == "__main__":
         # ft.print_results(res,hh)
 
     if test_likelihood_max:
-        ft.set_scale_values(dx=1, dy=1, phi=10, total_cts=-1, f_p1=1, f_p2=1)
-        ft.set_inicial_values(0.1, 0.1, 1, -1)
+        ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1, f_p1=1, f_p2=1)
+        #ft.set_inicial_values(0.1, 0.1, 1, -1)
+        ft.set_inicial_values(mm.center[0], mm.center[1], 175, -1)
         res = ft.maximize_likelyhood()
         print(res)
         print('Calculating errors ...')
