@@ -11,6 +11,7 @@ import numpy.ma as ma
 import matplotlib.pyplot as plt
 from scipy.ndimage.interpolation import rotate, map_coordinates
 from scipy.interpolate import griddata, interpn
+from scipy.ndimage import gaussian_filter
 
 def create_detector_mesh(n_h_pixels, n_v_pixels, pixel_size, distance):
     """
@@ -103,12 +104,12 @@ class PatternCreator:
                 pattern_stack = temp[np.newaxis].copy()
             else:
                 pattern_stack = np.concatenate((pattern_stack, temp[np.newaxis]), 0)
-        self._pattern_stack_original = pattern_stack
-        self._pattern_stack = pattern_stack
+        self._pattern_stack_original = pattern_stack.copy()
+        self._pattern_stack = pattern_stack.copy()
 
         self.fractions_per_sim = np.zeros(simulations.size + 1) # +1 for random
 
-    def make_pattern(self, dx, dy, phi, fractions_per_sim, total_events, type='ideal'):
+    def make_pattern(self, dx, dy, phi, fractions_per_sim, total_events, sigma=0, type='ideal'):
         """
         Makes a pattern acoording to library and spectruns selected in the iniciation of the patterncreator
         Set total_events=1 and type='ideal' for a normalized spectrum.
@@ -123,6 +124,7 @@ class PatternCreator:
         """
         assert fractions_per_sim.size == self._pattern_stack_original.shape[0], \
             'size of fractions_per_sim does not match the number of simulations'
+        self._pattern_stack = self._pattern_stack_original.copy()
         self.fractions_per_sim = fractions_per_sim
         self.total_events = total_events
         # reset mesh
@@ -133,6 +135,8 @@ class PatternCreator:
         self._xlast = self._xlast_original
         self._ylast = self._ylast_original
         self._update_coordinates_mesh()
+        # gaussian convolution
+        self._gaussian_conv(sigma)
         # rotate
         self._rotate(phi)
         # move mesh
@@ -169,6 +173,20 @@ class PatternCreator:
         H, xedges, yedges = np.histogram2d(mc_event_y, mc_event_x, self._detector_xmesh.shape[::-1])
         return H
 
+    def _gaussian_conv(self, sigma=0):
+        if sigma == 0:
+            return
+        sigma_pix = sigma / self._xstep_original
+        new_pattern_stact = np.array([])
+        for i in range(self._pattern_stack.shape[0]):
+            pattern_i = self._pattern_stack[i, :, :].copy()
+            temp = gaussian_filter(pattern_i, sigma_pix)
+            if not new_pattern_stact.size:
+                new_pattern_stact = temp[np.newaxis].copy()
+            else:
+                new_pattern_stact = np.concatenate((new_pattern_stact, temp[np.newaxis]), 0)
+        self._pattern_stack = new_pattern_stact
+
     def _rotate(self, ang=0):
         # Rotation
         """
@@ -178,8 +196,8 @@ class PatternCreator:
         # positive counterclockwise
         ang = -ang
         new_pattern_stact = np.array([])
-        for i in range(self._pattern_stack_original.shape[0]):
-            pattern_i = self._pattern_stack_original[i, :, :].copy()
+        for i in range(self._pattern_stack.shape[0]):
+            pattern_i = self._pattern_stack[i, :, :].copy()
             temp = rotate(pattern_i, ang, reshape=True, order=3, mode='constant', cval=0, prefilter=True)
             if not new_pattern_stact.size:
                 new_pattern_stact = temp[np.newaxis].copy()
@@ -278,7 +296,7 @@ if __name__ == "__main__":
     fractions_per_sim = np.array([0.3, 0.7])
     #fractions_per_sim /= fractions_per_sim.sum()
     total_events = 1e6
-    pattern = gen.make_pattern(0.5, -0.5, 0.25, fractions_per_sim, total_events, 'ideal')
+    pattern = gen.make_pattern(0.5, -0.5, 0.25, fractions_per_sim, total_events, sigma=0.2, type='ideal')
     print(pattern.sum())
 
     plt.figure(1)

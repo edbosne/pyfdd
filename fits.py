@@ -39,6 +39,7 @@ class fits:
         self.data_pattern_is_set = False
         self.p0 = (None,)
         self.p0_scale = np.ones((8))
+        self.fit_sigma = False
 
     def set_data_pattern(self,XXmesh,YYmesh,pattern,mask=None):
         self.XXmesh = XXmesh.copy()
@@ -56,24 +57,27 @@ class fits:
         self.pattern_3_n = p3_n
         self.pattern_3_use = False if p3_n == None else True
 
-    def set_inicial_values(self,dx=1,dy=1,phi=5,total_cts=1,f_p1=0.25,f_p2=0.25,f_p3=0.25):
+    def set_inicial_values(self,dx=1,dy=1,phi=5,total_cts=1, sigma=0, f_p1=0.25,f_p2=0.25,f_p3=0.25):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         p0 = (dx/self.p0_scale[0],)
         p0 += (dy/self.p0_scale[1],)
         p0 += (phi/self.p0_scale[2],)
         p0 += (total_cts / self.p0_scale[3],) if total_cts > 0 else ()
-        p0 += (f_p1/self.p0_scale[4],) if self.pattern_1_use else ()
-        p0 += (f_p2/self.p0_scale[5],) if self.pattern_2_use else ()
-        p0 += (f_p3/self.p0_scale[6],) if self.pattern_3_use else ()
+        p0 += (sigma / self.p0_scale[4],) if self.fit_sigma > 0 else ()
+        di = 1 if self.fit_sigma else 0
+        p0 += (f_p1/self.p0_scale[4+di],) if self.pattern_1_use else ()
+        p0 += (f_p2/self.p0_scale[5+di],) if self.pattern_2_use else ()
+        p0 += (f_p3/self.p0_scale[6+di],) if self.pattern_3_use else ()
         self.p0 = np.array(p0)
         print('p0 - ', p0)
 
-    def set_scale_values(self, dx=1, dy=1, phi=1, total_cts=1, f_p1=1, f_p2=1, f_p3=1):
+    def set_scale_values(self, dx=1, dy=1, phi=1, total_cts=1, sigma=1, f_p1=1, f_p2=1, f_p3=1):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         p0_scale = (dx,)
         p0_scale += (dy,)
         p0_scale += (phi,)
         p0_scale += (total_cts,) if total_cts > 0 else ()
+        p0_scale += (sigma,) if self.fit_sigma > 0 else ()
         p0_scale += (f_p1,)
         p0_scale += (f_p2,)
         p0_scale += (f_p3,)
@@ -194,7 +198,7 @@ class fits:
         ddof += 1 if self.pattern_2_use else 0
         return st.chisquare(experimental_data, simlulation_data,ddof,axis=None)
 
-    def chi_square(self, dx, dy, phi, total_events, simulations, fractions_sims):
+    def chi_square(self, dx, dy, phi, total_events, simulations, fractions_sims, sigma=0):
         """
         Calculates the Pearson chi2 for the given conditions.
         :param dx: delta x in angles
@@ -214,19 +218,19 @@ class fits:
         # generate sim pattern
         gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations, mask=data_pattern.mask)
         fractions = np.concatenate((rnd_events, fractions_sims))
-        sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, 'ideal')
+        sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, sigma=sigma, type='ideal')
         # chi2, pval = self.chi_square_fun(data_pattern,sim_pattern)
         chi2 = np.sum((data_pattern - sim_pattern) ** 2 / np.abs(sim_pattern))
         print('chi2 - ', chi2)
         # print('p-value - ',pval)
         # =====
-        fg = plt.figure(1)
-        ax = fg.add_subplot(111)
-        plt.ion()
-        cont = None
-        plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)
-        fg.canvas.draw()
-        plt.show(block=False)
+        # fg = plt.figure(1)
+        # ax = fg.add_subplot(111)
+        # plt.ion()
+        # cont = None
+        # plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)
+        # fg.canvas.draw()
+        # plt.show(block=False)
         # =====
         return chi2
 
@@ -239,37 +243,52 @@ class fits:
         dy = params[1] * p0_scale[1]
         phi = params[2] * p0_scale[2]
         total_cts = (params[3] * p0_scale[3],)  # total counts
+        sigma = (params[4] * p0_scale[4],)[0] if self.fit_sigma else 0
+        di = 1 if self.fit_sigma else 0
         fractions_sims = ()
-        fractions_sims += (params[4] * p0_scale[4],) if self.pattern_1_use else () # pattern 1
-        fractions_sims += (params[5] * p0_scale[5],) if self.pattern_2_use else () # pattern 2
-        fractions_sims += (params[6] * p0_scale[6],) if self.pattern_3_use else () # pattern 3
+        fractions_sims += (params[4+di] * p0_scale[4+di],) if self.pattern_1_use else () # pattern 1
+        fractions_sims += (params[5+di] * p0_scale[5+di],) if self.pattern_2_use else () # pattern 2
+        fractions_sims += (params[6+di] * p0_scale[6+di],) if self.pattern_3_use else () # pattern 3
         # get patterns
         simulations  = (self.pattern_1_n,) if self.pattern_1_use else ()
         simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
         simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
-        return self.chi_square(dx, dy, phi, total_cts, simulations, fractions_sims=fractions_sims)
+        return self.chi_square(dx, dy, phi, total_cts, simulations, fractions_sims=fractions_sims, sigma=sigma)
 
     def minimize_chi2(self):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         p0 = self.p0
         print('p0 - ', p0)
         bnds = ((-3,+3), (-3,+3), (None,None), (0, None))
+        bnds += ((None, None),) if self.fit_sigma else ()
         bnds += ((0, 1),) if self.pattern_1_use else ()
         bnds += ((0, 1),) if self.pattern_2_use else ()
         bnds += ((0, 1),) if self.pattern_3_use else ()
 
         res = op.minimize(self.chi_square_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options={'disp':True, 'maxiter':20, 'ftol':1e-7,'maxcor':1000}) #'eps':0.001,
-        if self.pattern_1_use:
-            if self.pattern_2_use:
-                if self.pattern_3_use:
-                    res['x'] *= ft.p0_scale[0:7]
+                           options={'disp':True, 'maxiter':30, 'ftol':1e-7,'maxcor':1000}) #'eps':0.001,
+        if self.fit_sigma:
+            if self.pattern_1_use:
+                if self.pattern_2_use:
+                    if self.pattern_3_use:
+                        res['x'] *= ft.p0_scale[0:8]
+                    else:
+                        res['x'] *= ft.p0_scale[0:7]
                 else:
                     res['x'] *= ft.p0_scale[0:6]
             else:
                 res['x'] *= ft.p0_scale[0:5]
         else:
-            res['x'] *= ft.p0_scale[0:4]
+            if self.pattern_1_use:
+                if self.pattern_2_use:
+                    if self.pattern_3_use:
+                        res['x'] *= ft.p0_scale[0:7]
+                    else:
+                        res['x'] *= ft.p0_scale[0:6]
+                else:
+                    res['x'] *= ft.p0_scale[0:5]
+            else:
+                res['x'] *= ft.p0_scale[0:4]
         return res
 
 # methods for maximum likelihood
@@ -419,8 +438,8 @@ class fits:
 if __name__ == "__main__":
 
     test_curve_fit = False
-    test_chi2_min = True
-    test_likelihood_max = False
+    test_chi2_min = False
+    test_likelihood_max = True
 
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl")
 
@@ -433,17 +452,17 @@ if __name__ == "__main__":
     #xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
 
     mm = MedipixMatrix(file_path='/home/eric/Desktop/jsontest.json')
-    patt = mm.matrixOriginal
+    #patt = mm.matrixOriginal
     xmesh = mm.xmesh
     ymesh = mm.ymesh
 
-    creator = PatternCreator(lib, xmesh, ymesh, (249,377)
+    creator = PatternCreator(lib, xmesh, ymesh, (249-249,377-249)
 )
-    #fractions_per_sim = np.array([0.7, 0.2, 0.1])
-    #total_events = 1e6
-    #patt = creator.make_pattern(0, 0, 5, fractions_per_sim, total_events, 'montecarlo')
+    fractions_per_sim = np.array([0.7, 0.2, 0.1])
+    total_events = 1e6
+    patt = creator.make_pattern(-1, +1, 179, fractions_per_sim, total_events, sigma=0.14, type='poisson')
     #patt = ma.masked_where(xmesh >=1.5,patt)
-    #patt = ma.array(data=patt, mask=mm.matrixOriginal.mask)
+    patt = ma.array(data=patt, mask=mm.matrixOriginal.mask)
 
     plt.figure(0)
     plt.contourf(xmesh, ymesh, patt)#, np.arange(0, 3000, 100))
@@ -454,7 +473,8 @@ if __name__ == "__main__":
     # set a fitting routine
     counts_ordofmag = 10**(int(math.log10(patt.sum())))
     ft.set_data_pattern(xmesh, ymesh, patt)
-    ft.set_patterns_to_fit(249,377)
+    ft.set_patterns_to_fit(249-249,377-249)
+    ft.fit_sigma = True
 
 
     if test_curve_fit:
@@ -467,9 +487,9 @@ if __name__ == "__main__":
         print(pcov)
 
     if test_chi2_min:
-        ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag, f_p1=1)
+        ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag, sigma=1, f_p1=1)
         #ft.set_inicial_values(0.1, 0.1, 1, counts_ordofmag)
-        ft.set_inicial_values(mm.center[0], mm.center[1], 175, counts_ordofmag)
+        ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle+180, counts_ordofmag, sigma=0.1)
         res = ft.minimize_chi2()
         #var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='chi_square')
         #print('Calculating errors ...')
@@ -496,4 +516,5 @@ if __name__ == "__main__":
         #ft.print_variance(res['x'],var)
         #ft.get_location_errors(res['x'], (0,), last=300, func='likelihood')
 
+    print('data points ', np.sum(~patt.mask))
 
