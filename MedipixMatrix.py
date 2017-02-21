@@ -14,9 +14,9 @@ import scipy.ndimage
 import math
 import matplotlib as ml
 import matplotlib.pyplot as plt
-#from StringIO import StringIO
 import struct
 import warnings
+import json, io
 
 def create_detector_mesh(n_h_pixels, n_v_pixels, pixel_size, distance):
     #same as in PyFDD/patterncrator
@@ -148,6 +148,24 @@ class MedipixMatrix:
         self.path_in = ''
         self.filetype_in = ''
 
+        # create data objects for detector mesh
+        self.is_mesh_defined = False
+        self.xmesh = np.array([[]])
+        self.ymesh = np.array([[]])
+        (self.ny, self.nx) = (0, 0)
+
+        # values for angular calibration
+        self.pixel_size_mm = 1
+        self.distance = 300
+
+        # values for manipulation methods
+        self.mask_central_pixels = 0
+        self.rm_edge_pixels = 0
+
+        # orientation variables
+        self.center = (0,0)
+        self.angle = 0
+
         # importing matrix
         if not pattern_array is None:
             self.matrixOriginal = ma.array(data=pattern_array.copy(),mask=False)
@@ -160,29 +178,16 @@ class MedipixMatrix:
         self.matrixCurrent = self.matrixOriginal.copy()
         self.matrixDrawable = self.matrixOriginal.copy()
 
-        # create detector mesh
-        self.is_mesh_defined = False
-        self.xmesh = np.array([[]])
-        self.ymesh = np.array([[]])
-
-        # values for angular calibration
-        self.pixel_size_mm = 1
-        self.distance = 300
+        # creating mesh
         # ang_range = self.ang_get_range(self.distance, self.matrixDrawable.shape[0] * self.pixel_size_mm)
         # self.range = kwargs.get('range', (-ang_range / 2.0, ang_range / 2.0))
         self.manip_create_mesh()
-
-        # values for manipulation methods
-        self.rm_central_pixels = 0
-        self.rm_edge_pixels = 0
 
         # inicialization medipix histogram
         self.hist = MpxHist(self.matrixCurrent)
 
         # Draw variables
         self.ax = None
-        self.center = (0,0)
-        self.angle = 0
         self.ang_wid = None
         self.rectangle_limits = None
         self.RS = None
@@ -262,13 +267,64 @@ class MedipixMatrix:
             tempbytes = struct.pack("<"+ ny * nx * "f", *matrix.reshape((ny * nx)))
             newfile.write(tempbytes)
 
-    def io_save_json(self):
-        # TODO
-        pass
+    def io_save_json(self, jsonfile):
+        js_out = {}
+        js_out['matrix'] = {}
+        js_out['matrix']['data'] = self.matrixCurrent.data.tolist()
+        js_out['matrix']['mask'] = self.matrixCurrent.mask.tolist()
+        js_out['matrix']['fill_value'] = self.matrixCurrent.fill_value.tolist()
+        # real size of pixels between chips
+        js_out['real_size'] = self.real_size
+        js_out['nchipsx'] = self.nChipsX
+        js_out['nchipsy'] = self.nChipsY
+        # data objects for detector mesh
+        js_out['is_mesh_defined'] = self.is_mesh_defined
+        js_out['xmesh'] = self.xmesh.tolist()
+        js_out['ymesh'] = self.ymesh.tolist()
+        js_out['ny'] = self.ny
+        js_out['nx'] = self.nx
+        # values for angular calibration
+        js_out['pixel_size_mm'] = self.pixel_size_mm
+        js_out['distance'] = self.distance
+        # values for manipulation methods
+        js_out['mask_central_pixels'] = self.mask_central_pixels
+        js_out['rm_edge_pixels'] = self.rm_edge_pixels
+        # orientation variables
+        js_out['center'] = self.center
+        js_out['angle'] = self.angle
+
+        # save to file
+        #with io.open(jsonfile, 'w', encoding='utf-8') as f:
+        #    f.write(str(json.dumps(js_out, ensure_ascii=False, sort_keys=True)))
+        with open(jsonfile, 'w') as fp:
+            json.dump(js_out, fp)
 
     def io_load_json(self):
-        # TODO
-        pass
+        with open(os.path.join(self.path_in, self.filename_in), mode='r') as fp:
+            json_in = json.load(fp)
+            matrix_data = json_in['matrix']['data']
+            matrix_mask = json_in['matrix']['mask']
+            matrix_fill = json_in['matrix']['fill_value']
+            self.matrixOriginal = ma.array(data=matrix_data, mask=matrix_mask, fill_value=matrix_fill)
+            # real size of pixels between chips
+            self.real_size = json_in['real_size']
+            self.nChipsX = json_in['nchipsx']
+            self.nChipsY = json_in['nchipsy']
+            # data objects for detector mesh
+            self.is_mesh_defined = json_in['is_mesh_defined']
+            self.xmesh = np.array(json_in['xmesh'])
+            self.ymesh = np.array(json_in['ymesh'])
+            json_in['ny'] = self.ny
+            json_in['nx'] = self.nx
+            # values for angular calibration
+            self.pixel_size_mm = json_in['pixel_size_mm']
+            self.distance = json_in['distance']
+            # values for manipulation methods
+            self.mask_central_pixels = json_in['mask_central_pixels']
+            self.rm_edge_pixels = json_in['rm_edge_pixels']
+            # orientation variables
+            self.center = json_in['center']
+            self.angle = json_in['angle']
 
     # ===== - Mask Methods - =====
 
@@ -515,6 +571,8 @@ class MedipixMatrix:
         self.rectangle_limits = None
         self.RS = RectangleSelector(self.ax, self.onselect_RS, drawtype='box')
 
+def jdefault(o):
+    return o.__dict__
 
 if __name__ == '__main__':
     print('Step by step example of using MedipixMatrix')
@@ -529,6 +587,14 @@ if __name__ == '__main__':
     ax1 = plt.subplot('111')
     mm1.draw(ax1)
     f1.show()
+    mm1.io_save_json('/home/eric/Desktop/jsontest.json')
+
+    mm3 = MedipixMatrix(file_path='/home/eric/Desktop/jsontest.json')
+    print('mm3 shape ', mm3.matrixCurrent.shape)
+    f3 = plt.figure(3)
+    ax3 = plt.subplot('111')
+    mm3.draw(ax3)
+    f3.show()
 
     # Create MedipixMatrix from file
     filename = '/home/eric/cernbox/PAD_data/tpix pcischan5/vat2866a.2db'
@@ -567,10 +633,10 @@ if __name__ == '__main__':
     mm2.draw(ax2, percentiles=(0.01, 0.99))
 
     # get rectangle
-    mm2.get_rectangle_tool()
+    #mm2.get_rectangle_tool()
 
     # Measure angles - widget
-    #mm2.get_angle_tool()
+    mm2.get_angle_tool()
 
     # Show
     plt.show()
@@ -581,7 +647,7 @@ if __name__ == '__main__':
     print('angle widget, center ', mm2.center, ', angle ', mm2.angle)
 
     # mask array
-    mm2.mask_limits()
+    mm2.mask_limits(limits=(mm2.center[0]-2.8, mm2.center[0]+2.8, mm2.center[1]-2.8, mm2.center[1]+2.8))
 
     f2 = plt.figure(2)
     ax2 = plt.subplot('111')
