@@ -263,9 +263,11 @@ class MedipixMatrix:
             newfile.write(tempbytes)
 
     def io_save_json(self):
+        # TODO
         pass
 
     def io_load_json(self):
+        # TODO
         pass
 
     # ===== - Mask Methods - =====
