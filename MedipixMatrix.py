@@ -647,7 +647,7 @@ if __name__ == '__main__':
     print('angle widget, center ', mm2.center, ', angle ', mm2.angle)
 
     # mask array
-    mm2.mask_limits(limits=(mm2.center[0]-2.8, mm2.center[0]+2.8, mm2.center[1]-2.8, mm2.center[1]+2.8))
+    mm2.mask_limits(limits=(mm2.center[0]-2.7, mm2.center[0]+2.7, mm2.center[1]-2.7, mm2.center[1]+2.7))
 
     f2 = plt.figure(2)
     ax2 = plt.subplot('111')
