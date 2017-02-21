@@ -653,3 +653,4 @@ if __name__ == '__main__':
     ax2 = plt.subplot('111')
     mm2.draw(ax2, percentiles=(0.01, 0.99))
     plt.show()
+    mm2.io_save_json('/home/eric/Desktop/jsontest.json')
