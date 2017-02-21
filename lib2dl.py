@@ -74,6 +74,7 @@ class lib2dl:
             self.ny_mirror = self.ny
 
     def get_simulation_patt(self,num):
+        assert num >= 0, 'pattern number is negative'
         temp = np.array(self.ECdict["Spectrums"][num]["array"]).copy()
         return self.mirror(temp)
 

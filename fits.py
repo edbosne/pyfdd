@@ -36,6 +36,7 @@ class fits:
         self.XXmesh = None
         self.YYmesh = None
         self.data_pattern = None
+        self.sim_pattern = None
         self.data_pattern_is_set = False
         self.p0 = (None,)
         self.p0_scale = np.ones((8))
@@ -219,6 +220,7 @@ class fits:
         gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations, mask=data_pattern.mask)
         fractions = np.concatenate((rnd_events, fractions_sims))
         sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, sigma=sigma, type='ideal')
+        self.sim_pattern = sim_pattern.copy()
         # chi2, pval = self.chi_square_fun(data_pattern,sim_pattern)
         chi2 = np.sum((data_pattern - sim_pattern) ** 2 / np.abs(sim_pattern))
         print('chi2 - ', chi2)
@@ -228,7 +230,7 @@ class fits:
         # ax = fg.add_subplot(111)
         # plt.ion()
         # cont = None
-        # plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)
+        # plt.contourf(self.XXmesh, self.YYmesh, (data_pattern-sim_pattern))
         # fg.canvas.draw()
         # plt.show(block=False)
         # =====
@@ -266,7 +268,7 @@ class fits:
         bnds += ((0, 1),) if self.pattern_3_use else ()
 
         res = op.minimize(self.chi_square_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options={'disp':True, 'maxiter':30, 'ftol':1e-7,'maxcor':1000}) #'eps':0.001,
+                           options={'disp':True, 'maxiter':20, 'ftol':1e-7,'maxcor':1000}) #'eps':0.001,
         if self.fit_sigma:
             if self.pattern_1_use:
                 if self.pattern_2_use:
@@ -292,7 +294,7 @@ class fits:
         return res
 
 # methods for maximum likelihood
-    def log_likelihood(self, dx, dy, phi, simulations, fractions_sims):
+    def log_likelihood(self, dx, dy, phi, simulations, fractions_sims, sigma=0):
         """
         Calculates the Pearson chi2 for the given conditions.
         :param dx: delta x in angles
@@ -312,7 +314,8 @@ class fits:
         # generate sim pattern
         gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations, mask=data_pattern.mask)
         fractions = np.concatenate((rnd_events, fractions_sims))
-        sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, 'ideal')
+        sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, sigma=sigma, type='ideal')
+        self.sim_pattern = sim_pattern.copy()
         # log likelihood
         ll = np.sum(data_pattern * np.log(sim_pattern))
         # extended log likelihood - no need to fit events
@@ -337,35 +340,50 @@ class fits:
         dx = params[0] * p0_scale[0]
         dy = params[1] * p0_scale[1]
         phi = params[2] * p0_scale[2]
+        sigma = (params[3] * p0_scale[3],)[0] if self.fit_sigma else 0
+        di = 1 if self.fit_sigma else 0
         fractions_sims = ()
-        fractions_sims += (params[3] * p0_scale[3],) if self.pattern_1_use else () # pattern 1
-        fractions_sims += (params[4] * p0_scale[4],) if self.pattern_2_use else () # pattern 2
-        fractions_sims += (params[5] * p0_scale[5],) if self.pattern_3_use else () # pattern 3
+        fractions_sims += (params[3+di] * p0_scale[3+di],) if self.pattern_1_use else () # pattern 1
+        fractions_sims += (params[4+di] * p0_scale[4+di],) if self.pattern_2_use else () # pattern 2
+        fractions_sims += (params[5+di] * p0_scale[5+di],) if self.pattern_3_use else () # pattern 3
         # get patterns
         simulations  = (self.pattern_1_n,) if self.pattern_1_use else ()
         simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
         simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
-        return self.log_likelihood(dx, dy, phi, simulations, fractions_sims)
+        return self.log_likelihood(dx, dy, phi, simulations, fractions_sims, sigma=sigma)
 
     def maximize_likelyhood(self):
         #print('p0 - ', self.p0)
         bnds = ((-3, +3), (-3, +3), (None, None)) #(self.p0[2]-5/self.p0_scale[2],self.p0[2]+5/self.p0_scale[2])) # no need for number of cts
+        bnds += ((None, None),) if self.fit_sigma else ()
         bnds += ((0, 1),) if self.pattern_1_use else ()
         bnds += ((0, 1),) if self.pattern_2_use else ()
         bnds += ((0, 1),) if self.pattern_3_use else ()
         print('self.p0', self.p0)
         res = op.minimize(self.log_likelihood_call, self.p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options={'eps': 0.0001, 'disp':True, 'maxiter':20, 'ftol':1e-7,'maxcor':1000}) #'eps': 0.0001,
-        if self.pattern_1_use:
-            if self.pattern_2_use:
-                if self.pattern_3_use:
-                    res['x'] *= ft.p0_scale[0:6]
+                           options={'eps': 0.0001, 'disp':True, 'maxiter':20, 'ftol':1e-10,'maxcor':1000}) #'eps': 0.0001,
+        if self.fit_sigma:
+            if self.pattern_1_use:
+                if self.pattern_2_use:
+                    if self.pattern_3_use:
+                        res['x'] *= ft.p0_scale[0:7]
+                    else:
+                        res['x'] *= ft.p0_scale[0:6]
                 else:
                     res['x'] *= ft.p0_scale[0:5]
             else:
                 res['x'] *= ft.p0_scale[0:4]
         else:
-            res['x'] *= ft.p0_scale[0:3]
+            if self.pattern_1_use:
+                if self.pattern_2_use:
+                    if self.pattern_3_use:
+                        res['x'] *= ft.p0_scale[0:6]
+                    else:
+                        res['x'] *= ft.p0_scale[0:5]
+                else:
+                    res['x'] *= ft.p0_scale[0:4]
+            else:
+                res['x'] *= ft.p0_scale[0:3]
         return res
         return res
 
@@ -446,23 +464,23 @@ if __name__ == "__main__":
     ft = fits(lib)
 
     # set a pattern to fit
-    x=np.arange(-1.79,1.8,0.01)
-    xmesh, ymesh = np.meshgrid(x,x)
+    #x=np.arange(-1.79,1.8,0.01)
+    #xmesh, ymesh = np.meshgrid(x,x)
     #xmesh, ymesh = create_detector_mesh(20, 20, 1.4, 300)
     #xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
 
     mm = MedipixMatrix(file_path='/home/eric/Desktop/jsontest.json')
-    #patt = mm.matrixOriginal
+    patt = mm.matrixOriginal
     xmesh = mm.xmesh
     ymesh = mm.ymesh
 
     creator = PatternCreator(lib, xmesh, ymesh, (249-249,377-249)
 )
-    fractions_per_sim = np.array([0.7, 0.2, 0.1])
-    total_events = 1e6
-    patt = creator.make_pattern(-1, +1, 179, fractions_per_sim, total_events, sigma=0.14, type='poisson')
+    #fractions_per_sim = np.array([0.7, 0.2, 0.1])
+    #total_events = 1e6
+    #patt = creator.make_pattern(-1, +1, 179, fractions_per_sim, total_events, sigma=0.14, type='poisson')
     #patt = ma.masked_where(xmesh >=1.5,patt)
-    patt = ma.array(data=patt, mask=mm.matrixOriginal.mask)
+    #patt = ma.array(data=patt, mask=mm.matrixOriginal.mask)
 
     plt.figure(0)
     plt.contourf(xmesh, ymesh, patt)#, np.arange(0, 3000, 100))
@@ -489,7 +507,7 @@ if __name__ == "__main__":
     if test_chi2_min:
         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag, sigma=1, f_p1=1)
         #ft.set_inicial_values(0.1, 0.1, 1, counts_ordofmag)
-        ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle+180, counts_ordofmag, sigma=0.1)
+        ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, counts_ordofmag, sigma=0.1)
         res = ft.minimize_chi2()
         #var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='chi_square')
         #print('Calculating errors ...')
@@ -508,7 +526,7 @@ if __name__ == "__main__":
     if test_likelihood_max:
         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1, f_p1=1, f_p2=1)
         #ft.set_inicial_values(0.1, 0.1, 1, -1)
-        ft.set_inicial_values(mm.center[0], mm.center[1], 175, -1)
+        ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, -1, sigma=0.1)
         res = ft.maximize_likelyhood()
         print(res)
         print('Calculating errors ...')
@@ -517,4 +535,16 @@ if __name__ == "__main__":
         #ft.get_location_errors(res['x'], (0,), last=300, func='likelihood')
 
     print('data points ', np.sum(~patt.mask))
+
+    plt.figure(2)
+    plt.contourf(xmesh, ymesh, ft.sim_pattern)
+    plt.colorbar()
+
+    plt.figure(3)
+    if test_chi2_min:
+        plt.contourf(xmesh, ymesh, ft.sim_pattern - patt)
+    if test_likelihood_max:
+        plt.contourf(xmesh, ymesh, ft.sim_pattern-patt/patt.sum())
+    plt.colorbar()
+    plt.show(block=True)
 
