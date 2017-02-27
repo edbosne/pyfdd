@@ -3,7 +3,6 @@
 '''
 The fits object gets access to a lib2dl object and performs fits and statistical tests to data or MC simulation
 '''
-import patterncreator
 
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
@@ -18,6 +17,8 @@ import scipy.stats as st
 import matplotlib.pyplot as plt
 import math
 #import numdifftools as nd
+from scipy.ndimage import gaussian_filter
+
 
 
 class fits:
@@ -456,8 +457,8 @@ class fits:
 if __name__ == "__main__":
 
     test_curve_fit = False
-    test_chi2_min = False
-    test_likelihood_max = True
+    test_chi2_min = True
+    test_likelihood_max = False
 
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl")
 
@@ -470,17 +471,17 @@ if __name__ == "__main__":
     #xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
 
     mm = MedipixMatrix(file_path='/home/eric/Desktop/jsontest.json')
-    patt = mm.matrixOriginal
+    #patt = mm.matrixOriginal
     xmesh = mm.xmesh
     ymesh = mm.ymesh
 
-    creator = PatternCreator(lib, xmesh, ymesh, (249-249,377-249)
-)
-    #fractions_per_sim = np.array([0.7, 0.2, 0.1])
-    #total_events = 1e6
-    #patt = creator.make_pattern(-1, +1, 179, fractions_per_sim, total_events, sigma=0.14, type='poisson')
+    creator = PatternCreator(lib, xmesh, ymesh, (249-249,377-249))
+    fractions_per_sim = np.array([0.65, 0.30, 0.05])
+    total_events = 1e6
+    # TODO fix montecarlo
+    patt = creator.make_pattern(-1.08, 1.18, 179, fractions_per_sim, total_events, sigma=0.1, type='poisson')
     #patt = ma.masked_where(xmesh >=1.5,patt)
-    #patt = ma.array(data=patt, mask=mm.matrixOriginal.mask)
+    patt = ma.array(data=patt, mask=mm.matrixOriginal.mask)
 
     plt.figure(0)
     plt.contourf(xmesh, ymesh, patt)#, np.arange(0, 3000, 100))
@@ -494,7 +495,7 @@ if __name__ == "__main__":
     ft.set_patterns_to_fit(249-249,377-249)
     ft.fit_sigma = True
 
-
+    res = []
     if test_curve_fit:
         popt, pcov = ft.call_curve_fit()
         print('\noptimum values')
@@ -513,6 +514,7 @@ if __name__ == "__main__":
         #print('Calculating errors ...')
         #ft.print_variance(res['x'],var)
         print(res)
+        print('sigma in sim step units - ', res['x'][4] / lib.xstep)
         # x = res['x'] * ft.p0_scale[0:5]
         # ft.set_scale_values()
         # # There is a warning because the hessian starts with a step too big, don't worry about it
@@ -529,6 +531,7 @@ if __name__ == "__main__":
         ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, -1, sigma=0.1)
         res = ft.maximize_likelyhood()
         print(res)
+        print('sigma in sim step units - ', res['x'][4] / lib.xstep)
         print('Calculating errors ...')
         #var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='likelihood')
         #ft.print_variance(res['x'],var)
