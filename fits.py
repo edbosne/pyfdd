@@ -42,6 +42,7 @@ class fits:
         self.p0 = (None,)
         self.p0_scale = np.ones((8))
         self.fit_sigma = False
+        self.res = None
 
     def set_data_pattern(self,XXmesh,YYmesh,pattern,mask=None):
         self.XXmesh = XXmesh.copy()
@@ -292,7 +293,7 @@ class fits:
                     res['x'] *= ft.p0_scale[0:5]
             else:
                 res['x'] *= ft.p0_scale[0:4]
-        return res
+        self.res = res
 
 # methods for maximum likelihood
     def log_likelihood(self, dx, dy, phi, simulations, fractions_sims, sigma=0):
@@ -385,8 +386,7 @@ class fits:
                     res['x'] *= ft.p0_scale[0:4]
             else:
                 res['x'] *= ft.p0_scale[0:3]
-        return res
-        return res
+        self.res = res
 
 # methods for calculating error
     def get_variance_from_hessian(self, x, enable_scale=False, func=''):
@@ -509,12 +509,12 @@ if __name__ == "__main__":
         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag, sigma=1, f_p1=1)
         #ft.set_inicial_values(0.1, 0.1, 1, counts_ordofmag)
         ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, counts_ordofmag, sigma=0.1)
-        res = ft.minimize_chi2()
+        ft.minimize_chi2()
         #var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='chi_square')
         #print('Calculating errors ...')
         #ft.print_variance(res['x'],var)
-        print(res)
-        print('sigma in sim step units - ', res['x'][4] / lib.xstep)
+        print(ft.res)
+        print('sigma in sim step units - ', ft.res['x'][4] / lib.xstep)
         # x = res['x'] * ft.p0_scale[0:5]
         # ft.set_scale_values()
         # # There is a warning because the hessian starts with a step too big, don't worry about it
@@ -529,9 +529,9 @@ if __name__ == "__main__":
         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1, f_p1=1, f_p2=1)
         #ft.set_inicial_values(0.1, 0.1, 1, -1)
         ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, -1, sigma=0.1)
-        res = ft.maximize_likelyhood()
-        print(res)
-        print('sigma in sim step units - ', res['x'][4] / lib.xstep)
+        ft.maximize_likelyhood()
+        print(ft.res)
+        print('sigma in sim step units - ', ft.res['x'][4] / lib.xstep)
         print('Calculating errors ...')
         #var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='likelihood')
         #ft.print_variance(res['x'],var)
