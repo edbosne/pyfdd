@@ -26,9 +26,9 @@ class lib2dl:
         :param filename: string, name of file
         '''
         # TODO verify filename
-        EClib = read2dl(filename)
-        EClib.read_file()
-        self.ECdict = EClib.get_dict()
+        self.EClib = read2dl(filename)
+        self.EClib.read_file()
+        self.ECdict = self.EClib.get_dict()
 
         self.nx = self.ECdict["nx"]
         self.ny = self.ECdict["ny"]
@@ -50,7 +50,7 @@ class lib2dl:
         self.mask = np.zeros((self.ny_mirror,self.nx_mirror))
         self.pattern_current = ma.array(self.pattern_current, mask=self.mask)
 
-        self.sim_list = EClib.list_simulations()
+        self.sim_list = self.EClib.list_simulations()
 
 
     def check_mirror(self):
@@ -75,14 +75,23 @@ class lib2dl:
 
     def get_simulation_patt(self,num):
         assert num >= 0, 'pattern number is negative'
-        temp = np.array(self.ECdict["Spectrums"][num]["array"]).copy()
+        temp = self.EClib.get_array(self.ECdict["Spectrums"][num]["array_index"])
+        #temp = np.array(self.ECdict["Spectrums"][num]["array_index"]).copy()
         return self.mirror(temp)
 
     def mirror(self, pattern):
         # expand if needs to me mirrored
         new_pattern = pattern.copy()
         if self.xmirror:
-            new_pattern = np.concatenate((np.fliplr(new_pattern), new_pattern[:][1:]), 1)
+            new_pattern = np.concatenate((np.fliplr(new_pattern), new_pattern[:,1:]), 1)
         if self.ymirror:
-            new_pattern = np.concatenate((np.flipud(new_pattern), new_pattern[1:][:]), 0)
+            new_pattern = np.concatenate((np.flipud(new_pattern), new_pattern[1:,:]), 0)
         return new_pattern
+
+
+if __name__ == "__main__":
+    lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue488g34.2dl")  # 89Sr [0001]
+    plt.figure(1)
+    imgmat = lib.get_simulation_patt(0)
+    plt.contourf(imgmat)
+    plt.show()

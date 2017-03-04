@@ -26,63 +26,62 @@ if sys.version_info[0] < 3:
 class read2dl:
     def __init__(self,filename):
         self.fileName = filename
-        self.fileContent = str('')
         self.dict_2dl = {}
+        self.short_sz = 2
+        self.float_sz = 4
 
-    def get_record(self, index):
+    def get_record(self, index, fileContent):
         #assume being at beggining of record
         record = bytearray()
-        record_size = self.fileContent[index]
+        record_size = fileContent[index]
         index += 1
         if record_size == 130:
             print("end of file")
             return
         while record_size == 129:
-            record += self.fileContent[index:index+128] #last byte and first byte of record are of no use
+            record += fileContent[index:index+128] #last byte and first byte of record are of no use
             index = index + record_size
-            record_size = self.fileContent[index]
+            record_size = fileContent[index]
             #print "one pass", record_size, index
             index += 1
-        record += self.fileContent[index:index+record_size]
+        record += fileContent[index:index+record_size]
         next_index = index + record_size + 1
         return record, next_index
 
     def read_file(self):
         with open(self.fileName, mode='rb') as file: # b is important -> binary
-            self.fileContent = file.read()
+            fileContent = file.read()
 
         index = 0
 
-        if self.fileContent[0] == 75:
+        if fileContent[0] == 75:
             print("2dl file opened")
         else:
             print("this is not a 2dl file")
             return
 
         index = 1
-        record_size = self.fileContent[index]
+        record_size = fileContent[index]
         index += 1
         #print(record_size, index)
 
         index = 1
-        header, index = self.get_record(index) #record size byte doesnt count for the size of the record
+        header, index = self.get_record(index, fileContent) #record size byte doesnt count for the size of the record
         #print("after header index is - ", index)
         rec_index = 0
-        short_sz = 2
-        float_sz = 4
-        self.dict_2dl["nx"] = struct.unpack("<h",header[rec_index:rec_index+short_sz])[0]
-        rec_index += short_sz
-        self.dict_2dl["ny"] = struct.unpack("<h",header[rec_index:rec_index+short_sz])[0]
-        rec_index += short_sz
-        rec_index += float_sz*2 #not used
-        self.dict_2dl["xstep"] = round(struct.unpack("<f",header[rec_index:rec_index+float_sz])[0],6)
-        rec_index += float_sz
-        self.dict_2dl["ystep"] = round(struct.unpack("<f",header[rec_index:rec_index+float_sz])[0],6)
-        rec_index += float_sz
-        self.dict_2dl["xfirst"] = struct.unpack("<f",header[rec_index:rec_index+float_sz])[0]
-        rec_index += float_sz
-        self.dict_2dl["yfirst"] = struct.unpack("<f",header[rec_index:rec_index+float_sz])[0]
-        rec_index += float_sz
+        self.dict_2dl["nx"] = struct.unpack("<h",header[rec_index:rec_index+self.short_sz])[0]
+        rec_index += self.short_sz
+        self.dict_2dl["ny"] = struct.unpack("<h",header[rec_index:rec_index+self.short_sz])[0]
+        rec_index += self.short_sz
+        rec_index += self.float_sz*2 #not used
+        self.dict_2dl["xstep"] = round(struct.unpack("<f",header[rec_index:rec_index+self.float_sz])[0],6)
+        rec_index += self.float_sz
+        self.dict_2dl["ystep"] = round(struct.unpack("<f",header[rec_index:rec_index+self.float_sz])[0],6)
+        rec_index += self.float_sz
+        self.dict_2dl["xfirst"] = struct.unpack("<f",header[rec_index:rec_index+self.float_sz])[0]
+        rec_index += self.float_sz
+        self.dict_2dl["yfirst"] = struct.unpack("<f",header[rec_index:rec_index+self.float_sz])[0]
+        rec_index += self.float_sz
         self.dict_2dl["xlast"] = ((self.dict_2dl["nx"]-1)*self.dict_2dl["xstep"])+self.dict_2dl["xfirst"]
         self.dict_2dl["ylast"] = ((self.dict_2dl["ny"]-1)*self.dict_2dl["ystep"])+self.dict_2dl["yfirst"]
 
@@ -90,38 +89,48 @@ class read2dl:
 
         #end of header
 
-        record_size = self.fileContent[index]
+        record_size = fileContent[index]
         #print(record_size, index)
 
         dict_spec = {}
         self.dict_2dl["Spectrums"] = ()
-        while self.fileContent[index] != 130:
-            record, index = self.get_record(index)
+        while fileContent[index] != 130:
+            record, index = self.get_record(index, fileContent)
             rec_index = 0
-            dict_spec["Spectrum number"] = struct.unpack("<h",record[rec_index:rec_index+short_sz])[0]
-            rec_index += short_sz
+            dict_spec["Spectrum number"] = struct.unpack("<h",record[rec_index:rec_index+self.short_sz])[0]
+            rec_index += self.short_sz
             dict_spec["Spectrum_description"] = (record[rec_index:rec_index + 50]).decode('utf-8')
             rec_index += 50
-            dict_spec["factor"] = struct.unpack("<f",record[rec_index:rec_index+float_sz])[0]
-            rec_index += float_sz
-            dict_spec["u2"] = struct.unpack("<f",record[rec_index:rec_index+float_sz])[0]
-            rec_index += float_sz
-            dict_spec["sigma"] = struct.unpack("<f",record[rec_index:rec_index+float_sz])[0]
-            rec_index += float_sz
+            dict_spec["factor"] = struct.unpack("<f",record[rec_index:rec_index+self.float_sz])[0]
+            rec_index += self.float_sz
+            dict_spec["u2"] = struct.unpack("<f",record[rec_index:rec_index+self.float_sz])[0]
+            rec_index += self.float_sz
+            dict_spec["sigma"] = struct.unpack("<f",record[rec_index:rec_index+self.float_sz])[0]
+            rec_index += self.float_sz
 
-            record_size = self.fileContent[index]
+            record_size = fileContent[index]
             #print record_size, index
 
-            record, index = self.get_record(index)
+            dict_spec["array_index"] = index
+
+            record, index = self.get_record(index, fileContent)
 
             nfloats = self.dict_2dl["nx"] * self.dict_2dl["ny"]
-            dict_spec["array"] = np.array(struct.unpack("<"+"f" * nfloats,record[0:nfloats * float_sz])).reshape((self.dict_2dl["ny"],self.dict_2dl["nx"])).tolist()
+            #dict_spec["array"] = np.array(struct.unpack("<"+"f" * nfloats, record[0:nfloats * self.float_sz])).reshape((self.dict_2dl["ny"],self.dict_2dl["nx"])).tolist()
             self.dict_2dl["Spectrums"] += (dict_spec.copy(),)
-        # empty filecontent
-        self.fileContent = str('')
+
+    def get_array(self, spectrums_index):
+        print(spectrums_index)
+        with open(self.fileName, mode='rb') as file: # b is important -> binary
+            fileContent = file.read()
+        index = spectrums_index #self.dict_2dl["Spectrums"][spectrums_index]["array_index"]
+        record, index = self.get_record(index, fileContent)
+        nfloats = self.dict_2dl["nx"] * self.dict_2dl["ny"]
+        array = np.array(struct.unpack("<"+"f" * nfloats, record[0:nfloats * self.float_sz])).reshape((self.dict_2dl["ny"],self.dict_2dl["nx"]))
+        return array.copy()
 
     def get_dict(self):
-        return self.dict_2dl
+        return self.dict_2dl.copy()
 
     def save2json(self):
         # Save JSON File
@@ -182,20 +191,21 @@ if __name__ == "__main__":
     print(numdim)
 
     y=[]
-    for spec in ECdict["Spectrums"]:
-        y += [np.sum(np.array(spec["array"]).reshape((ny, nx)))]
-    print(y)
-    plt.ylabel('Total sum')
-    plt.xlabel('Pattern #')
-    plt.plot(y)
+    # for spec in ECdict["Spectrums"]:
+    #     #y += [np.sum(np.array(spec["array"]).reshape((ny, nx)))]
+    #     y += [np.sum(EClib.get_array(spec["array_index"]).reshape((ny, nx)))]
+    # print(y)
+    # plt.ylabel('Total sum')
+    # plt.xlabel('Pattern #')
+    # plt.plot(y)
 
-    plt.show()
+    #plt.show()
 
 
     figN = 0
     for i in range(0,2):
         plt.figure(figN)
         figN += 1
-        imgmat = np.array(ECdict["Spectrums"][i]["array"]).reshape((ny, nx))[:,30::]
+        imgmat = EClib.get_array(ECdict["Spectrums"][i]["array_index"]).reshape((ny, nx))[:,30::]
         plt.contourf(imgmat)
-    #plt.show()
+    plt.show()
