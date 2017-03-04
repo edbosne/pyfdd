@@ -225,7 +225,7 @@ class fits:
         self.sim_pattern = sim_pattern.copy()
         # chi2, pval = self.chi_square_fun(data_pattern,sim_pattern)
         chi2 = np.sum((data_pattern - sim_pattern) ** 2 / np.abs(sim_pattern))
-        print('chi2 - ', chi2)
+        #print('chi2 - ', chi2)
         # print('p-value - ',pval)
         # =====
         # fg = plt.figure(1)
@@ -240,7 +240,7 @@ class fits:
 
     def chi_square_call(self, params, enable_scale=False):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
-        print('params ', params)
+        # print('params ', params)
         p0_scale = self.p0_scale.copy() if enable_scale else np.ones(len(params))
         #print('p0_scale ', p0_scale)
         dx = params[0] * p0_scale[0]
@@ -262,7 +262,7 @@ class fits:
     def minimize_chi2(self):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         p0 = self.p0
-        print('p0 - ', p0)
+        #print('p0 - ', p0)
         bnds = ((-3,+3), (-3,+3), (None,None), (0, None))
         bnds += ((None, None),) if self.fit_sigma else ()
         bnds += ((0, 1),) if self.pattern_1_use else ()
@@ -270,29 +270,29 @@ class fits:
         bnds += ((0, 1),) if self.pattern_3_use else ()
 
         res = op.minimize(self.chi_square_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options={'disp':True, 'maxiter':20, 'ftol':1e-7,'maxcor':1000}) #'eps':0.001,
+                           options={'disp':False, 'maxiter':30, 'ftol':1e-7,'maxcor':1000}) #'eps':0.001,
         if self.fit_sigma:
             if self.pattern_1_use:
                 if self.pattern_2_use:
                     if self.pattern_3_use:
-                        res['x'] *= ft.p0_scale[0:8]
+                        res['x'] *= self.p0_scale[0:8]
                     else:
-                        res['x'] *= ft.p0_scale[0:7]
+                        res['x'] *= self.p0_scale[0:7]
                 else:
-                    res['x'] *= ft.p0_scale[0:6]
+                    res['x'] *= self.p0_scale[0:6]
             else:
-                res['x'] *= ft.p0_scale[0:5]
+                res['x'] *= self.p0_scale[0:5]
         else:
             if self.pattern_1_use:
                 if self.pattern_2_use:
                     if self.pattern_3_use:
-                        res['x'] *= ft.p0_scale[0:7]
+                        res['x'] *= self.p0_scale[0:7]
                     else:
-                        res['x'] *= ft.p0_scale[0:6]
+                        res['x'] *= self.p0_scale[0:6]
                 else:
-                    res['x'] *= ft.p0_scale[0:5]
+                    res['x'] *= self.p0_scale[0:5]
             else:
-                res['x'] *= ft.p0_scale[0:4]
+                res['x'] *= self.p0_scale[0:4]
         self.res = res
 
 # methods for maximum likelihood
@@ -336,7 +336,7 @@ class fits:
 
     def log_likelihood_call(self, params, enable_scale=False):
         #print(params)
-        print('params ', params)
+        #print('params ', params)
         p0_scale = self.p0_scale.copy() if enable_scale else np.ones(len(params))
         #print(p0_scale)
         dx = params[0] * p0_scale[0]
@@ -361,31 +361,31 @@ class fits:
         bnds += ((0, 1),) if self.pattern_1_use else ()
         bnds += ((0, 1),) if self.pattern_2_use else ()
         bnds += ((0, 1),) if self.pattern_3_use else ()
-        print('self.p0', self.p0)
+        #print('self.p0', self.p0)
         res = op.minimize(self.log_likelihood_call, self.p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options={'eps': 0.0001, 'disp':True, 'maxiter':20, 'ftol':1e-10,'maxcor':1000}) #'eps': 0.0001,
+                           options={'eps': 0.0001, 'disp':False, 'maxiter':20, 'ftol':1e-10,'maxcor':1000}) #'eps': 0.0001,
         if self.fit_sigma:
             if self.pattern_1_use:
                 if self.pattern_2_use:
                     if self.pattern_3_use:
-                        res['x'] *= ft.p0_scale[0:7]
+                        res['x'] *= self.p0_scale[0:7]
                     else:
-                        res['x'] *= ft.p0_scale[0:6]
+                        res['x'] *= self.p0_scale[0:6]
                 else:
-                    res['x'] *= ft.p0_scale[0:5]
+                    res['x'] *= self.p0_scale[0:5]
             else:
-                res['x'] *= ft.p0_scale[0:4]
+                res['x'] *= self.p0_scale[0:4]
         else:
             if self.pattern_1_use:
                 if self.pattern_2_use:
                     if self.pattern_3_use:
-                        res['x'] *= ft.p0_scale[0:6]
+                        res['x'] *= self.p0_scale[0:6]
                     else:
-                        res['x'] *= ft.p0_scale[0:5]
+                        res['x'] *= self.p0_scale[0:5]
                 else:
-                    res['x'] *= ft.p0_scale[0:4]
+                    res['x'] *= self.p0_scale[0:4]
             else:
-                res['x'] *= ft.p0_scale[0:3]
+                res['x'] *= self.p0_scale[0:3]
         self.res = res
 
 # methods for calculating error

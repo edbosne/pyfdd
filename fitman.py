@@ -11,9 +11,10 @@ from lib2dl import lib2dl
 from patterncreator import *
 from MedipixMatrix import *
 from fits import fits
-import pandas as pd
 
+import pandas as pd
 import os
+
 
 class fitman:
     # pattern, library, pattern numbers, fit options
@@ -43,16 +44,16 @@ class fitman:
 
         if isinstance(library, lib2dl):
             # all good
-            self.lib = lib2dl
+            self.lib = library
         elif isinstance(library, str):
             if not os.path.isfile(library):
                 raise ValueError('data is a str but filepath is not valid')
             else:
-                self.mm_pattern = MedipixMatrix(file_path=data_pattern)
+                self.lib = lib2dl(library)
         else:
             ValueError('data_pattern input error')
 
-    def run_fits(self, method='chi2', get_errors=False, fit_sigma=True, *args):
+    def run_fits(self, *args, method='chi2', get_errors=False, fit_sigma=True):
 
         # each input is a range of patterns to fit
         assert isinstance(get_errors, bool)
@@ -69,18 +70,25 @@ class fitman:
             patterns_list += (np.array(ar),)
         assert len(ar) >= 1
 
-        if len(ar) == 1:
-            ar += (None, None,)
-        elif len(ar) == 2:
-            ar += (None,)
+        if len(patterns_list) == 1:
+            patterns_list += ((None,), (None,),)
+        elif len(patterns_list) == 2:
+            patterns_list += ((None,),)
 
-        columns = ('x', 'x_err', 'y', 'y_err', 'phi', 'phi_err', 'counts', 'counts_err', 'sigma', 'sigma_err'
+        print('args ', args)
+
+        print('ar ', ar)
+
+        print('patterns_list ', patterns_list)
+
+        columns = ('value', 'x', 'x_err', 'y', 'y_err', 'phi', 'phi_err', 'counts', 'counts_err', 'sigma', 'sigma_err'
                    'fraction1', 'fraction1_err', 'fraction2', 'fraction2_err', 'fraction3', 'fraction3_err')
-        df = pd.DataFrame(data=None, columns=columns)
+        self.df = pd.DataFrame(data=None, columns=columns)
 
         for p1 in patterns_list[0]:
             for p2 in patterns_list[1]:
                 for p3 in patterns_list[2]:
+                    print('P1, P2, P3 - ', p1, ', ', p2, ', ', p3)
                     ft = fits(self.lib)
                     ft.set_data_pattern(xmesh, ymesh, patt)
                     ft.set_patterns_to_fit(p1, p2, p3)
@@ -111,16 +119,40 @@ class fitman:
                     di = 1 if  method == 'chi2' else 0
                     append_dic['sigma'] = ft.res['x'][3+di] if fit_sigma else None
                     di += 1 if fit_sigma else 0
-                    append_dic['fraction1'] = ft.res['x'][3+di] if patterns_list[0] is not None else None
-                    append_dic['fraction2'] = ft.res['x'][4+di] if patterns_list[1] is not None else None
-                    append_dic['fraction3'] = ft.res['x'][5+di] if patterns_list[2] is not None else None
-                    df.append(append_dic, ignore_index=True)
+                    append_dic['fraction1'] = ft.res['x'][3+di] if patterns_list[0][0] is not None else None
+                    append_dic['fraction2'] = ft.res['x'][4+di] if patterns_list[1][0] is not None else None
+                    append_dic['fraction3'] = ft.res['x'][5+di] if patterns_list[2][0] is not None else None
+                    append_dic['value'] = ft.res['fun']
+                    #print('append_dic ', append_dic)
+                    self.df = self.df.append(append_dic, ignore_index=True)
+                    #print('self.df ', self.df)
 
                     if ft.res['fun'] < self.min_value:
-                        self.best_fit = ft.copy()
+                        self.best_fit = ft
 
-    def save_output(self,filename):
+    def save_output(self, filename):
         pass
 
-    def get_pd_table(self):
-        pass
+
+if __name__ == '__main__':
+    # filename
+    filename = '/home/eric/Desktop/jsontest.json'
+
+    # library
+    library = '/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl'
+
+    # fits
+
+    fm = fitman()
+    fm.add_pattern(filename, library)
+    P1 = np.array((0,))
+    P2 = np.arange(0, 249) # 249
+    fm.run_fits(P1, P2, method='chi2', get_errors=False, fit_sigma=False)
+
+    # plot
+    plt.figure()
+    plt.plot(fm.df['value'])
+    plt.show()
+
+    print(fm.df)
+
