@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from scipy.ndimage.interpolation import rotate, map_coordinates
 from scipy.interpolate import griddata, interpn
 
-from read2dl import read2dl
+from read2dl.read2dl import read2dl
 
 
 class lib2dl:

@@ -4,7 +4,7 @@ __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
 
-from lib2dl import lib2dl
+from read2dl.lib2dl import lib2dl
 
 import numpy as np
 import numpy.ma as ma

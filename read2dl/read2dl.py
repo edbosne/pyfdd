@@ -120,7 +120,6 @@ class read2dl:
             self.dict_2dl["Spectrums"] += (dict_spec.copy(),)
 
     def get_array(self, spectrums_index):
-        print(spectrums_index)
         with open(self.fileName, mode='rb') as file: # b is important -> binary
             fileContent = file.read()
         index = spectrums_index #self.dict_2dl["Spectrums"][spectrums_index]["array_index"]

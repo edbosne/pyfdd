@@ -7,7 +7,7 @@ The fits object gets access to a lib2dl object and performs fits and statistical
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
-from lib2dl import lib2dl
+from read2dl.lib2dl import lib2dl
 from patterncreator import *
 from MedipixMatrix import *
 
