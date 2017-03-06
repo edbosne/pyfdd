@@ -16,6 +16,7 @@ import pandas as pd
 import os
 import numpy as np
 import math
+import matplotlib.pyplot as plt
 
 
 class fitman:
@@ -156,7 +157,33 @@ class fitman:
                         self.best_fit = ft
 
     def save_output(self, filename, save_figure=False):
-        pass
+        self.df.to_csv(filename)
+        base_name, ext = os.path.splitext(filename)
+        if ext == '.txt':
+            self.df.to_csv(filename)
+        elif ext == '.xlsx' or ext == '.xls':
+            self.df.to_csv(filename)
+        else:
+            raise ValueError('Extention not recognized, use txt, xls or xlsx')
+        xmesh = self.best_fit.XXmesh
+        ymesh = self.best_fit.YYmesh
+        # data pattern
+        fig = plt.figure(1)
+        plt.contourf(xmesh, ymesh, self.best_fit.data_pattern)
+        plt.colorbar()
+        fig.savefig(base_name + '_data.png')
+        # sim pattern
+        fig = plt.figure(2)
+        plt.contourf(xmesh, ymesh, self.best_fit.sim_pattern)
+        plt.colorbar()
+        fig.savefig(base_name + '_sim.png')
+        # sim-data pattern
+        fig = plt.figure(3)
+        plt.contourf(xmesh, ymesh, self.best_fit.sim_pattern - self.best_fit.data_pattern)
+        plt.colorbar()
+        fig.savefig(base_name + '_sim-data.png')
+
+
 
 
 if __name__ == '__main__':
@@ -173,6 +200,8 @@ if __name__ == '__main__':
     P1 = np.array((0,))
     P2 = np.arange(0, 3) # 249
     fm.run_fits(P1, P2, method='chi2', get_errors=False, fit_sigma=True)
+
+    fm.save_output('/home/eric/Desktop/test_fit.xls', save_figure=True)
 
     # plot
     #plt.figure()
