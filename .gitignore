@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 *.txt
 __*/
 =======
@@ -93,5 +92,7 @@ ENV/
 .ropeproject
 
 #PyCharm
->>>>>>> medipixmatrix/master
 .idea/
+
+#PyFDD
+userscript*
