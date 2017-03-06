@@ -9,7 +9,7 @@ __email__ = 'eric.bosne@cern.ch'
 
 from read2dl.lib2dl import lib2dl
 #from patterncreator import PatternCreator, create_detector_mesh
-from MedipixMatrix import MedipixMatrix
+from MedipixMatrix.MedipixMatrix import MedipixMatrix
 from fits import fits
 
 import pandas as pd
@@ -83,8 +83,11 @@ class fitman:
 
         print('patterns_list ', patterns_list)
 
-        columns = ('value', 'x', 'x_err', 'y', 'y_err', 'phi', 'phi_err', 'counts', 'counts_err', 'sigma', 'sigma_err'
-                   'fraction1', 'fraction1_err', 'fraction2', 'fraction2_err', 'fraction3', 'fraction3_err')
+        columns = ('value', 'D.O.F.', 'x', 'x_err', 'y', 'y_err', 'phi', 'phi_err',
+                   'counts', 'counts_err', 'sigma', 'sigma_err'
+                   'site1 n', 'p1', 'site1 description', 'site1 factor', 'site1 u2', 'site1 fraction', 'fraction1_err',
+                   'site2 n', 'p2', 'site2 description', 'site2 factor', 'site2 u2', 'site2 fraction', 'fraction2_err',
+                   'site3 n', 'p3', 'site3 description', 'site3 factor', 'site3 u2', 'site3 fraction', 'fraction3_err')
         self.df = pd.DataFrame(data=None, columns=columns)
 
         for p1 in patterns_list[0]:
@@ -114,6 +117,8 @@ class fitman:
                                               counts_ordofmag, sigma=0.1)
                         ft.maximize_likelyhood()
                         # TODO get errors
+                    append_dic['value'] = ft.res['fun']
+                    append_dic['D.O.F.'] = np.sum(~patt.mask)
                     append_dic['x'] = ft.res['x'][0]
                     append_dic['y'] = ft.res['x'][1]
                     append_dic['phi'] = ft.res['x'][2]
@@ -121,10 +126,28 @@ class fitman:
                     di = 1 if  method == 'chi2' else 0
                     append_dic['sigma'] = ft.res['x'][3+di] if fit_sigma else None
                     di += 1 if fit_sigma else 0
-                    append_dic['fraction1'] = ft.res['x'][3+di] if patterns_list[0][0] is not None else None
-                    append_dic['fraction2'] = ft.res['x'][4+di] if patterns_list[1][0] is not None else None
-                    append_dic['fraction3'] = ft.res['x'][5+di] if patterns_list[2][0] is not None else None
-                    append_dic['value'] = ft.res['fun']
+                    if patterns_list[0][0] is not None:
+                        append_dic['site1 n'] = self.lib.ECdict["Spectrums"][p1]["Spectrum number"]
+                        append_dic['p1'] = p1
+                        append_dic['site1 description'] = self.lib.ECdict["Spectrums"][p1]["Spectrum_description"]
+                        append_dic['site1 factor'] = self.lib.ECdict["Spectrums"][p1]["factor"]
+                        append_dic['site1 u2'] = self.lib.ECdict["Spectrums"][p1]["u2"]
+                        append_dic['site1 fraction'] = ft.res['x'][3+di]
+                    if patterns_list[1][0] is not None:
+                        append_dic['site2 n'] = self.lib.ECdict["Spectrums"][p2]["Spectrum number"]
+                        append_dic['p2'] = p2
+                        append_dic['site2 description'] = self.lib.ECdict["Spectrums"][p2]["Spectrum_description"]
+                        append_dic['site2 factor'] = self.lib.ECdict["Spectrums"][p2]["factor"]
+                        append_dic['site2 u2'] = self.lib.ECdict["Spectrums"][p2]["u2"]
+                        append_dic['site2 fraction'] = ft.res['x'][4+di]
+                    if patterns_list[2][0] is not None:
+                        append_dic['site3 n'] = self.lib.ECdict["Spectrums"][p3]["Spectrum number"]
+                        append_dic['p3'] = p3
+                        append_dic['site3 description'] = self.lib.ECdict["Spectrums"][p3]["Spectrum_description"]
+                        append_dic['site3 factor'] = self.lib.ECdict["Spectrums"][p3]["factor"]
+                        append_dic['site3 u2'] = self.lib.ECdict["Spectrums"][p3]["u2"]
+                        append_dic['site3 fraction'] = ft.res['x'][5+di]
+
                     #print('append_dic ', append_dic)
                     self.df = self.df.append(append_dic, ignore_index=True)
                     #print('self.df ', self.df)
@@ -148,7 +171,7 @@ if __name__ == '__main__':
     fm = fitman()
     fm.add_pattern(filename, library)
     P1 = np.array((0,))
-    P2 = np.arange(0, 25) # 249
+    P2 = np.arange(0, 3) # 249
     fm.run_fits(P1, P2, method='chi2', get_errors=False, fit_sigma=True)
 
     # plot

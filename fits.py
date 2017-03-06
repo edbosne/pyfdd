@@ -44,7 +44,7 @@ class fits:
         self.res = None
         self.pattern_generator = None
 
-    def set_data_pattern(self,XXmesh,YYmesh,pattern,mask=None):
+    def set_data_pattern(self,XXmesh,YYmesh,pattern):
         self.XXmesh = XXmesh.copy()
         self.YYmesh = YYmesh.copy()
         self.data_pattern = pattern.copy()
