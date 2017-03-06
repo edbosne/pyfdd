@@ -7,13 +7,15 @@ Fit manager is the kernel class for fitting.
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
-from lib2dl import lib2dl
-from patterncreator import *
-from MedipixMatrix import *
+from read2dl.lib2dl import lib2dl
+#from patterncreator import PatternCreator, create_detector_mesh
+from MedipixMatrix import MedipixMatrix
 from fits import fits
 
 import pandas as pd
 import os
+import numpy as np
+import math
 
 
 class fitman:
@@ -130,7 +132,7 @@ class fitman:
                     if ft.res['fun'] < self.min_value:
                         self.best_fit = ft
 
-    def save_output(self, filename):
+    def save_output(self, filename, save_figure=False):
         pass
 
 
@@ -146,13 +148,13 @@ if __name__ == '__main__':
     fm = fitman()
     fm.add_pattern(filename, library)
     P1 = np.array((0,))
-    P2 = np.arange(0, 249) # 249
-    fm.run_fits(P1, P2, method='chi2', get_errors=False, fit_sigma=False)
+    P2 = np.arange(0, 25) # 249
+    fm.run_fits(P1, P2, method='chi2', get_errors=False, fit_sigma=True)
 
     # plot
-    plt.figure()
-    plt.plot(fm.df['value'])
-    plt.show()
+    #plt.figure()
+    #plt.plot(fm.df['value'])
+    #plt.show()
 
     print(fm.df)
 

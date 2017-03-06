@@ -14,7 +14,6 @@ from MedipixMatrix import *
 import numpy as np
 import scipy.optimize as op
 import scipy.stats as st
-import matplotlib.pyplot as plt
 import math
 #import numdifftools as nd
 from scipy.ndimage import gaussian_filter
@@ -43,6 +42,7 @@ class fits:
         self.p0_scale = np.ones((8))
         self.fit_sigma = False
         self.res = None
+        self.pattern_generator = None
 
     def set_data_pattern(self,XXmesh,YYmesh,pattern,mask=None):
         self.XXmesh = XXmesh.copy()
@@ -201,7 +201,7 @@ class fits:
         ddof += 1 if self.pattern_2_use else 0
         return st.chisquare(experimental_data, simlulation_data,ddof,axis=None)
 
-    def chi_square(self, dx, dy, phi, total_events, simulations, fractions_sims, sigma=0):
+    def chi_square(self, dx, dy, phi, total_events, fractions_sims, sigma=0):
         """
         Calculates the Pearson chi2 for the given conditions.
         :param dx: delta x in angles
@@ -213,13 +213,11 @@ class fits:
         :return: Pearson's chi2
         """
         # set data pattern
-        data_pattern = self.data_pattern.copy()
-        if not len(simulations) == len(fractions_sims):
-            raise ValueError("size o simulations is diferent than size o events")
+        data_pattern = self.data_pattern
         fractions_sims = np.array(fractions_sims)
         rnd_events = np.array([1 - fractions_sims.sum()])
         # generate sim pattern
-        gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations, mask=data_pattern.mask)
+        gen = self.pattern_generator
         fractions = np.concatenate((rnd_events, fractions_sims))
         sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, sigma=sigma, type='ideal')
         self.sim_pattern = sim_pattern.copy()
@@ -253,11 +251,7 @@ class fits:
         fractions_sims += (params[4+di] * p0_scale[4+di],) if self.pattern_1_use else () # pattern 1
         fractions_sims += (params[5+di] * p0_scale[5+di],) if self.pattern_2_use else () # pattern 2
         fractions_sims += (params[6+di] * p0_scale[6+di],) if self.pattern_3_use else () # pattern 3
-        # get patterns
-        simulations  = (self.pattern_1_n,) if self.pattern_1_use else ()
-        simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
-        simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
-        return self.chi_square(dx, dy, phi, total_cts, simulations, fractions_sims=fractions_sims, sigma=sigma)
+        return self.chi_square(dx, dy, phi, total_cts, fractions_sims=fractions_sims, sigma=sigma)
 
     def minimize_chi2(self):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
@@ -268,6 +262,15 @@ class fits:
         bnds += ((0, 1),) if self.pattern_1_use else ()
         bnds += ((0, 1),) if self.pattern_2_use else ()
         bnds += ((0, 1),) if self.pattern_3_use else ()
+
+        # get patterns
+        simulations = (self.pattern_1_n,) if self.pattern_1_use else ()
+        simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
+        simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
+
+        # generate sim pattern
+        self.pattern_generator = PatternCreator(self.lib, self.XXmesh, self.YYmesh,
+                                                simulations, mask=self.data_pattern.mask)
 
         res = op.minimize(self.chi_square_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
                            options={'disp':False, 'maxiter':30, 'ftol':1e-7,'maxcor':1000}) #'eps':0.001,
@@ -455,6 +458,7 @@ class fits:
 
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
 
     test_curve_fit = False
     test_chi2_min = True

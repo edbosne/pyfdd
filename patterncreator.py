@@ -96,7 +96,7 @@ class PatternCreator:
         # saving each pattern in a stack was used for individual normalization
         # this is not needed after all as all patterns should be normalized to random
         # or equivalently by the number of pixels in the pattern
-        temp = np.ones(self._xmesh.shape)
+        temp = np.ones(self.sim_shape)
         pattern_stack = temp[np.newaxis]
         for i in np.arange(simulations.size):
             temp = lib.get_simulation_patt(simulations[i])
@@ -105,7 +105,7 @@ class PatternCreator:
             else:
                 pattern_stack = np.concatenate((pattern_stack, temp[np.newaxis]), 0)
         self._pattern_stack_original = pattern_stack.copy()
-        self._pattern_stack = pattern_stack.copy()
+        self._pattern_current = np.ones(self._xmesh.shape)
 
         self.fractions_per_sim = np.zeros(simulations.size + 1) # +1 for random
 
@@ -116,7 +116,7 @@ class PatternCreator:
         :param dx: delta x in angles
         :param dy: delta y in angles
         :param phi: delta phi in anlges
-        :param fraction_per_sim: fractions of each simulated pattern
+        :param fraction_per_sim: fractions of each simulated pattern, first is random
         :param total_events: total number of events
         :param type: 'ideal' for normalized pattern, 'montecarlo' for rand generated,
         'poisson' for ideal with poisson noise
@@ -124,9 +124,7 @@ class PatternCreator:
         """
         assert fractions_per_sim.size == self._pattern_stack_original.shape[0], \
             'size of fractions_per_sim does not match the number of simulations'
-        self._pattern_stack = self._pattern_stack_original.copy()
-        self.fractions_per_sim = fractions_per_sim
-        self.total_events = total_events
+        self._pattern_current = np.ones(self._xmesh.shape)
         # reset mesh
         self._xstep = self._xstep_original
         self._ystep = self._ystep_original
@@ -135,6 +133,8 @@ class PatternCreator:
         self._xlast = self._xlast_original
         self._ylast = self._ylast_original
         self._update_coordinates_mesh()
+        # apply fractions
+        self._apply_fractions(fractions_per_sim)
         # gaussian convolution
         self._gaussian_conv(sigma)
         # rotate
@@ -142,8 +142,9 @@ class PatternCreator:
         # move mesh
         self._move(dx,dy)
         # render normalized pattern
-        sim_pattern = self._grid_interpolation()
-        mask = sim_pattern.mask.copy()
+        self._grid_interpolation(total_events)
+        mask = self._pattern_current.mask.copy()
+        sim_pattern = self._pattern_current
         # types
         if type == 'ideal':
             return sim_pattern
@@ -173,19 +174,21 @@ class PatternCreator:
         H, xedges, yedges = np.histogram2d(mc_event_y, mc_event_x, self._detector_xmesh.shape[::-1])
         return H
 
+    def _apply_fractions(self, fractions):
+        if not self._pattern_stack_original.shape[0] == fractions.size:
+            raise ValueError('number of fractions is not the same as the number of simulations + rand')
+        new_pattern = np.zeros(self.sim_shape)
+        norm_factor = self.sim_shape[0] * self.sim_shape[1]
+        for i in range(0, self._pattern_stack_original.shape[0]):
+            new_pattern += (self._pattern_stack_original[i, :, :] / norm_factor) * fractions[i] # normalize to random
+        self._pattern_current = new_pattern.copy()
+
     def _gaussian_conv(self, sigma=0):
         if sigma == 0:
             return
+        assert self._xstep_original == self._ystep_original, 'Simulations steps are not the same in x and y'
         sigma_pix = sigma / self._xstep_original
-        new_pattern_stact = np.array([])
-        for i in range(self._pattern_stack.shape[0]):
-            pattern_i = self._pattern_stack[i, :, :].copy()
-            temp = gaussian_filter(pattern_i, sigma_pix)
-            if not new_pattern_stact.size:
-                new_pattern_stact = temp[np.newaxis].copy()
-            else:
-                new_pattern_stact = np.concatenate((new_pattern_stact, temp[np.newaxis]), 0)
-        self._pattern_stack = new_pattern_stact
+        self._pattern_current = gaussian_filter(self._pattern_current, sigma_pix)
 
     def _rotate(self, ang=0):
         # Rotation
@@ -195,25 +198,18 @@ class PatternCreator:
         """
         # positive counterclockwise
         ang = -ang
-        new_pattern_stact = np.array([])
-        for i in range(self._pattern_stack.shape[0]):
-            pattern_i = self._pattern_stack[i, :, :].copy()
-            temp = rotate(pattern_i, ang, reshape=True, order=3, mode='constant', cval=0, prefilter=True)
-            if not new_pattern_stact.size:
-                new_pattern_stact = temp[np.newaxis].copy()
-            else:
-                new_pattern_stact = np.concatenate((new_pattern_stact, temp[np.newaxis]), 0)
-        self._pattern_stack = ma.masked_equal(new_pattern_stact,0)
+        self._pattern_current = rotate(self._pattern_current, ang, reshape=True, order=1, mode='constant',
+                                       cval=0, prefilter=False)
 
         # rotation can increase matrix size and therefore the mesh needs to be updates
         self._xfirst = self._xfirst_original - self._xstep_original * \
-                                               0.5 * (self._pattern_stack.shape[2] - self.sim_shape[1])
+                                               0.5 * (self._pattern_current.shape[1] - self.sim_shape[1])
         self._yfirst = self._yfirst_original - self._ystep_original * \
-                                               0.5 * (self._pattern_stack.shape[1] - self.sim_shape[0])
+                                               0.5 * (self._pattern_current.shape[0] - self.sim_shape[0])
         self._xlast = self._xlast_original + self._xstep_original * \
-                                             0.5 * (self._pattern_stack.shape[2] - self.sim_shape[1])
+                                             0.5 * (self._pattern_current.shape[1] - self.sim_shape[1])
         self._ylast = self._ylast_original + self._ystep_original * \
-                                             0.5 * (self._pattern_stack.shape[1] - self.sim_shape[0])
+                                             0.5 * (self._pattern_current.shape[0] - self.sim_shape[0])
         self._update_coordinates_mesh()
 
     def _update_coordinates_mesh(self):
@@ -236,7 +232,7 @@ class PatternCreator:
         self._xmesh = self._xmesh + dx
         self._ymesh = self._ymesh + dy
 
-    def _grid_interpolation(self):
+    def _grid_interpolation(self, total_events):
         '''
         uses interpolation to get the values of the pattern at the grid positons
         it also normalizes each pattern to the previously set numbet or events for the given range
@@ -252,51 +248,30 @@ class PatternCreator:
         fg.canvas.draw()
         '''
 
-        # # slow method
-        # mask = self.mask.reshape(-1)
-        # points = (self.XXmesh.reshape(-1)[~mask], self.YYmesh.reshape(-1)[~mask])
-        # values = self.pattern_current.reshape(-1)[~mask]
-        # #if not totalcounts == 0:
-        # #    values *= totalcounts / values.sum()
-        # return ma.masked_equal(griddata(points, values, (grid_x, grid_y), method='cubic'),0)
-
-        # fast method
         # convert to index space
         xscale = self._xmesh.shape[1] / (self._xmesh[0, -1] - self._xmesh[0, 0])
         yscale = self._ymesh.shape[0] / (self._ymesh[-1, 0] - self._ymesh[0, 0])
         grid_x_temp = (self._detector_xmesh - self._xmesh[0, 0]) * xscale
         grid_y_temp = (self._detector_ymesh - self._ymesh[0, 0]) * yscale
-        new_pattern_stact = np.array([])
+
+        #interpolation
         temp_pattern = np.array([])
-        for i in range(self._pattern_stack.shape[0]):
-            temp_pattern = map_coordinates(self._pattern_stack[i, :, :], (grid_y_temp, grid_x_temp),
-                                           order=1, prefilter=True, mode='constant', cval=0)[np.newaxis]
-            norm_factor = temp_pattern.size # the sum of the rand pattern is the same as the number os pixels
-            if not norm_factor == 0:
-                temp_pattern = (temp_pattern / norm_factor) * self.fractions_per_sim[i] #normalize to the random
-            else:
-                temp_pattern = np.zeros(temp_pattern.shape)[np.newaxis]
-            if not new_pattern_stact.size:
-                new_pattern_stact = temp_pattern.copy()
-            else:
-                new_pattern_stact = np.concatenate((new_pattern_stact,temp_pattern),0)
-        pattern_temp = new_pattern_stact.sum(0)
-        pattern_temp = ma.array(data=pattern_temp, mask=self.mask)
-        pattern_temp =  pattern_temp / pattern_temp.sum() * self.total_events # number of events
-        return ma.masked_equal(pattern_temp,0)
-        #rtrn_data = map_coordinates(self.pattern_current, (grid_y_temp, grid_x_temp),order=3,prefilter=False)
-        #return ma.masked_equal(rtrn_data,0)
+        temp_pattern = map_coordinates(self._pattern_current, (grid_y_temp, grid_x_temp),
+                                       order=1, prefilter=False, mode='constant', cval=0)
+        temp_pattern = ma.array(data=temp_pattern, mask=self.mask)
+        temp_pattern = temp_pattern / temp_pattern.sum() * total_events # number of events
+        self._pattern_current = ma.masked_equal(temp_pattern, 0)
 
 
 if __name__ == "__main__":
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl")
     xmesh, ymesh = create_detector_mesh(22, 22, 1.4, 300)
-    xmesh, ymesh = create_detector_mesh(40, 40, 0.5, 300)
+    #xmesh, ymesh = create_detector_mesh(40, 40, 0.5, 300)
     gen = PatternCreator(lib, xmesh, ymesh, 0)
     fractions_per_sim = np.array([0.3, 0.7])
     #fractions_per_sim /= fractions_per_sim.sum()
-    total_events = 1e6
-    pattern = gen.make_pattern(0.5, -0.5, 0.25, fractions_per_sim, total_events, sigma=0.2, type='ideal')
+    total_events = 1 #1e6
+    pattern = gen.make_pattern(0.5, -0.5, 3, fractions_per_sim, total_events, sigma=0.2, type='ideal')
     print(pattern.sum())
 
     plt.figure(1)
