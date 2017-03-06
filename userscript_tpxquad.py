@@ -13,7 +13,12 @@ import os
 import matplotlib.pyplot as plt
 
 # Create MedipixMatrix from file
+filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/RT/-1101/pattern_d3_Npix0-20.txt'
+filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/RT/-1102/pattern_d3_Npix0-20.txt'
+filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/RT/-2113/pattern_d3_Npix0-20.txt'
 filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-1101/pattern_d3_Npix0-20.txt'
+filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-1102/pattern_d3_Npix0-20.txt'
+filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-2113/pattern_d3_Npix0-20.txt'
 basename, extention = os.path.splitext(filename)
 mm2 = MedipixMatrix(file_path=filename, nChipsX=2, nChipsY=2, real_size=3)
 
@@ -62,6 +67,6 @@ print('angle widget, center ', mm2.center, ', angle ', mm2.angle)
 mm2.mask_limits(limits=(mm2.center[0] - 2.8, mm2.center[0] + 2.8, mm2.center[1] - 2.8, mm2.center[1] + 2.8))
 
 # save matrix
-mm2.io_save_json(basename + '.json')
+mm2.io_save_json(basename + '_rebin2x2_180.json')
 # ascii if to be used with fdd
 # mm2.io_save_ascii('/home/eric/Desktop/test.txt')

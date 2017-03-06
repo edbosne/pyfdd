@@ -444,7 +444,7 @@ class MedipixMatrix:
         if rm_central_pix is not None:
             self.rm_central_pix = rm_central_pix
         if self.real_size <= 1:
-            warnings.warn('The value for the central pixel real size is set to ', self.real_size)
+            warnings.warn('The value for the central pixel real size is set to ' + str(self.real_size))
 
         assert isinstance(factor,int), 'factor should be int'
         assert isinstance(rm_central_pix, int), 'factor should be int'
