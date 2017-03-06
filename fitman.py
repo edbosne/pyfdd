@@ -159,12 +159,12 @@ class fitman:
     def save_output(self, filename, save_figure=False):
         self.df.to_csv(filename)
         base_name, ext = os.path.splitext(filename)
-        if ext == '.txt':
+        if ext == '.txt' or ext == '.csv':
             self.df.to_csv(filename)
         elif ext == '.xlsx' or ext == '.xls':
             self.df.to_csv(filename)
         else:
-            raise ValueError('Extention not recognized, use txt, xls or xlsx')
+            raise ValueError('Extention not recognized, use txt, csv, xls or xlsx')
         xmesh = self.best_fit.XXmesh
         ymesh = self.best_fit.YYmesh
         # data pattern
