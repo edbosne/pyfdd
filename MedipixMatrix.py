@@ -46,6 +46,8 @@ class MpxHist:
     def __init__(self, values):
         self.hist, self.bin_edges = np.histogram(values.reshape((1, values.size)), bins=1000)
         self.normalized_integral = self.hist.cumsum()/float(self.hist.sum())
+        self.mean = np.mean(values.reshape((1, values.size)))
+        self.std = np.std(values.reshape((1, values.size)))
 
     def get_percentiles_bins(self, percentiles):
         lowbin = bis.bisect(self.normalized_integral, percentiles[0], lo=1, hi=len(self.normalized_integral))-1
@@ -350,6 +352,12 @@ class MedipixMatrix:
 
         self.matrixCurrent = ma.masked_where(condition, self.matrixCurrent)
 
+    def mask_std(self, std=6):
+        hist = MpxHist(self.matrixCurrent)
+        condition = ((self.matrixCurrent <= hist.mean - std * hist.std) | \
+                     (self.matrixCurrent >= hist.mean + std * hist.std))
+        self.matrixCurrent = ma.masked_where( condition, self.matrixCurrent)
+
     # ===== - Matrix Manipulation Methods - =====
 
     def undo_all(self):
@@ -571,8 +579,6 @@ class MedipixMatrix:
         self.rectangle_limits = None
         self.RS = RectangleSelector(self.ax, self.onselect_RS, drawtype='box')
 
-def jdefault(o):
-    return o.__dict__
 
 if __name__ == '__main__':
     print('Step by step example of using MedipixMatrix')
@@ -617,12 +623,13 @@ if __name__ == '__main__':
     mm2.manip_correct_central_pix()
 
     # -Sum pixels, zero central pixels and remove edge pixels all in one
-    mm2.manip_compress(factor=2, rm_central_pix=2, rm_edge_pix=0)
+    mm2.manip_compress(factor=2, rm_central_pix=2, rm_edge_pix=4)
 
     # Smooth
     #mm2.manip_smooth(2.0)
 
     # -Mask pixels
+    mm2.mask_std(6)
 
     # Save
     mm2.io_save_ascii('/home/eric/Desktop/test.txt')
@@ -647,7 +654,7 @@ if __name__ == '__main__':
     print('angle widget, center ', mm2.center, ', angle ', mm2.angle)
 
     # mask array
-    mm2.mask_limits(limits=(mm2.center[0]-2.7, mm2.center[0]+2.7, mm2.center[1]-2.7, mm2.center[1]+2.7))
+    mm2.mask_limits(limits=(mm2.center[0]-2.8, mm2.center[0]+2.8, mm2.center[1]-2.8, mm2.center[1]+2.8))
 
     f2 = plt.figure(2)
     ax2 = plt.subplot('111')
