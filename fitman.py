@@ -78,11 +78,11 @@ class fitman:
         elif len(patterns_list) == 2:
             patterns_list += ((None,),)
 
-        print('args ', args)
+        #print('args ', args)
 
-        print('ar ', ar)
+        #print('ar ', ar)
 
-        print('patterns_list ', patterns_list)
+        #print('patterns_list ', patterns_list)
 
         columns = ('value', 'D.O.F.', 'x', 'x_err', 'y', 'y_err', 'phi', 'phi_err',
                    'counts', 'counts_err', 'sigma', 'sigma_err'
@@ -165,26 +165,28 @@ class fitman:
             self.df.to_csv(filename)
         else:
             raise ValueError('Extention not recognized, use txt, csv, xls or xlsx')
-        xmesh = self.best_fit.XXmesh
-        ymesh = self.best_fit.YYmesh
-        # data pattern
-        fig = plt.figure()
-        plt.contourf(xmesh, ymesh, self.best_fit.data_pattern)
-        plt.colorbar()
-        fig.savefig(base_name + '_data.png')
-        plt.close(fig)
-        # sim pattern
-        fig = plt.figure()
-        plt.contourf(xmesh, ymesh, self.best_fit.sim_pattern)
-        plt.colorbar()
-        fig.savefig(base_name + '_sim.png')
-        plt.close(fig)
-        # sim-data pattern
-        fig = plt.figure()
-        plt.contourf(xmesh, ymesh, self.best_fit.sim_pattern - self.best_fit.data_pattern)
-        plt.colorbar()
-        fig.savefig(base_name + '_sim-data.png')
-        plt.close(fig)
+
+        if save_figure:
+            xmesh = self.best_fit.XXmesh
+            ymesh = self.best_fit.YYmesh
+            # data pattern
+            fig = plt.figure()
+            plt.contourf(xmesh, ymesh, self.best_fit.data_pattern)
+            plt.colorbar()
+            fig.savefig(base_name + '_data.png')
+            plt.close(fig)
+            # sim pattern
+            fig = plt.figure()
+            plt.contourf(xmesh, ymesh, self.best_fit.sim_pattern)
+            plt.colorbar()
+            fig.savefig(base_name + '_sim.png')
+            plt.close(fig)
+            # sim-data pattern
+            fig = plt.figure()
+            plt.contourf(xmesh, ymesh, self.best_fit.sim_pattern - self.best_fit.data_pattern)
+            plt.colorbar()
+            fig.savefig(base_name + '_sim-data.png')
+            plt.close(fig)
 
 
 

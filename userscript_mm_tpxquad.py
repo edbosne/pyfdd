@@ -19,6 +19,7 @@ filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/RT/-2113/pa
 filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-1101/pattern_d3_Npix0-20.txt'
 filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-1102/pattern_d3_Npix0-20.txt'
 filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-2113/pattern_d3_Npix0-20.txt'
+
 basename, extention = os.path.splitext(filename)
 mm2 = MedipixMatrix(file_path=filename, nChipsX=2, nChipsY=2, real_size=3)
 
@@ -36,7 +37,7 @@ mm2.zero_central_pix(0)
 mm2.manip_correct_central_pix()
 
 # -Sum pixels, zero central pixels and remove edge pixels all in one
-mm2.manip_compress(factor=2, rm_central_pix=2, rm_edge_pix=4)
+mm2.manip_compress(factor=16, rm_central_pix=0, rm_edge_pix=0)
 
 # Smooth
 # mm2.manip_smooth(2.0)
@@ -67,6 +68,6 @@ print('angle widget, center ', mm2.center, ', angle ', mm2.angle)
 mm2.mask_limits(limits=(mm2.center[0] - 2.8, mm2.center[0] + 2.8, mm2.center[1] - 2.8, mm2.center[1] + 2.8))
 
 # save matrix
-mm2.io_save_json(basename + '_rebin2x2_180.json')
+mm2.io_save_json(basename + '_rebin16x16_180.json')
 # ascii if to be used with fdd
 # mm2.io_save_ascii('/home/eric/Desktop/test.txt')

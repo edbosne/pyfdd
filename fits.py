@@ -230,7 +230,7 @@ class fits:
         # ax = fg.add_subplot(111)
         # plt.ion()
         # cont = None
-        # plt.contourf(self.XXmesh, self.YYmesh, (data_pattern-sim_pattern))
+        # plt.contourf(self.XXmesh, self.YYmesh, sim_pattern) #(data_pattern-sim_pattern))
         # fg.canvas.draw()
         # plt.show(block=False)
         # =====
@@ -273,7 +273,7 @@ class fits:
                                                 simulations, mask=self.data_pattern.mask)
 
         res = op.minimize(self.chi_square_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options={'eps':0.001, 'disp':False, 'maxiter':30, 'ftol':1e-4,'maxcor':100}) #'eps':0.001,
+                           options={'disp':False, 'maxiter':30, 'maxfun':500, 'ftol':1e-4,'maxcor':10}) #dont change defaut eps
         if self.fit_sigma:
             if self.pattern_1_use:
                 if self.pattern_2_use:
@@ -465,7 +465,7 @@ if __name__ == "__main__":
     test_likelihood_max = False
 
     #lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl")
-    lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue567g29.2dl")
+    lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl")
 
     ft = fits(lib)
 
@@ -476,7 +476,7 @@ if __name__ == "__main__":
     #xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
 
     #mm = MedipixMatrix(file_path='/home/eric/Desktop/jsontest.json')
-    mm = MedipixMatrix(file_path='/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/RT/-1102/pattern_d3_Npix0-20_rebin2x2_180.json')
+    mm = MedipixMatrix(file_path='/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/RT/-1101/pattern_d3_Npix0-20_rebin2x2_180.json')
     patt = mm.matrixOriginal
     xmesh = mm.xmesh
     ymesh = mm.ymesh
@@ -498,7 +498,8 @@ if __name__ == "__main__":
     # set a fitting routine
     counts_ordofmag = 10**(int(math.log10(patt.sum())))
     ft.set_data_pattern(xmesh, ymesh, patt)
-    ft.set_patterns_to_fit(249-249,377-249)
+    #ft.set_patterns_to_fit(249-249,377-249)
+    ft.set_patterns_to_fit(16)
     ft.fit_sigma = True
 
     res = []

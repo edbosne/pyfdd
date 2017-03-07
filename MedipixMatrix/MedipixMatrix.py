@@ -420,6 +420,7 @@ class MedipixMatrix:
         self.manip_create_mesh()
 
     def zero_central_pix(self, rm_central_pix=None):
+        rm_central_pix = int(rm_central_pix)
         if rm_central_pix is not None:
             self.rm_central_pix = rm_central_pix
         print('Number of chips - ', self.nChipsX*self.nChipsY)
@@ -466,7 +467,7 @@ class MedipixMatrix:
         if rest != 0:
             rm_edge_pix += rest
             print("warning removed edge pixels increased to ", rm_edge_pix)
-
+        rm_edge_pix = int(rm_edge_pix)
         print('rest - ',rest)
 
         final_size = int((nx - rm_edge_pix*2)/factor)
