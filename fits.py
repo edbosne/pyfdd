@@ -9,7 +9,7 @@ __email__ = 'eric.bosne@cern.ch'
 
 from read2dl.lib2dl import lib2dl
 from patterncreator import *
-from MedipixMatrix import *
+from MedipixMatrix.MedipixMatrix import *
 
 import numpy as np
 import scipy.optimize as op
@@ -72,7 +72,7 @@ class fits:
         p0 += (f_p2/self.p0_scale[5+di],) if self.pattern_2_use else ()
         p0 += (f_p3/self.p0_scale[6+di],) if self.pattern_3_use else ()
         self.p0 = np.array(p0)
-        print('p0 - ', p0)
+        #print('p0 - ', p0)
 
     def set_scale_values(self, dx=1, dy=1, phi=1, total_cts=1, sigma=1, f_p1=1, f_p2=1, f_p3=1):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
@@ -273,7 +273,7 @@ class fits:
                                                 simulations, mask=self.data_pattern.mask)
 
         res = op.minimize(self.chi_square_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options={'disp':False, 'maxiter':30, 'ftol':1e-7,'maxcor':1000}) #'eps':0.001,
+                           options={'eps':0.001, 'disp':False, 'maxiter':30, 'ftol':1e-4,'maxcor':100}) #'eps':0.001,
         if self.fit_sigma:
             if self.pattern_1_use:
                 if self.pattern_2_use:
@@ -464,7 +464,8 @@ if __name__ == "__main__":
     test_chi2_min = True
     test_likelihood_max = False
 
-    lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl")
+    #lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl")
+    lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue567g29.2dl")
 
     ft = fits(lib)
 
@@ -474,8 +475,9 @@ if __name__ == "__main__":
     #xmesh, ymesh = create_detector_mesh(20, 20, 1.4, 300)
     #xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
 
-    mm = MedipixMatrix(file_path='/home/eric/Desktop/jsontest.json')
-    #patt = mm.matrixOriginal
+    #mm = MedipixMatrix(file_path='/home/eric/Desktop/jsontest.json')
+    mm = MedipixMatrix(file_path='/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/RT/-1102/pattern_d3_Npix0-20_rebin2x2_180.json')
+    patt = mm.matrixOriginal
     xmesh = mm.xmesh
     ymesh = mm.ymesh
 
@@ -483,9 +485,9 @@ if __name__ == "__main__":
     fractions_per_sim = np.array([0.65, 0.30, 0.05])
     total_events = 1e6
     # TODO fix montecarlo
-    patt = creator.make_pattern(-1.08, 1.18, 179, fractions_per_sim, total_events, sigma=0.1, type='poisson')
+    #patt = creator.make_pattern(-1.08, 1.18, 179, fractions_per_sim, total_events, sigma=0.1, type='poisson')
     #patt = ma.masked_where(xmesh >=1.5,patt)
-    patt = ma.array(data=patt, mask=mm.matrixOriginal.mask)
+    #patt = ma.array(data=patt, mask=mm.matrixOriginal.mask)
 
     plt.figure(0)
     plt.contourf(xmesh, ymesh, patt)#, np.arange(0, 3000, 100))

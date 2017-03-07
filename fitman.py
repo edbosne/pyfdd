@@ -168,20 +168,23 @@ class fitman:
         xmesh = self.best_fit.XXmesh
         ymesh = self.best_fit.YYmesh
         # data pattern
-        fig = plt.figure(1)
+        fig = plt.figure()
         plt.contourf(xmesh, ymesh, self.best_fit.data_pattern)
         plt.colorbar()
         fig.savefig(base_name + '_data.png')
+        plt.close(fig)
         # sim pattern
-        fig = plt.figure(2)
+        fig = plt.figure()
         plt.contourf(xmesh, ymesh, self.best_fit.sim_pattern)
         plt.colorbar()
         fig.savefig(base_name + '_sim.png')
+        plt.close(fig)
         # sim-data pattern
-        fig = plt.figure(3)
+        fig = plt.figure()
         plt.contourf(xmesh, ymesh, self.best_fit.sim_pattern - self.best_fit.data_pattern)
         plt.colorbar()
         fig.savefig(base_name + '_sim-data.png')
+        plt.close(fig)
 
 
 

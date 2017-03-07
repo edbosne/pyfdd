@@ -14,16 +14,16 @@ import numpy as np
 
 # filename
 filenames =(
-    '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/RT/-1101/pattern_d3_Npix0-20.txt',
-    '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/RT/-1102/pattern_d3_Npix0-20.txt',
-    '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/RT/-2113/pattern_d3_Npix0-20.txt')#,
-#    '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-1101/pattern_d3_Npix0-20.txt',
-#    '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-1102/pattern_d3_Npix0-20.txt',
-#    '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-2113/pattern_d3_Npix0-20.txt')
+#    '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/RT/-1101/pattern_d3_Npix0-20_rebin2x2_180.json',
+    '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/RT/-1102/pattern_d3_Npix0-20_rebin2x2_180.json',
+    '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/RT/-2113/pattern_d3_Npix0-20_rebin2x2_180.json')#,
+#    '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-1101/pattern_d3_Npix0-20_rebin2x2_180.json',
+#    '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-1102/pattern_d3_Npix0-20_rebin2x2_180.json',
+#    '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-2113/pattern_d3_Npix0-20_rebin2x2_180.json')
 
 # library
 libraries = (
-    '/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl', # <-1101>
+#    '/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl', # <-1101>
     '/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue567g29.2dl', # <-1102>
     '/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue725g28.2dl')#, # <-2113>
 #    '/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl',  # <-1101>
@@ -31,7 +31,7 @@ libraries = (
 #    '/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue725g28.2dl')  # <-2113>13>
 
 # fits
-for i in range(len(filenames)):
+for i in (0,): #range(len(filenames)):
     filename = filenames[i]
     library = libraries[i]
     basename, ext = os.path.splitext(filename)
