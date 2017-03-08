@@ -41,17 +41,19 @@ libraries = (
 # fits
 
 filenames = filenames2x2
-filenames = filenames16x16
-for i in range(len(filenames)):
+#filenames = filenames16x16
+for i in range(4, len(filenames)):
     filename = filenames[i]
     library = libraries[i]
     basename, ext = os.path.splitext(filename)
 
+    print('Fitting ', filename, '\nwith ', library)
+
     fm = fitman()
     fm.add_pattern(filename, library)
     P1 = np.array((0,))
-    P2 = np.arange(0, 249) # 249
-    fm.run_fits(P1, P2, method='chi2', get_errors=False, fit_sigma=True)
+    P1 = np.arange(0, 249) # 249
+    fm.run_fits(P1, method='chi2', get_errors=False, fit_sigma=True)
 
-    fm.save_output(basename + '_2site-fit.xls', save_figure=False)
-    fm.save_output(basename + '_2site-fit.csv', save_figure=True)
+    fm.save_output(basename + '_1site-fit.xls', save_figure=False)
+    fm.save_output(basename + '_1site-fit.csv', save_figure=False)
