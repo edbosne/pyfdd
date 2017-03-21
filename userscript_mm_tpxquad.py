@@ -37,7 +37,7 @@ mm2.zero_central_pix(0)
 mm2.manip_correct_central_pix()
 
 # -Sum pixels, zero central pixels and remove edge pixels all in one
-mm2.manip_compress(factor=16, rm_central_pix=0, rm_edge_pix=0)
+mm2.manip_compress(factor=2, rm_central_pix=0, rm_edge_pix=0)
 
 # Smooth
 # mm2.manip_smooth(2.0)
@@ -68,6 +68,6 @@ print('angle widget, center ', mm2.center, ', angle ', mm2.angle)
 mm2.mask_limits(limits=(mm2.center[0] - 2.8, mm2.center[0] + 2.8, mm2.center[1] - 2.8, mm2.center[1] + 2.8))
 
 # save matrix
-mm2.io_save_json(basename + '_rebin16x16_180.json')
+#mm2.io_save_json(basename + '_rebin16x16_180.json')
 # ascii if to be used with fdd
 # mm2.io_save_ascii('/home/eric/Desktop/test.txt')

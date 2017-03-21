@@ -149,7 +149,7 @@ class PatternCreator:
         if type == 'ideal':
             return sim_pattern
         elif type == 'montecarlo':
-            n_total = self.total_events
+            n_total = total_events
             return ma.array(self._gen_mc_pattern(sim_pattern, n_total), mask=mask)
         elif type == 'poisson':
             return ma.array(np.random.poisson(sim_pattern), mask=mask)
@@ -166,12 +166,16 @@ class PatternCreator:
         """
         n_total = int(n_total)
         sim_pattern /= sim_pattern.sum()
+
         cdf = sim_pattern.reshape(-1).cumsum()
         inv_cdf = lambda value: np.searchsorted(cdf, value, side="left")
         mc_event = [inv_cdf(x) for x in np.random.uniform(0, 1, n_total)]
         mc_event_x = self._detector_xmesh.reshape(-1)[mc_event]
         mc_event_y = self._detector_ymesh.reshape(-1)[mc_event]
-        H, xedges, yedges = np.histogram2d(mc_event_y, mc_event_x, self._detector_xmesh.shape[::-1])
+        bins = self._detector_xmesh.shape[::-1]
+        range = [[self._detector_ymesh.min(), self._detector_ymesh.max()],
+                 [self._detector_xmesh.min(), self._detector_xmesh.max()]]
+        H, xedges, yedges = np.histogram2d(mc_event_y, mc_event_x, bins, range)
         return H
 
     def _apply_fractions(self, fractions):
@@ -270,8 +274,8 @@ if __name__ == "__main__":
     gen = PatternCreator(lib, xmesh, ymesh, 0)
     fractions_per_sim = np.array([0.3, 0.7])
     #fractions_per_sim /= fractions_per_sim.sum()
-    total_events = 1 #1e6
-    pattern = gen.make_pattern(0.5, -0.5, 3, fractions_per_sim, total_events, sigma=0.2, type='ideal')
+    total_events = 1e6
+    pattern = gen.make_pattern(0.5, -0.0, 0, fractions_per_sim, total_events, sigma=0.0, type='montecarlo')
     print(pattern.sum())
 
     plt.figure(1)

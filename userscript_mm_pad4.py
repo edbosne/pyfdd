@@ -72,6 +72,6 @@ f2 = plt.figure(2)
 ax2 = plt.subplot('111')
 mm2.draw(ax2, percentiles=(0.01, 0.99))
 plt.show()
-mm2.io_save_json(basename + '_180.json')
+#mm2.io_save_json(basename + '_180.json')
 # ascii if to be used with fdd
 # mm2.io_save_ascii('/home/eric/Desktop/test.txt')
