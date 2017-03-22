@@ -40,7 +40,7 @@ class PatternCreator:
     Can create patterns for a specific detector configuration
     Can create ideal patterns, patterns with poisson noise and by Monte Carlo
     '''
-    def __init__(self, lib, xmesh=None, ymesh=None, simulations=0, mask=ma.nomask):
+    def __init__(self, lib, xmesh=None, ymesh=None, simulations=0, mask=ma.nomask, sub_pixels=1):
         """
         __init__ method for PatternCreator. Simulation and mesh are to be stated here.
         :type lib: lib2dl
@@ -63,6 +63,14 @@ class PatternCreator:
         else:
             self._detector_xmesh = xmesh.copy()
             self._detector_ymesh = ymesh.copy()
+
+        # expanded mesh
+        assert isinstance(sub_pixels, int)
+        self.sub_pixels = sub_pixels
+        self._detector_xmesh_expanded = np.array([])
+        self._detector_ymesh_expanded = np.array([])
+        if self.sub_pixels > 1:
+            self._expande_detector_mesh()
 
         # set mesh values
         self._nx_original = lib.nx
@@ -227,6 +235,23 @@ class PatternCreator:
         y = np.arange(self._yfirst, self._ylast + 0.5*self._ystep, self._ystep)
         self._xmesh, self._ymesh = np.meshgrid(x, y)
 
+    def _expande_detector_mesh(self):
+        xstep = self._detector_xmesh[0, 1] - self._detector_xmesh[0, 0]
+        ystep = self._detector_ymesh[1, 0] - self._detector_ymesh[0, 0]
+        new_xstep = xstep / self.sub_pixels
+        new_ystep = ystep / self.sub_pixels
+        print('new xstep, ystep - ', new_xstep, new_ystep)
+        new_xfirst = self._detector_xmesh[0, 0] - xstep / 2 + new_xstep / 2
+        new_yfirst = self._detector_ymesh[0, 0] - ystep / 2 + new_ystep / 2
+        # there is no need to subtract newstep/2 as it should be added again in np.arange
+        new_xlast = self._detector_xmesh[-1, -1] + xstep / 2 #- new_xstep / 2
+        new_ylast = self._detector_ymesh[-1, -1] + ystep / 2 #- new_ystep / 2
+        # just as in _update_coordinates_mesh
+        x = np.arange(new_xfirst, new_xlast, new_xstep)
+        y = np.arange(new_yfirst, new_ylast, new_ystep)
+        self._detector_xmesh_expanded, self._detector_ymesh_expanded = np.meshgrid(x, y)
+
+
     def _move(self, dx=0, dy=0):
         '''
         Translation of pattern
@@ -255,13 +280,22 @@ class PatternCreator:
         # convert to index space
         xscale = self._xmesh.shape[1] / (self._xmesh[0, -1] - self._xmesh[0, 0])
         yscale = self._ymesh.shape[0] / (self._ymesh[-1, 0] - self._ymesh[0, 0])
-        grid_x_temp = (self._detector_xmesh - self._xmesh[0, 0]) * xscale
-        grid_y_temp = (self._detector_ymesh - self._ymesh[0, 0]) * yscale
+        if self.sub_pixels == 1:
+            grid_x_temp = (self._detector_xmesh - self._xmesh[0, 0]) * xscale
+            grid_y_temp = (self._detector_ymesh - self._ymesh[0, 0]) * yscale
+        elif self.sub_pixels > 1:
+            grid_x_temp = (self._detector_xmesh_expanded - self._xmesh[0, 0]) * xscale
+            grid_y_temp = (self._detector_ymesh_expanded - self._ymesh[0, 0]) * yscale
 
         #interpolation
         temp_pattern = np.array([])
         temp_pattern = map_coordinates(self._pattern_current, (grid_y_temp, grid_x_temp),
                                        order=1, prefilter=False, mode='constant', cval=0)
+        if self.sub_pixels > 1:
+            y_final_size, x_final_size = self._detector_ymesh.shape
+            factor = self.sub_pixels
+            # sum over extra pixels, normalization here is redundant
+            temp_pattern = temp_pattern.reshape([y_final_size, factor, x_final_size, factor]).sum(3).sum(1)
         temp_pattern = ma.array(data=temp_pattern, mask=self.mask)
         temp_pattern = temp_pattern / temp_pattern.sum() * total_events # number of events
         self._pattern_current = ma.masked_equal(temp_pattern, 0)
