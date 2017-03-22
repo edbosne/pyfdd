@@ -305,11 +305,14 @@ if __name__ == "__main__":
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl")
     xmesh, ymesh = create_detector_mesh(22, 22, 1.4, 300)
     #xmesh, ymesh = create_detector_mesh(40, 40, 0.5, 300)
-    gen = PatternCreator(lib, xmesh, ymesh, 0)
+    #xmesh, ymesh = create_detector_mesh(100, 100, 0.2, 300)
+    # 5 subpixels is a good number for the pads
+    gen = PatternCreator(lib, xmesh, ymesh, 0, sub_pixels=5)
+
     fractions_per_sim = np.array([0.3, 0.7])
     #fractions_per_sim /= fractions_per_sim.sum()
     total_events = 1e6
-    pattern = gen.make_pattern(0.5, -0.0, 0, fractions_per_sim, total_events, sigma=0.0, type='montecarlo')
+    pattern = gen.make_pattern(0.0, -0.0, 0, fractions_per_sim, total_events, sigma=0, type='ideal')
     print(pattern.sum())
 
     plt.figure(1)

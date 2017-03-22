@@ -56,7 +56,7 @@ class fitman:
         else:
             ValueError('data_pattern input error')
 
-    def run_fits(self, *args, method='chi2', get_errors=False, fit_sigma=True):
+    def run_fits(self, *args, method='chi2', get_errors=False, fit_sigma=True, sub_pixels=1):
 
         # each input is a range of patterns to fit
         assert isinstance(get_errors, bool)
@@ -99,6 +99,7 @@ class fitman:
                     ft.set_data_pattern(xmesh, ymesh, patt)
                     ft.set_patterns_to_fit(p1, p2, p3)
                     ft.fit_sigma = fit_sigma
+                    ft.sub_pixels = sub_pixels
                     append_dic = {}
                     if method == 'chi2':
                         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag,
@@ -204,9 +205,9 @@ if __name__ == '__main__':
     fm.add_pattern(filename, library)
     P1 = np.array((0,))
     P2 = np.arange(0, 3) # 249
-    fm.run_fits(P1, P2, method='chi2', get_errors=False, fit_sigma=True)
+    fm.run_fits(P1, P2, method='chi2', get_errors=False, fit_sigma=True, sub_pixels=5)
 
-    fm.save_output('/home/eric/Desktop/test_fit.xls', save_figure=True)
+    #fm.save_output('/home/eric/Desktop/test_fit.xls', save_figure=True)
 
     # plot
     #plt.figure()

@@ -43,6 +43,7 @@ class fits:
         self.fit_sigma = False
         self.res = None
         self.pattern_generator = None
+        self.sub_pixels = 1
 
     def set_data_pattern(self,XXmesh,YYmesh,pattern):
         self.XXmesh = XXmesh.copy()
@@ -501,6 +502,7 @@ if __name__ == "__main__":
     #ft.set_patterns_to_fit(249-249,377-249)
     ft.set_patterns_to_fit(17)
     ft.fit_sigma = True
+    ft.sub_pixels = 1
 
     res = []
     if test_curve_fit:
