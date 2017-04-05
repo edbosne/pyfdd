@@ -33,7 +33,7 @@ mask[1,1]   = mask[1,2]   = mask[1,20]  = mask[2,1]  = mask[9,11]  = mask[9,20] 
 mask[10,12] = mask[10,19] = mask[10,20] = mask[11,2] = mask[11,11] = mask[11,20] = mask[12,1]  = mask[12,2]  = \
 mask[12,3]  = mask[13,1]  = mask[13,2]  = mask[13,3] = mask[14,2]  = mask[20,1]  = mask[20,2]  = mask[20,20] = 1
 mm2.set_mask(mask)
-
+mm2.manip_orient('rr,rr')
 # -Angular calibration
 mm2.manip_create_mesh(pixel_size=1.4, distance=300)
 
@@ -74,4 +74,4 @@ mm2.draw(ax2, percentiles=(0.01, 0.99))
 plt.show()
 #mm2.io_save_json(basename + '_180.json')
 # ascii if to be used with fdd
-# mm2.io_save_ascii('/home/eric/Desktop/test.txt')
+#mm2.io_save_ascii('/home/eric/Desktop/test.txt')

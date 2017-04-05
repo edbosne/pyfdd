@@ -236,11 +236,12 @@ class PatternCreator:
         self._xmesh, self._ymesh = np.meshgrid(x, y)
 
     def _expande_detector_mesh(self):
+
         xstep = self._detector_xmesh[0, 1] - self._detector_xmesh[0, 0]
         ystep = self._detector_ymesh[1, 0] - self._detector_ymesh[0, 0]
         new_xstep = xstep / self.sub_pixels
         new_ystep = ystep / self.sub_pixels
-        print('new xstep, ystep - ', new_xstep, new_ystep)
+
         new_xfirst = self._detector_xmesh[0, 0] - xstep / 2 + new_xstep / 2
         new_yfirst = self._detector_ymesh[0, 0] - ystep / 2 + new_ystep / 2
         # there is no need to subtract newstep/2 as it should be added again in np.arange
@@ -250,7 +251,6 @@ class PatternCreator:
         x = np.arange(new_xfirst, new_xlast, new_xstep)
         y = np.arange(new_yfirst, new_ylast, new_ystep)
         self._detector_xmesh_expanded, self._detector_ymesh_expanded = np.meshgrid(x, y)
-
 
     def _move(self, dx=0, dy=0):
         '''
@@ -303,16 +303,16 @@ class PatternCreator:
 
 if __name__ == "__main__":
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl")
-    xmesh, ymesh = create_detector_mesh(22, 22, 1.4, 300)
+    #xmesh, ymesh = create_detector_mesh(22, 22, 1.4, 300)
     #xmesh, ymesh = create_detector_mesh(40, 40, 0.5, 300)
-    #xmesh, ymesh = create_detector_mesh(100, 100, 0.2, 300)
+    xmesh, ymesh = create_detector_mesh(100, 100, 0.2, 300)
     # 5 subpixels is a good number for the pads
     gen = PatternCreator(lib, xmesh, ymesh, 0, sub_pixels=5)
 
     fractions_per_sim = np.array([0.3, 0.7])
     #fractions_per_sim /= fractions_per_sim.sum()
-    total_events = 1e6
-    pattern = gen.make_pattern(0.0, -0.0, 0, fractions_per_sim, total_events, sigma=0, type='ideal')
+    total_events = 1
+    pattern = gen.make_pattern(0.0, -0.0, -3, fractions_per_sim, total_events, sigma=0.1, type='ideal')
     print(pattern.sum())
 
     plt.figure(1)

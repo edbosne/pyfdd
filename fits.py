@@ -227,13 +227,13 @@ class fits:
         #print('chi2 - ', chi2)
         # print('p-value - ',pval)
         # =====
-        # fg = plt.figure(1)
-        # ax = fg.add_subplot(111)
-        # plt.ion()
-        # cont = None
-        # plt.contourf(self.XXmesh, self.YYmesh, sim_pattern) #(data_pattern-sim_pattern))
-        # fg.canvas.draw()
-        # plt.show(block=False)
+        fg = plt.figure(1)
+        ax = fg.add_subplot(111)
+        plt.ion()
+        cont = None
+        plt.contourf(self.XXmesh, self.YYmesh, sim_pattern) #(data_pattern-sim_pattern))
+        fg.canvas.draw()
+        plt.show(block=False)
         # =====
         return chi2
 
@@ -270,8 +270,8 @@ class fits:
         simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
 
         # generate sim pattern
-        self.pattern_generator = PatternCreator(self.lib, self.XXmesh, self.YYmesh,
-                                                simulations, mask=self.data_pattern.mask)
+        self.pattern_generator = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations,
+                                                mask=self.data_pattern.mask, sub_pixels=self.sub_pixels)
 
         res = op.minimize(self.chi_square_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
                            options={'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-4,'maxcor':100}) #dont change defaut eps
@@ -500,9 +500,9 @@ if __name__ == "__main__":
     counts_ordofmag = 10**(int(math.log10(patt.sum())))
     ft.set_data_pattern(xmesh, ymesh, patt)
     #ft.set_patterns_to_fit(249-249,377-249)
-    ft.set_patterns_to_fit(17)
+    ft.set_patterns_to_fit(0,128)
     ft.fit_sigma = True
-    ft.sub_pixels = 1
+    ft.sub_pixels = 5
 
     res = []
     if test_curve_fit:
