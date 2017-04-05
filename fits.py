@@ -500,7 +500,7 @@ if __name__ == "__main__":
     counts_ordofmag = 10**(int(math.log10(patt.sum())))
     ft.set_data_pattern(xmesh, ymesh, patt)
     #ft.set_patterns_to_fit(249-249,377-249)
-    ft.set_patterns_to_fit(0,128)
+    ft.set_patterns_to_fit(1,129)
     ft.fit_sigma = True
     ft.sub_pixels = 5
 

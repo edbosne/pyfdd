@@ -204,8 +204,8 @@ if __name__ == '__main__':
     fm = fitman()
     fm.add_pattern(filename, library)
 
-    P1 = np.array((0,))
-    P2 = np.arange(0, 3) # 249
+    P1 = np.array((1,))
+    P2 = np.arange(1, 3) # 249
     fm.run_fits(P1, P2, method='chi2', get_errors=False, fit_sigma=True, sub_pixels=5)
 
     #fm.save_output('/home/eric/Desktop/test_fit.xls', save_figure=True)

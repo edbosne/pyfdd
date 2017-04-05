@@ -74,8 +74,9 @@ class lib2dl:
             self.ny_mirror = self.ny
 
     def get_simulation_patt(self,num):
-        assert num >= 0, 'pattern number is negative'
-        temp = self.EClib.get_array(self.ECdict["Spectrums"][num]["array_index"])
+        assert num >= 1, 'pattern number must be positive'
+        assert num <= len(self.ECdict["Spectrums"]), 'pattern number is not valid'
+        temp = self.EClib.get_array(self.ECdict["Spectrums"][num-1]["array_index"])
         #temp = np.array(self.ECdict["Spectrums"][num]["array_index"]).copy()
         return self.mirror(temp)
 
@@ -92,6 +93,6 @@ class lib2dl:
 if __name__ == "__main__":
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue488g34.2dl")  # 89Sr [0001]
     plt.figure(1)
-    imgmat = lib.get_simulation_patt(0)
+    imgmat = lib.get_simulation_patt(1)
     plt.contourf(imgmat)
     plt.show()

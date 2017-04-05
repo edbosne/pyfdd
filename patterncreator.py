@@ -307,7 +307,7 @@ if __name__ == "__main__":
     #xmesh, ymesh = create_detector_mesh(40, 40, 0.5, 300)
     xmesh, ymesh = create_detector_mesh(100, 100, 0.2, 300)
     # 5 subpixels is a good number for the pads
-    gen = PatternCreator(lib, xmesh, ymesh, 0, sub_pixels=5)
+    gen = PatternCreator(lib, xmesh, ymesh, 1, sub_pixels=5)
 
     fractions_per_sim = np.array([0.3, 0.7])
     #fractions_per_sim /= fractions_per_sim.sum()
