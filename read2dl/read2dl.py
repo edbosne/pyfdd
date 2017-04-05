@@ -101,11 +101,12 @@ class read2dl:
             rec_index += self.short_sz
             dict_spec["Spectrum_description"] = (record[rec_index:rec_index + 50]).decode('utf-8')
             rec_index += 50
-            dict_spec["factor"] = struct.unpack("<f",record[rec_index:rec_index+self.float_sz])[0]
+            # rounding for numerical accuracy
+            dict_spec["factor"] = round(struct.unpack("<f",record[rec_index:rec_index+self.float_sz])[0],6)
             rec_index += self.float_sz
-            dict_spec["u2"] = struct.unpack("<f",record[rec_index:rec_index+self.float_sz])[0]
+            dict_spec["u2"] = round(struct.unpack("<f",record[rec_index:rec_index+self.float_sz])[0],6)
             rec_index += self.float_sz
-            dict_spec["sigma"] = struct.unpack("<f",record[rec_index:rec_index+self.float_sz])[0]
+            dict_spec["sigma"] = round(struct.unpack("<f",record[rec_index:rec_index+self.float_sz])[0],6)
             rec_index += self.float_sz
 
             record_size = fileContent[index]
