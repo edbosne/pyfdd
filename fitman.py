@@ -133,21 +133,21 @@ class fitman:
                         append_dic['p1'] = p1
                         append_dic['site1 description'] = self.lib.ECdict["Spectrums"][p1]["Spectrum_description"]
                         append_dic['site1 factor'] = self.lib.ECdict["Spectrums"][p1]["factor"]
-                        append_dic['site1 u2'] = self.lib.ECdict["Spectrums"][p1]["u2"]
+                        append_dic['site1 u1'] = self.lib.ECdict["Spectrums"][p1]["u2"]
                         append_dic['site1 fraction'] = ft.res['x'][3+di]
                     if patterns_list[1][0] is not None:
                         append_dic['site2 n'] = self.lib.ECdict["Spectrums"][p2]["Spectrum number"]
                         append_dic['p2'] = p2
                         append_dic['site2 description'] = self.lib.ECdict["Spectrums"][p2]["Spectrum_description"]
                         append_dic['site2 factor'] = self.lib.ECdict["Spectrums"][p2]["factor"]
-                        append_dic['site2 u2'] = self.lib.ECdict["Spectrums"][p2]["u2"]
+                        append_dic['site2 u1'] = self.lib.ECdict["Spectrums"][p2]["u2"]
                         append_dic['site2 fraction'] = ft.res['x'][4+di]
                     if patterns_list[2][0] is not None:
                         append_dic['site3 n'] = self.lib.ECdict["Spectrums"][p3]["Spectrum number"]
                         append_dic['p3'] = p3
                         append_dic['site3 description'] = self.lib.ECdict["Spectrums"][p3]["Spectrum_description"]
                         append_dic['site3 factor'] = self.lib.ECdict["Spectrums"][p3]["factor"]
-                        append_dic['site3 u2'] = self.lib.ECdict["Spectrums"][p3]["u2"]
+                        append_dic['site3 u1'] = self.lib.ECdict["Spectrums"][p3]["u2"]
                         append_dic['site3 fraction'] = ft.res['x'][5+di]
 
                     #print('append_dic ', append_dic)
