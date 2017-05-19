@@ -35,10 +35,11 @@ mask[12,3]  = mask[13,1]  = mask[13,2]  = mask[13,3] = mask[14,2]  = mask[20,1] 
 mm2.set_mask(mask)
 mm2.manip_orient('rr,rr')
 # -Angular calibration
-mm2.manip_create_mesh(pixel_size=1.4, distance=300)
+mm2.manip_create_mesh(pixel_size=1.4, distance=300, reverse_x=True)
 
 # -Sum pixels, zero central pixels and remove edge pixels all in one
-mm2.manip_compress(factor=1, rm_central_pix=0, rm_edge_pix=1)
+#mm2.manip_compress(factor=1, rm_central_pix=0, rm_edge_pix=1)
+mm2.remove_edge_pixel(1)
 
 # Smooth
 # mm2.manip_smooth(2.0)
@@ -48,7 +49,7 @@ mm2.manip_compress(factor=1, rm_central_pix=0, rm_edge_pix=1)
 # Plotting
 f2 = plt.figure(2)
 ax2 = plt.subplot('111')
-mm2.draw(ax2, percentiles=(0.01, 0.99))
+mm2.draw(ax2, percentiles=(0.01, 0.99), plot_type='pixels')
 
 # get rectangle
 # mm2.get_rectangle_tool()

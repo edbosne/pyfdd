@@ -227,13 +227,13 @@ class fits:
         #print('chi2 - ', chi2)
         # print('p-value - ',pval)
         # =====
-        fg = plt.figure(1)
-        ax = fg.add_subplot(111)
-        plt.ion()
-        cont = None
-        plt.contourf(self.XXmesh, self.YYmesh, sim_pattern) #(data_pattern-sim_pattern))
-        fg.canvas.draw()
-        plt.show(block=False)
+        # fg = plt.figure(1)
+        # ax = fg.add_subplot(111)
+        # plt.ion()
+        # cont = None
+        # plt.contourf(self.XXmesh, self.YYmesh, sim_pattern) #(data_pattern-sim_pattern))
+        # fg.canvas.draw()
+        # plt.show(block=False)
         # =====
         return chi2
 
@@ -474,19 +474,18 @@ if __name__ == "__main__":
     #x=np.arange(-1.79,1.8,0.01)
     #xmesh, ymesh = np.meshgrid(x,x)
     #xmesh, ymesh = create_detector_mesh(20, 20, 1.4, 300)
-    #xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
+    xmesh, ymesh = create_detector_mesh(50, 50, 0.5, 300)
 
     #mm = MedipixMatrix(file_path='/home/eric/Desktop/jsontest.json')
-    mm = MedipixMatrix(file_path='/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-1102/pattern_d3_Npix0-20_rebin2x2_180.json')
-    patt = mm.matrixOriginal
-    xmesh = mm.xmesh
-    ymesh = mm.ymesh
+    #mm = MedipixMatrix(file_path='/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-1102/pattern_d3_Npix0-20_rebin2x2_180.json')
+    #patt = mm.matrixOriginal
+    #xmesh = mm.xmesh
+    #ymesh = mm.ymesh
 
-    creator = PatternCreator(lib, xmesh, ymesh, (249-249,377-249))
-    fractions_per_sim = np.array([0.65, 0.30, 0.05])
+    creator = PatternCreator(lib, xmesh, ymesh, (1,))#(249-249+1,377-249+1))
+    fractions_per_sim = np.array([0.65, 0.30])#, 0.05])
     total_events = 1e6
-    # TODO fix montecarlo
-    #patt = creator.make_pattern(-1.08, 1.18, 179, fractions_per_sim, total_events, sigma=0.1, type='poisson')
+    patt = creator.make_pattern(-0.08, 0.18, 5, fractions_per_sim, total_events, sigma=0.1, type='poisson')
     #patt = ma.masked_where(xmesh >=1.5,patt)
     #patt = ma.array(data=patt, mask=mm.matrixOriginal.mask)
 
@@ -500,7 +499,7 @@ if __name__ == "__main__":
     counts_ordofmag = 10**(int(math.log10(patt.sum())))
     ft.set_data_pattern(xmesh, ymesh, patt)
     #ft.set_patterns_to_fit(249-249,377-249)
-    ft.set_patterns_to_fit(1,129)
+    ft.set_patterns_to_fit(1)#,129)
     ft.fit_sigma = True
     ft.sub_pixels = 5
 
@@ -516,8 +515,8 @@ if __name__ == "__main__":
 
     if test_chi2_min:
         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag, sigma=1, f_p1=1)
-        #ft.set_inicial_values(0.1, 0.1, 1, counts_ordofmag)
-        ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, counts_ordofmag, sigma=0.1)
+        ft.set_inicial_values(0.1, 0.1, 1, counts_ordofmag)
+        #ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, counts_ordofmag, sigma=0.1)
         ft.minimize_chi2()
         #var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='chi_square')
         #print('Calculating errors ...')

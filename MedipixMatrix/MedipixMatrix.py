@@ -159,6 +159,7 @@ class MedipixMatrix:
         # values for angular calibration
         self.pixel_size_mm = 1
         self.distance = 300
+        self.reverse_x = False
 
         # values for manipulation methods
         self.mask_central_pixels = 0
@@ -433,6 +434,19 @@ class MedipixMatrix:
         for iy in range(self.nChipsY - 1):
             self.matrixCurrent.mask[ystep - rm_central_pix:ystep + rm_central_pix,:] = True
 
+    def remove_edge_pixel(self, rm_edge_pix=0):
+        '''
+        This function is used to trim edge pixels
+        :param rm_edge_pix: number of edge pixels to remove
+        :return:
+        '''
+        assert isinstance(rm_edge_pix, int), 'number of edge pixels to remove should be int'
+        if rm_edge_pix > 0:
+            self.matrixCurrent = self.matrixCurrent[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
+
+        # Update mesh
+        self.manip_create_mesh()
+
     def manip_compress(self, factor=2, rm_central_pix=0, rm_edge_pix=0):
         '''
         This function reduces the binning of the matrix in a smart way.
@@ -448,8 +462,8 @@ class MedipixMatrix:
             warnings.warn('The value for the central pixel real size is set to ' + str(self.real_size))
 
         assert isinstance(factor,int), 'factor should be int'
-        assert isinstance(rm_central_pix, int), 'factor should be int'
-        assert isinstance(rm_edge_pix, int), 'factor should be int'
+        assert isinstance(rm_central_pix, int), 'number of central pixels to remove should be int'
+        assert isinstance(rm_edge_pix, int), 'number of edge pixels to remove should be int'
 
         (ny, nx) = self.matrixCurrent.shape
         # verify if zeroed central pixels are divided by factor
@@ -483,11 +497,14 @@ class MedipixMatrix:
         self.pixel_size_mm *= factor
         self.manip_create_mesh()
 
-    def manip_create_mesh(self, pixel_size=None, distance=None):
+    def manip_create_mesh(self, pixel_size=None, distance=None, reverse_x=None):
         if pixel_size is not None:
             self.pixel_size_mm = pixel_size
         if distance is not None:
             self.distance = distance
+        if reverse_x is not None:
+            assert isinstance(reverse_x,bool), "reverse_x needs to be bool."
+            self.reverse_x = reverse_x
         if pixel_size is not None and distance is not None:
             self.xmesh, self.ymesh = create_detector_mesh(self.matrixCurrent.shape[1],self.matrixCurrent.shape[0],
                                                           self.pixel_size_mm, self.distance)
@@ -501,6 +518,8 @@ class MedipixMatrix:
                 xm = np.arange(self.matrixCurrent.shape[1])
                 ym = np.arange(self.matrixCurrent.shape[0])
                 self.xmesh, self.ymesh = np.meshgrid(xm, ym)
+        if self.reverse_x:
+            self.xmesh = np.fliplr(self.xmesh)
 
         # alternative method
         #manip_create_mesh(self, shape, axis_range):
@@ -543,8 +562,11 @@ class MedipixMatrix:
         if plot_type == 'contour':
             levels = ml.ticker.MaxNLocator(nbins=n_color_bins).tick_values(lowtick, hightick)
             ret = axes.contourf(self.xmesh, self.ymesh, self.matrixDrawable, cmap=imgCmap, levels=levels)
+            if self.reverse_x == True:
+                axes.invert_xaxis()
         elif plot_type == 'pixels':
             extent = [self.xmesh[0,0], self.xmesh[0,-1], self.ymesh[0,0], self.ymesh[-1,0]]
+            print('extent - ', extent)
             ret = axes.imshow(self.matrixDrawable, cmap=imgCmap, interpolation='nearest', aspect='auto',\
                              vmin=lowtick, vmax=hightick, origin='lower', extent=extent)
         else:
@@ -661,4 +683,4 @@ if __name__ == '__main__':
     ax2 = plt.subplot('111')
     mm2.draw(ax2, percentiles=(0.01, 0.99))
     plt.show()
-    mm2.io_save_json('/home/eric/Desktop/jsontest.json')
+    #mm2.io_save_json('/home/eric/Desktop/jsontest.json')
