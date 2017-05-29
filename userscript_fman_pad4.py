@@ -7,7 +7,7 @@ user script for making medipix matrices
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
-from fitman import fitman
+from PyFDD import fitman
 
 import os
 import numpy as np
@@ -44,5 +44,5 @@ for i in range(3):#len(filenames)):
     P2 = np.arange(1, 249) # 249
     fm.run_fits(P1, P2, method='chi2', get_errors=False, fit_sigma=True, sub_pixels=5)
 
-    fm.save_output(basename + '_2site-fit_subpix5.xls', save_figure=False)
-    fm.save_output(basename + '_2site-fit_subpix5.csv', save_figure=True)
+    #fm.save_output(basename + '_2site-fit_subpix5.xls', save_figure=False)
+    #fm.save_output(basename + '_2site-fit_subpix5.csv', save_figure=True)
