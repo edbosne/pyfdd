@@ -6,10 +6,13 @@ The fits object gets access to a lib2dl object and performs fits and statistical
 
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
+import sys
+sys.path
+sys.path.append('.')
 
-from .read2dl.lib2dl import lib2dl
-from .patterncreator import PatternCreator
-from .MedipixMatrix.MedipixMatrix import MedipixMatrix
+from PyFDD.read2dl.lib2dl import lib2dl
+from PyFDD.patterncreator import PatternCreator, create_detector_mesh
+from PyFDD.MedipixMatrix.MedipixMatrix import MedipixMatrix
 
 import numpy as np
 import scipy.optimize as op
@@ -211,6 +214,7 @@ class fits:
         :param total_events: total number of events
         :param simulations: simulations id number
         :param fractions_sims: fractions of each simulated pattern
+        :param sigma: sigma of the gaussian to convolute the pattern, smooting
         :return: Pearson's chi2
         """
         # set data pattern
@@ -255,11 +259,11 @@ class fits:
         return self.chi_square(dx, dy, phi, total_cts, fractions_sims=fractions_sims, sigma=sigma)
 
     def minimize_chi2(self):
-        # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
+        # order of params is dx,dy,phi,total_cts,sigma,f_p1,f_p2,f_p3
         p0 = self.p0
         #print('p0 - ', p0)
         bnds = ((-3,+3), (-3,+3), (None,None), (0, None))
-        bnds += ((None, None),) if self.fit_sigma else ()
+        bnds += ((0, None),) if self.fit_sigma else ()
         bnds += ((0, 1),) if self.pattern_1_use else ()
         bnds += ((0, 1),) if self.pattern_2_use else ()
         bnds += ((0, 1),) if self.pattern_3_use else ()
@@ -300,7 +304,7 @@ class fits:
         self.res = res
 
 # methods for maximum likelihood
-    def log_likelihood(self, dx, dy, phi, simulations, fractions_sims, sigma=0):
+    def log_likelihood(self, dx, dy, phi, fractions_sims, sigma=0):
         """
         Calculates the Pearson chi2 for the given conditions.
         :param dx: delta x in angles
@@ -308,17 +312,19 @@ class fits:
         :param phi: delta phi in anlges
         :param simulations: simulations id number
         :param fractions_sims: fractions of each simulated pattern
+        :param sigma: sigma of the gaussian to convolute the pattern, smooting
         :return: likelihood
         """
         # set data pattern
-        data_pattern = self.data_pattern.copy()
-        if not len(simulations) == len(fractions_sims):
-            raise ValueError("size o simulations is diferent than size o events")
+        data_pattern = self.data_pattern
+        #if not len(simulations) == len(fractions_sims):
+        #    raise ValueError("size o simulations is diferent than size o events")
         total_events = 1
         fractions_sims = np.array(fractions_sims)
         rnd_events = np.array([1 - fractions_sims.sum()])
         # generate sim pattern
-        gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations, mask=data_pattern.mask)
+        gen = self.pattern_generator
+        # gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations, mask=data_pattern.mask)
         fractions = np.concatenate((rnd_events, fractions_sims))
         sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, sigma=sigma, type='ideal')
         self.sim_pattern = sim_pattern.copy()
@@ -353,21 +359,32 @@ class fits:
         fractions_sims += (params[4+di] * p0_scale[4+di],) if self.pattern_2_use else () # pattern 2
         fractions_sims += (params[5+di] * p0_scale[5+di],) if self.pattern_3_use else () # pattern 3
         # get patterns
-        simulations  = (self.pattern_1_n,) if self.pattern_1_use else ()
-        simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
-        simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
-        return self.log_likelihood(dx, dy, phi, simulations, fractions_sims, sigma=sigma)
+        #simulations  = (self.pattern_1_n,) if self.pattern_1_use else ()
+        #simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
+        #simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
+        return self.log_likelihood(dx, dy, phi, fractions_sims, sigma=sigma)
 
     def maximize_likelyhood(self):
+        # order of params is dx,dy,phi,sigma,f_p1,f_p2,f_p3
+        p0 = self.p0
         #print('p0 - ', self.p0)
         bnds = ((-3, +3), (-3, +3), (None, None)) #(self.p0[2]-5/self.p0_scale[2],self.p0[2]+5/self.p0_scale[2])) # no need for number of cts
-        bnds += ((None, None),) if self.fit_sigma else ()
+        bnds += ((0, None),) if self.fit_sigma else ()
         bnds += ((0, 1),) if self.pattern_1_use else ()
         bnds += ((0, 1),) if self.pattern_2_use else ()
         bnds += ((0, 1),) if self.pattern_3_use else ()
-        #print('self.p0', self.p0)
+
+        # get patterns
+        simulations = (self.pattern_1_n,) if self.pattern_1_use else ()
+        simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
+        simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
+
+        # generate sim pattern
+        self.pattern_generator = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations,
+                                                mask=self.data_pattern.mask, sub_pixels=self.sub_pixels)
+
         res = op.minimize(self.log_likelihood_call, self.p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options={'eps': 0.0001, 'disp':False, 'maxiter':20, 'ftol':1e-10,'maxcor':1000}) #'eps': 0.0001,
+                           options={'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-4,'maxcor':100}) #'eps': 0.0001,
         if self.fit_sigma:
             if self.pattern_1_use:
                 if self.pattern_2_use:
@@ -462,8 +479,8 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     test_curve_fit = False
-    test_chi2_min = True
-    test_likelihood_max = False
+    test_chi2_min = False
+    test_likelihood_max = True
 
     #lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl")
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue567g29.2dl")
@@ -535,8 +552,8 @@ if __name__ == "__main__":
 
     if test_likelihood_max:
         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1, f_p1=1, f_p2=1)
-        #ft.set_inicial_values(0.1, 0.1, 1, -1)
-        ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, -1, sigma=0.1)
+        ft.set_inicial_values(0.1, 0.1, 1, -1, sigma=0.1)
+        #ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, -1, sigma=0.1)
         ft.maximize_likelyhood()
         print(ft.res)
         print('sigma in sim step units - ', ft.res['x'][4] / lib.xstep)
