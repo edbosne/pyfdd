@@ -18,7 +18,7 @@ import numpy as np
 import scipy.optimize as op
 import scipy.stats as st
 import math
-#import numdifftools as nd
+import numdifftools as nd
 from scipy.ndimage import gaussian_filter
 
 
@@ -384,7 +384,7 @@ class fits:
                                                 mask=self.data_pattern.mask, sub_pixels=self.sub_pixels)
 
         res = op.minimize(self.log_likelihood_call, self.p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options={'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-4,'maxcor':100}) #'eps': 0.0001,
+                           options={'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-8,'maxcor':100}) #'eps': 0.0001,
         if self.fit_sigma:
             if self.pattern_1_use:
                 if self.pattern_2_use:
@@ -414,14 +414,19 @@ class fits:
         x = np.array(x)
         x /= ft.p0_scale[0:len(x)] if enable_scale else np.ones(len(x))
         if func == 'likelihood':
-            f = lambda x: ft.log_likelihood_call(x, enable_scale)
+            f = lambda xx: ft.log_likelihood_call(xx, enable_scale)
         elif func == 'chi_square':
-            f = lambda x: ft.chi_square_call(x, enable_scale)
+            f = lambda xx: ft.chi_square_call(xx, enable_scale)
         else:
             raise ValueError('undefined function, should be likelihood or chi_square')
         H = nd.Hessian(f)  # ,step=1e-9)
         hh = H(x)
-        hh_inv = np.linalg.inv(hh)
+        if func == 'likelihood':
+            hh_inv = np.linalg.inv(hh)
+        elif func == 'chi_square':
+            hh_inv = np.linalg.inv(0.5*hh)
+        else:
+            raise ValueError('undefined function, should be likelihood or chi_square')
         variance = np.sqrt(np.diag(hh_inv))
         variance *= ft.p0_scale[0:5] if enable_scale else np.ones(len(x))
         return variance
@@ -479,8 +484,8 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     test_curve_fit = False
-    test_chi2_min = False
-    test_likelihood_max = True
+    test_chi2_min = True
+    test_likelihood_max = False
 
     #lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl")
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue567g29.2dl")
@@ -520,7 +525,6 @@ if __name__ == "__main__":
     ft.fit_sigma = True
     ft.sub_pixels = 5
 
-    res = []
     if test_curve_fit:
         popt, pcov = ft.call_curve_fit()
         print('\noptimum values')
@@ -532,14 +536,15 @@ if __name__ == "__main__":
 
     if test_chi2_min:
         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag, sigma=1, f_p1=1)
-        ft.set_inicial_values(0.1, 0.1, 1, counts_ordofmag)
+        ft.set_inicial_values(0.1, 0.1, 1, counts_ordofmag, sigma=0.1)
         #ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, counts_ordofmag, sigma=0.1)
         ft.minimize_chi2()
-        #var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='chi_square')
-        #print('Calculating errors ...')
-        #ft.print_variance(res['x'],var)
         print(ft.res)
         print('sigma in sim step units - ', ft.res['x'][4] / lib.xstep)
+        print('Calculating errors ...')
+        var = ft.get_variance_from_hessian(ft.res['x'], enable_scale=False, func='chi_square')
+        print('var - ', var)
+        #ft.print_variance(ft.res['x'],var)
         # x = res['x'] * ft.p0_scale[0:5]
         # ft.set_scale_values()
         # # There is a warning because the hessian starts with a step too big, don't worry about it
@@ -558,8 +563,9 @@ if __name__ == "__main__":
         print(ft.res)
         print('sigma in sim step units - ', ft.res['x'][4] / lib.xstep)
         print('Calculating errors ...')
-        #var = ft.get_variance_from_hessian(res['x'],enable_scale=False,func='likelihood')
-        #ft.print_variance(res['x'],var)
+        var = ft.get_variance_from_hessian(ft.res['x'],enable_scale=False,func='likelihood')
+        print('var - ', var)
+        #ft.print_variance(ft.res['x'],var)
         #ft.get_location_errors(res['x'], (0,), last=300, func='likelihood')
 
     print('data points ', np.sum(~patt.mask))
