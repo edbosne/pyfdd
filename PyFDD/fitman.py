@@ -119,14 +119,14 @@ class fitman:
                                               counts_ordofmag, sigma=0.1)
                         ft.maximize_likelyhood()
                         # TODO get errors
-                    append_dic['value'] = ft.res['fun']
+                    append_dic['value'] = ft.results['fun']
                     append_dic['D.O.F.'] = np.sum(~patt.mask)
-                    append_dic['x'] = ft.res['x'][0]
-                    append_dic['y'] = ft.res['x'][1]
-                    append_dic['phi'] = ft.res['x'][2]
-                    append_dic['counts'] = ft.res['x'][3] if method == 'chi2' else None
+                    append_dic['x'] = ft.results['x'][0]
+                    append_dic['y'] = ft.results['x'][1]
+                    append_dic['phi'] = ft.results['x'][2]
+                    append_dic['counts'] = ft.results['x'][3] if method == 'chi2' else None
                     di = 1 if  method == 'chi2' else 0
-                    append_dic['sigma'] = ft.res['x'][3+di] if fit_sigma else None
+                    append_dic['sigma'] = ft.results['x'][3 + di] if fit_sigma else None
                     di += 1 if fit_sigma else 0
                     if patterns_list[0][0] is not None:
                         append_dic['site1 n'] = self.lib.ECdict["Spectrums"][p1]["Spectrum number"]
@@ -134,27 +134,27 @@ class fitman:
                         append_dic['site1 description'] = self.lib.ECdict["Spectrums"][p1]["Spectrum_description"]
                         append_dic['site1 factor'] = self.lib.ECdict["Spectrums"][p1]["factor"]
                         append_dic['site1 u1'] = self.lib.ECdict["Spectrums"][p1]["u2"]
-                        append_dic['site1 fraction'] = ft.res['x'][3+di]
+                        append_dic['site1 fraction'] = ft.results['x'][3 + di]
                     if patterns_list[1][0] is not None:
                         append_dic['site2 n'] = self.lib.ECdict["Spectrums"][p2]["Spectrum number"]
                         append_dic['p2'] = p2
                         append_dic['site2 description'] = self.lib.ECdict["Spectrums"][p2]["Spectrum_description"]
                         append_dic['site2 factor'] = self.lib.ECdict["Spectrums"][p2]["factor"]
                         append_dic['site2 u1'] = self.lib.ECdict["Spectrums"][p2]["u2"]
-                        append_dic['site2 fraction'] = ft.res['x'][4+di]
+                        append_dic['site2 fraction'] = ft.results['x'][4 + di]
                     if patterns_list[2][0] is not None:
                         append_dic['site3 n'] = self.lib.ECdict["Spectrums"][p3]["Spectrum number"]
                         append_dic['p3'] = p3
                         append_dic['site3 description'] = self.lib.ECdict["Spectrums"][p3]["Spectrum_description"]
                         append_dic['site3 factor'] = self.lib.ECdict["Spectrums"][p3]["factor"]
                         append_dic['site3 u1'] = self.lib.ECdict["Spectrums"][p3]["u2"]
-                        append_dic['site3 fraction'] = ft.res['x'][5+di]
+                        append_dic['site3 fraction'] = ft.results['x'][5 + di]
 
                     #print('append_dic ', append_dic)
                     self.df = self.df.append(append_dic, ignore_index=True)
                     #print('self.df ', self.df)
 
-                    if ft.res['fun'] < self.min_value:
+                    if ft.results['fun'] < self.min_value:
                         self.best_fit = ft
 
     def save_output(self, filename, save_figure=False):

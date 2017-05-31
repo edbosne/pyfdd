@@ -14,6 +14,7 @@ from PyFDD.read2dl.lib2dl import lib2dl
 from PyFDD.patterncreator import PatternCreator, create_detector_mesh
 from PyFDD.MedipixMatrix.MedipixMatrix import MedipixMatrix
 
+
 import numpy as np
 import scipy.optimize as op
 import scipy.stats as st
@@ -44,9 +45,14 @@ class fits:
         self.p0 = (None,)
         self.p0_scale = np.ones((8))
         self.fit_sigma = False
-        self.res = None
+        self.results = None
+        self.variance = None
         self.pattern_generator = None
         self.sub_pixels = 1
+
+        self.verbose_graphics = False
+        self.verbose_graphics_ax = None
+        self.verbose_graphics_fg = None
 
     def set_data_pattern(self,XXmesh,YYmesh,pattern):
         self.XXmesh = XXmesh.copy()
@@ -231,13 +237,18 @@ class fits:
         #print('chi2 - ', chi2)
         # print('p-value - ',pval)
         # =====
-        # fg = plt.figure(1)
-        # ax = fg.add_subplot(111)
-        # plt.ion()
-        # cont = None
-        # plt.contourf(self.XXmesh, self.YYmesh, sim_pattern) #(data_pattern-sim_pattern))
-        # fg.canvas.draw()
-        # plt.show(block=False)
+        if self.verbose_graphics:
+            if self.verbose_graphics_ax is None or self.verbose_graphics_fg is None:
+                fg = plt.figure()
+                self.verbose_graphics_fg = fg
+                ax = fg.add_subplot(111)
+                self.verbose_graphics_ax = ax
+                plt.show(block=False)
+            plt.sca(self.verbose_graphics_ax)
+            self.verbose_graphics_ax.clear()
+            plt.ion()
+            plt.contourf(self.XXmesh, self.YYmesh, sim_pattern) #(data_pattern-sim_pattern))
+            self.verbose_graphics_fg.canvas.draw()
         # =====
         return chi2
 
@@ -301,7 +312,7 @@ class fits:
                     res['x'] *= self.p0_scale[0:5]
             else:
                 res['x'] *= self.p0_scale[0:4]
-        self.res = res
+        self.results = res
 
 # methods for maximum likelihood
     def log_likelihood(self, dx, dy, phi, fractions_sims, sigma=0):
@@ -334,13 +345,17 @@ class fits:
         #ll = -np.sum(events_per_sim) + np.sum(data_pattern * np.log(sim_pattern))
         #print('likelihood - ', ll)
         # =====
-        # fg = plt.figure(1)
-        # ax = fg.add_subplot(111)
-        # plt.ion()
-        # cont = None
-        # plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)
-        # fg.canvas.draw()
-        # plt.show(block=False)
+        if self.verbose_graphics:
+            if self.verbose_graphics_ax is None or self.verbose_graphics_fg is None:
+                fg = plt.figure()
+                self.verbose_graphics_fg = fg
+                ax = fg.add_subplot(111)
+                self.verbose_graphics_ax = ax
+                plt.show(block=False)
+            plt.sca(self.verbose_graphics_ax)
+            plt.ion()
+            plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)  # (data_pattern-sim_pattern))
+            self.verbose_graphics_fg.canvas.draw()
         # =====
         return -ll
 
@@ -407,7 +422,7 @@ class fits:
                     res['x'] *= self.p0_scale[0:4]
             else:
                 res['x'] *= self.p0_scale[0:3]
-        self.res = res
+        self.results = res
 
 # methods for calculating error
     def get_variance_from_hessian(self, x, enable_scale=False, func=''):
@@ -429,6 +444,7 @@ class fits:
             raise ValueError('undefined function, should be likelihood or chi_square')
         variance = np.sqrt(np.diag(hh_inv))
         variance *= ft.p0_scale[0:5] if enable_scale else np.ones(len(x))
+        self.variance = variance
         return variance
 
     def get_location_errors(self, params, simulations, func='', first=None, last=None, delta=None):
@@ -491,6 +507,7 @@ if __name__ == "__main__":
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue567g29.2dl")
 
     ft = fits(lib)
+    ft.verbose_graphics = True
 
     # set a pattern to fit
     #x=np.arange(-1.79,1.8,0.01)
@@ -539,10 +556,10 @@ if __name__ == "__main__":
         ft.set_inicial_values(0.1, 0.1, 1, counts_ordofmag, sigma=0.1)
         #ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, counts_ordofmag, sigma=0.1)
         ft.minimize_chi2()
-        print(ft.res)
-        print('sigma in sim step units - ', ft.res['x'][4] / lib.xstep)
+        print(ft.results)
+        print('sigma in sim step units - ', ft.results['x'][4] / lib.xstep)
         print('Calculating errors ...')
-        var = ft.get_variance_from_hessian(ft.res['x'], enable_scale=False, func='chi_square')
+        var = ft.get_variance_from_hessian(ft.results['x'], enable_scale=False, func='chi_square')
         print('var - ', var)
         #ft.print_variance(ft.res['x'],var)
         # x = res['x'] * ft.p0_scale[0:5]
@@ -560,10 +577,10 @@ if __name__ == "__main__":
         ft.set_inicial_values(0.1, 0.1, 1, -1, sigma=0.1)
         #ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, -1, sigma=0.1)
         ft.maximize_likelyhood()
-        print(ft.res)
-        print('sigma in sim step units - ', ft.res['x'][4] / lib.xstep)
+        print(ft.results)
+        print('sigma in sim step units - ', ft.results['x'][4] / lib.xstep)
         print('Calculating errors ...')
-        var = ft.get_variance_from_hessian(ft.res['x'],enable_scale=False,func='likelihood')
+        var = ft.get_variance_from_hessian(ft.results['x'], enable_scale=False, func='likelihood')
         print('var - ', var)
         #ft.print_variance(ft.res['x'],var)
         #ft.get_location_errors(res['x'], (0,), last=300, func='likelihood')
