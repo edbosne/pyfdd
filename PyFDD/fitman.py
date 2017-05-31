@@ -84,11 +84,11 @@ class fitman:
 
         #print('patterns_list ', patterns_list)
 
-        columns = ('value', 'D.O.F.', 'x', 'x_err', 'y', 'y_err', 'phi', 'phi_err',
-                   'counts', 'counts_err', 'sigma', 'sigma_err'
+        columns = ['value', 'D.O.F.', 'x', 'x_err', 'y', 'y_err', 'phi', 'phi_err',
+                   'counts', 'counts_err', 'sigma', 'sigma_err',
                    'site1 n', 'p1', 'site1 description', 'site1 factor', 'site1 u2', 'site1 fraction', 'fraction1_err',
                    'site2 n', 'p2', 'site2 description', 'site2 factor', 'site2 u2', 'site2 fraction', 'fraction2_err',
-                   'site3 n', 'p3', 'site3 description', 'site3 factor', 'site3 u2', 'site3 fraction', 'fraction3_err')
+                   'site3 n', 'p3', 'site3 description', 'site3 factor', 'site3 u2', 'site3 fraction', 'fraction3_err']
         self.df = pd.DataFrame(data=None, columns=columns)
 
         for p1 in patterns_list[0]:
@@ -97,7 +97,13 @@ class fitman:
                     print('P1, P2, P3 - ', p1, ', ', p2, ', ', p3)
                     ft = fits(self.lib)
                     ft.set_data_pattern(xmesh, ymesh, patt)
-                    ft.set_patterns_to_fit(p1, p2, p3)
+
+                    # ignore similar patterns
+                    p1_fit = p1
+                    p2_fit = p2 if not p2 == p1 else None
+                    p3_fit = p3 if not (p3 == p1 or p3 == p2) else None
+
+                    ft.set_patterns_to_fit(p1_fit, p2_fit, p3_fit)
                     ft.fit_sigma = fit_sigma
                     ft.sub_pixels = sub_pixels
                     append_dic = {}
@@ -109,7 +115,8 @@ class fitman:
                                               self.mm_pattern.angle,
                                               counts_ordofmag, sigma=0.1)
                         ft.minimize_chi2()
-                        # TODO get errors
+                        if get_errors:
+                            ft.get_variance_from_hessian(ft.results['x'], func='chi_square')
                     if method == 'ml':
                         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1,
                                             sigma=1, f_p1=1, f_p2=1, f_p3=1)
@@ -118,15 +125,16 @@ class fitman:
                                               self.mm_pattern.angle,
                                               counts_ordofmag, sigma=0.1)
                         ft.maximize_likelyhood()
-                        # TODO get errors
+                        if get_errors:
+                            ft.get_variance_from_hessian(ft.results['x'], func='likelihood')
                     append_dic['value'] = ft.results['fun']
                     append_dic['D.O.F.'] = np.sum(~patt.mask)
                     append_dic['x'] = ft.results['x'][0]
                     append_dic['y'] = ft.results['x'][1]
                     append_dic['phi'] = ft.results['x'][2]
-                    append_dic['counts'] = ft.results['x'][3] if method == 'chi2' else None
+                    append_dic['counts'] = ft.results['x'][3] if method == 'chi2' else np.nan
                     di = 1 if  method == 'chi2' else 0
-                    append_dic['sigma'] = ft.results['x'][3 + di] if fit_sigma else None
+                    append_dic['sigma'] = ft.results['x'][3 + di] if fit_sigma else np.nan
                     di += 1 if fit_sigma else 0
                     if patterns_list[0][0] is not None:
                         append_dic['site1 n'] = self.lib.ECdict["Spectrums"][p1]["Spectrum number"]
@@ -141,14 +149,31 @@ class fitman:
                         append_dic['site2 description'] = self.lib.ECdict["Spectrums"][p2]["Spectrum_description"]
                         append_dic['site2 factor'] = self.lib.ECdict["Spectrums"][p2]["factor"]
                         append_dic['site2 u1'] = self.lib.ECdict["Spectrums"][p2]["u2"]
-                        append_dic['site2 fraction'] = ft.results['x'][4 + di]
+                        if p2_fit is not None:
+                            append_dic['site2 fraction'] = ft.results['x'][4 + di]
                     if patterns_list[2][0] is not None:
                         append_dic['site3 n'] = self.lib.ECdict["Spectrums"][p3]["Spectrum number"]
                         append_dic['p3'] = p3
                         append_dic['site3 description'] = self.lib.ECdict["Spectrums"][p3]["Spectrum_description"]
                         append_dic['site3 factor'] = self.lib.ECdict["Spectrums"][p3]["factor"]
                         append_dic['site3 u1'] = self.lib.ECdict["Spectrums"][p3]["u2"]
-                        append_dic['site3 fraction'] = ft.results['x'][5 + di]
+                        if p3_fit is not None:
+                            append_dic['site3 fraction'] = ft.results['x'][5 + di]
+                    if get_errors:
+                        di = 0
+                        append_dic['x_err'] = ft.variance[0]
+                        append_dic['y_err'] = ft.variance[1]
+                        append_dic['phi_err'] = ft.variance[2]
+                        append_dic['counts_err'] = ft.variance[3] if method == 'chi2' else np.nan
+                        di += 1 if method == 'chi2' else 0
+                        append_dic['sigma_err'] = ft.variance[3 + di] if fit_sigma else np.nan
+                        di += 1 if fit_sigma else 0
+                        append_dic['fraction1_err'] = ft.variance[3 + di] if p1_fit is not None else np.nan
+                        di += 1 if p1_fit is not None else 0
+                        append_dic['fraction2_err'] = ft.variance[3 + di] if p2_fit is not None else np.nan
+                        di += 1 if p2_fit is not None else 0
+                        append_dic['fraction3_err'] = ft.variance[3 + di] if p3_fit is not None else np.nan
+                        di += 1 if p3_fit is not None else 0
 
                     #print('append_dic ', append_dic)
                     self.df = self.df.append(append_dic, ignore_index=True)
@@ -156,6 +181,7 @@ class fitman:
 
                     if ft.results['fun'] < self.min_value:
                         self.best_fit = ft
+        self.df = self.df[columns]
 
     def save_output(self, filename, save_figure=False):
         self.df.to_csv(filename)
@@ -193,6 +219,8 @@ class fitman:
 
 
 if __name__ == '__main__':
+    pd.set_option('display.max_columns', None)
+
     # filename
     filename = '/home/eric/Desktop/jsontest.json'
 
@@ -206,7 +234,7 @@ if __name__ == '__main__':
 
     P1 = np.array((1,))
     P2 = np.arange(1, 3) # 249
-    fm.run_fits(P1, P2, method='chi2', get_errors=False, fit_sigma=True, sub_pixels=5)
+    fm.run_fits(P1, P2, method='chi2', get_errors=True, fit_sigma=True, sub_pixels=1)
 
     #fm.save_output('/home/eric/Desktop/test_fit.xls', save_figure=True)
 

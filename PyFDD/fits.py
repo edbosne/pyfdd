@@ -427,11 +427,11 @@ class fits:
 # methods for calculating error
     def get_variance_from_hessian(self, x, enable_scale=False, func=''):
         x = np.array(x)
-        x /= ft.p0_scale[0:len(x)] if enable_scale else np.ones(len(x))
+        x /= self.p0_scale[0:len(x)] if enable_scale else np.ones(len(x))
         if func == 'likelihood':
-            f = lambda xx: ft.log_likelihood_call(xx, enable_scale)
+            f = lambda xx: self.log_likelihood_call(xx, enable_scale)
         elif func == 'chi_square':
-            f = lambda xx: ft.chi_square_call(xx, enable_scale)
+            f = lambda xx: self.chi_square_call(xx, enable_scale)
         else:
             raise ValueError('undefined function, should be likelihood or chi_square')
         H = nd.Hessian(f)  # ,step=1e-9)
