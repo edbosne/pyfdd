@@ -6,9 +6,6 @@ The fits object gets access to a lib2dl object and performs fits and statistical
 
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
-import sys
-sys.path
-sys.path.append('.')
 
 from PyFDD.read2dl.lib2dl import lib2dl
 from PyFDD.patterncreator import PatternCreator, create_detector_mesh
