@@ -31,7 +31,7 @@ libraries = (
     '/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue725g28.2dl')  # <-2113>
 
 # fits
-for i in range(3):#len(filenames)):
+for i in range(6):#len(filenames)):
     filename = filenames[i]
     library = libraries[i]
     basename, ext = os.path.splitext(filename)
@@ -41,8 +41,10 @@ for i in range(3):#len(filenames)):
     fm = fitman()
     fm.add_pattern(filename, library)
     P1 = np.array((1,))
-    P2 = np.arange(1, 249) # 249
-    fm.run_fits(P1, P2, method='chi2', get_errors=False, fit_sigma=True, sub_pixels=5)
+    #P2 = np.array((129,)) #129 GaN best fit
+    P2 = np.arange(1,249) # 249 max
+    fm.run_fits(P1, P2, method='chi2', get_errors=False, fit_sigma=False, sub_pixels=5)
 
-    #fm.save_output(basename + '_2site-fit_subpix5.xls', save_figure=False)
-    #fm.save_output(basename + '_2site-fit_subpix5.csv', save_figure=True)
+    #fm.save_output(basename + '_2site-fit_subpix1.xls', save_figure=False)
+    #fm.save_output(basename + '_2site(1,129)-fit_errors.csv', save_figure=False)
+    fm.save_output(basename + '_2site-fit_sigma0_subpix5.csv', save_figure=False)

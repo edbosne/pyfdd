@@ -71,7 +71,7 @@ class fitman:
         patterns_list = ()
         for ar in args:
             patterns_list += (np.array(ar),)
-        assert len(ar) >= 1
+        assert len(patterns_list) >= 1
 
         if len(patterns_list) == 1:
             patterns_list += ((None,), (None,),)
@@ -123,7 +123,7 @@ class fitman:
                         ft.set_inicial_values(self.mm_pattern.center[0],
                                               self.mm_pattern.center[1],
                                               self.mm_pattern.angle,
-                                              counts_ordofmag, sigma=0.1)
+                                              total_cts=-1, sigma=0.1)
                         ft.maximize_likelyhood()
                         if get_errors:
                             ft.get_variance_from_hessian(ft.results['x'], func='likelihood')
@@ -137,26 +137,26 @@ class fitman:
                     append_dic['sigma'] = ft.results['x'][3 + di] if fit_sigma else np.nan
                     di += 1 if fit_sigma else 0
                     if patterns_list[0][0] is not None:
-                        append_dic['site1 n'] = self.lib.ECdict["Spectrums"][p1]["Spectrum number"]
+                        append_dic['site1 n'] = self.lib.ECdict["Spectrums"][p1-1]["Spectrum number"]
                         append_dic['p1'] = p1
-                        append_dic['site1 description'] = self.lib.ECdict["Spectrums"][p1]["Spectrum_description"]
-                        append_dic['site1 factor'] = self.lib.ECdict["Spectrums"][p1]["factor"]
-                        append_dic['site1 u1'] = self.lib.ECdict["Spectrums"][p1]["u2"]
+                        append_dic['site1 description'] = self.lib.ECdict["Spectrums"][p1-1]["Spectrum_description"]
+                        append_dic['site1 factor'] = self.lib.ECdict["Spectrums"][p1-1]["factor"]
+                        append_dic['site1 u2'] = self.lib.ECdict["Spectrums"][p1-1]["u2"]
                         append_dic['site1 fraction'] = ft.results['x'][3 + di]
                     if patterns_list[1][0] is not None:
-                        append_dic['site2 n'] = self.lib.ECdict["Spectrums"][p2]["Spectrum number"]
+                        append_dic['site2 n'] = self.lib.ECdict["Spectrums"][p2-1]["Spectrum number"]
                         append_dic['p2'] = p2
-                        append_dic['site2 description'] = self.lib.ECdict["Spectrums"][p2]["Spectrum_description"]
-                        append_dic['site2 factor'] = self.lib.ECdict["Spectrums"][p2]["factor"]
-                        append_dic['site2 u1'] = self.lib.ECdict["Spectrums"][p2]["u2"]
+                        append_dic['site2 description'] = self.lib.ECdict["Spectrums"][p2-1]["Spectrum_description"]
+                        append_dic['site2 factor'] = self.lib.ECdict["Spectrums"][p2-1]["factor"]
+                        append_dic['site2 u2'] = self.lib.ECdict["Spectrums"][p2-1]["u2"]
                         if p2_fit is not None:
                             append_dic['site2 fraction'] = ft.results['x'][4 + di]
                     if patterns_list[2][0] is not None:
-                        append_dic['site3 n'] = self.lib.ECdict["Spectrums"][p3]["Spectrum number"]
+                        append_dic['site3 n'] = self.lib.ECdict["Spectrums"][p3-1]["Spectrum number"]
                         append_dic['p3'] = p3
-                        append_dic['site3 description'] = self.lib.ECdict["Spectrums"][p3]["Spectrum_description"]
-                        append_dic['site3 factor'] = self.lib.ECdict["Spectrums"][p3]["factor"]
-                        append_dic['site3 u1'] = self.lib.ECdict["Spectrums"][p3]["u2"]
+                        append_dic['site3 description'] = self.lib.ECdict["Spectrums"][p3-1]["Spectrum_description"]
+                        append_dic['site3 factor'] = self.lib.ECdict["Spectrums"][p3-1]["factor"]
+                        append_dic['site3 u2'] = self.lib.ECdict["Spectrums"][p3-1]["u2"]
                         if p3_fit is not None:
                             append_dic['site3 fraction'] = ft.results['x'][5 + di]
                     if get_errors:

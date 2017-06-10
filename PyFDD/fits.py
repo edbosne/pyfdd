@@ -385,6 +385,7 @@ class fits:
         bnds += ((0, 1),) if self.pattern_1_use else ()
         bnds += ((0, 1),) if self.pattern_2_use else ()
         bnds += ((0, 1),) if self.pattern_3_use else ()
+        #print('bnds - ', bnds)
 
         # get patterns
         simulations = (self.pattern_1_n,) if self.pattern_1_use else ()
@@ -514,14 +515,16 @@ if __name__ == "__main__":
 
     #mm = MedipixMatrix(file_path='/home/eric/Desktop/jsontest.json')
     #mm = MedipixMatrix(file_path='/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-1102/pattern_d3_Npix0-20_rebin2x2_180.json')
-    #patt = mm.matrixOriginal
-    #xmesh = mm.xmesh
-    #ymesh = mm.ymesh
 
-    creator = PatternCreator(lib, xmesh, ymesh, (1,))#(249-249+1,377-249+1))
-    fractions_per_sim = np.array([0.65, 0.30])#, 0.05])
-    total_events = 1e6
-    patt = creator.make_pattern(-0.08, 0.18, 5, fractions_per_sim, total_events, sigma=0.1, type='poisson')
+    mm = MedipixMatrix(file_path='/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/TPX/800C/-1101/pattern_d3_Npix0-20_rebin16x16_180.json')
+    patt = mm.matrixOriginal
+    xmesh = mm.xmesh
+    ymesh = mm.ymesh
+
+    #creator = PatternCreator(lib, xmesh, ymesh, (1,))#(249-249+1,377-249+1))
+    #fractions_per_sim = np.array([0.65, 0.30])#, 0.05])
+    #total_events = 1e6
+    #patt = creator.make_pattern(-0.08, 0.18, 5, fractions_per_sim, total_events, sigma=0.1, type='poisson')
     #patt = ma.masked_where(xmesh >=1.5,patt)
     #patt = ma.array(data=patt, mask=mm.matrixOriginal.mask)
 
@@ -535,9 +538,9 @@ if __name__ == "__main__":
     counts_ordofmag = 10**(int(math.log10(patt.sum())))
     ft.set_data_pattern(xmesh, ymesh, patt)
     #ft.set_patterns_to_fit(249-249,377-249)
-    ft.set_patterns_to_fit(1)#,129)
+    ft.set_patterns_to_fit(1,65)#,129)
     ft.fit_sigma = True
-    ft.sub_pixels = 5
+    ft.sub_pixels = 1
 
     if test_curve_fit:
         popt, pcov = ft.call_curve_fit()
@@ -550,14 +553,14 @@ if __name__ == "__main__":
 
     if test_chi2_min:
         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag, sigma=1, f_p1=1)
-        ft.set_inicial_values(0.1, 0.1, 1, counts_ordofmag, sigma=0.1)
-        #ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, counts_ordofmag, sigma=0.1)
+        #ft.set_inicial_values(0.1, 0.1, 1, counts_ordofmag, sigma=0.1)
+        ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, counts_ordofmag, sigma=0.1)
         ft.minimize_chi2()
         print(ft.results)
         print('sigma in sim step units - ', ft.results['x'][4] / lib.xstep)
         print('Calculating errors ...')
-        var = ft.get_variance_from_hessian(ft.results['x'], enable_scale=False, func='chi_square')
-        print('var - ', var)
+        #var = ft.get_variance_from_hessian(ft.results['x'], enable_scale=False, func='chi_square')
+        #print('var - ', var)
         #ft.print_variance(ft.res['x'],var)
         # x = res['x'] * ft.p0_scale[0:5]
         # ft.set_scale_values()
