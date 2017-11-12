@@ -47,9 +47,34 @@ class fits:
         self.pattern_generator = None
         self.sub_pixels = 1
 
+        self.parameters_dict = None
+        self._init_parameters_dict()
+        self._parameters_order = ('dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3')
+
         self.verbose_graphics = False
         self.verbose_graphics_ax = None
         self.verbose_graphics_fg = None
+
+    def _init_parameters_dict(self):
+        parameter_template = \
+            {'p0':None, 'value':None, 'use':False, 'variance':None, 'scale':1, 'bounds':(None,None)}
+        # parameters are, site 1 2 and 3,dx,dy,phi,total_cts,f_p1,f_p2,f_p3
+        # keys are 'pattern_1','pattern_2','pattern_3','sub_pixels','dx','dy','phi',
+        # 'total_cts','sigma','f_p1','f_p2','f_p3'
+        self.parameters_dict = {
+            'pattern_1': parameter_template.copy(),  # site 1
+            'pattern_2': parameter_template.copy(),  # site 2
+            'pattern_3': parameter_template.copy(),  # site 3
+            'sub_pixels': parameter_template.copy(),  # sub pixels for convolution
+            'dx': parameter_template.copy(),  # delta x
+            'dy': parameter_template.copy(),  # delta y
+            'phi': parameter_template.copy(),  # rotation
+            'total_cts': parameter_template.copy(), #total counts
+            'sigma': parameter_template.copy(),  # sigma convolution
+            'f_p1': parameter_template.copy(),  # fraction site 1
+            'f_p2': parameter_template.copy(),  # fraction site 2
+            'f_p3': parameter_template.copy(),  # fraction site 3
+        }
 
     def set_data_pattern(self,XXmesh,YYmesh,pattern):
         self.XXmesh = XXmesh.copy()
@@ -60,38 +85,78 @@ class fits:
         self.n_events_set = True
 
     def set_patterns_to_fit(self,p1_n=None,p2_n=None,p3_n=None):
-        self.pattern_1_n = p1_n
-        self.pattern_1_use = False if p1_n == None else True
-        self.pattern_2_n = p2_n
-        self.pattern_2_use = False if p2_n == None else True
-        self.pattern_3_n = p3_n
-        self.pattern_3_use = False if p3_n == None else True
+        if p1_n is not None:
+            self.parameters_dict['pattern_1']['value'] = p1_n
+            self.parameters_dict['pattern_1']['use'] = True
+        else:
+            self.parameters_dict['pattern_1']['use'] = False
 
-    def set_inicial_values(self,dx=1,dy=1,phi=5,total_cts=1, sigma=0, f_p1=0.25,f_p2=0.25,f_p3=0.25):
-        # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
-        p0 = (dx/self.p0_scale[0],)
-        p0 += (dy/self.p0_scale[1],)
-        p0 += (phi/self.p0_scale[2],)
-        p0 += (total_cts / self.p0_scale[3],) if total_cts > 0 else ()
-        p0 += (sigma / self.p0_scale[4],) if self.fit_sigma > 0 else ()
-        di = 1 if self.fit_sigma else 0
-        p0 += (f_p1/self.p0_scale[4+di],) if self.pattern_1_use else ()
-        p0 += (f_p2/self.p0_scale[5+di],) if self.pattern_2_use else ()
-        p0 += (f_p3/self.p0_scale[6+di],) if self.pattern_3_use else ()
-        self.p0 = np.array(p0)
-        #print('p0 - ', p0)
+        if p2_n is not None:
+            self.parameters_dict['pattern_2']['value'] = p2_n
+            self.parameters_dict['pattern_2']['use'] = True
+        else:
+            self.parameters_dict['pattern_2']['use'] = False
+
+        if p3_n is not None:
+            self.parameters_dict['pattern_3']['value'] = p3_n
+            self.parameters_dict['pattern_3']['use'] = True
+        else:
+            self.parameters_dict['pattern_3']['use'] = False
+
+    def set_inicial_values(self, dx=1, dy=1, phi=5, total_cts=1, sigma=0, f_p1=0.25, f_p2=0.25, f_p3=0.25):
+        # parameter keys 'dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3'
+        self.parameters_dict['dx']['p0'] = dx
+        self.parameters_dict['dy']['p0'] = dy
+        self.parameters_dict['phi']['p0'] = phi
+        self.parameters_dict['total_cts']['p0'] = total_cts
+        self.parameters_dict['sigma']['p0'] = sigma
+        self.parameters_dict['f_p1']['p0'] = f_p1
+        self.parameters_dict['f_p2']['p0'] = f_p2
+        self.parameters_dict['f_p3']['p0'] = f_p3
 
     def set_scale_values(self, dx=1, dy=1, phi=1, total_cts=1, sigma=1, f_p1=1, f_p2=1, f_p3=1):
+        # parameter keys 'dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3'
+        self.parameters_dict['dx']['scale'] = dx
+        self.parameters_dict['dy']['scale'] = dy
+        self.parameters_dict['phi']['scale'] = phi
+        self.parameters_dict['total_cts']['scale'] = total_cts
+        self.parameters_dict['sigma']['scale'] = sigma
+        self.parameters_dict['f_p1']['scale'] = f_p1
+        self.parameters_dict['f_p2']['scale'] = f_p2
+        self.parameters_dict['f_p3']['scale'] = f_p3
+
+    def set_bound_values(self, dx=(-3, +3), dy=(-3, +3), phi=(None, None),
+                         total_cts=(0, None), sigma=(0, None),
+                         f_p1=(0, 1), f_p2=(0, 1), f_p3=(0, 1)):
+        # parameter keys 'dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3'
+        self.parameters_dict['dx']['bounds'] = dx
+        self.parameters_dict['dy']['bounds'] = dy
+        self.parameters_dict['phi']['bounds'] = phi
+        self.parameters_dict['total_cts']['bounds'] = total_cts
+        self.parameters_dict['sigma']['bounds'] = sigma
+        self.parameters_dict['f_p1']['bounds'] = f_p1
+        self.parameters_dict['f_p2']['bounds'] = f_p2
+        self.parameters_dict['f_p3']['bounds'] = f_p3
+
+    def _get_p0_scale(self, dx=1, dy=1, phi=1, total_cts=1, sigma=1, f_p1=1, f_p2=1, f_p3=1):
+        # TODO clean
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
-        p0_scale = (dx,)
-        p0_scale += (dy,)
-        p0_scale += (phi,)
-        p0_scale += (total_cts,) if total_cts > 0 else ()
-        p0_scale += (sigma,) if self.fit_sigma > 0 else ()
-        p0_scale += (f_p1,)
-        p0_scale += (f_p2,)
-        p0_scale += (f_p3,)
+        p0_scale = ()
+        for key in self._parameters_order:
+            if self.parameters_dict[key]['use']:
+                p0_scale += (self.parameters_dict[key]['scale'],)
         self.p0_scale = np.array(p0_scale)
+        return self.p0_scale
+
+    def _get_p0(self):
+        # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
+        p0 = ()
+        for key in self._parameters_order:
+            if self.parameters_dict[key]['use']:
+                temp_p0 = self.parameters_dict[key]['p0'] / self.parameters_dict[key]['scale']
+                p0 += (temp_p0,)
+        self.p0 = np.array(p0)
+        return self.p0
 
     def print_variance(self,x,var):
         # TODO add number of events
@@ -149,54 +214,6 @@ class fits:
                'f_3    = {f_3:.4f} +- {d_f_3:.4f}').format(**res))
 
         return res
-
-# methods for scipy.optimize.curve_fit
-# https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html#scipy.optimize.curve_fit
-    def simulation_callable(self, x, *params):
-        x = np.array(x)
-        # separate parameters
-        print(params)
-        dx = params[0]
-        dy = params[1]
-        phi = params[2]
-        N_rand = params[3]
-        N_p1 = params[4] if self.pattern_1_use else 0
-        N_p2 = params[5] if self.pattern_2_use else 0
-        N_p3 = params[6] if self.pattern_3_use else 0
-        # get patterns
-        p1 = self.pattern_1_n if self.pattern_1_use else None
-        p2 = self.pattern_2_n if self.pattern_2_use else None
-        p3 = self.pattern_3_n if self.pattern_3_use else None
-        # convert x to XXmesh and YYmesh
-        print('x shape',x.shape)
-        XXmesh = np.reshape(x[:,0],self.XXmesh.shape)
-        YYmesh = np.reshape(x[:,1],self.YYmesh.shape)
-        # call lib.get_patterns() lib.move_rotate(0.5,-0.5,0) lib.grid_interpolation(XXmesh,YYmesh)
-        self.lib.get_patterns(N_rand, p1, N_p1, p2, N_p2, p3, N_p3)
-        self.lib.move_rotate(dx, dy, phi)
-        # this scales the fractions with total events
-        sim_pattern = self.lib.grid_interpolation(XXmesh,YYmesh)
-        sim_pattern *= self.n_events/sim_pattern.size
-
-        # plt.figure(2)
-        # plt.contourf(XXmesh)
-        # plt.colorbar()
-        # plt.figure(1)
-        # plt.contourf(XXmesh,YYmesh,sim_pattern)
-        # plt.colorbar()
-        # plt.show()
-
-        return sim_pattern.reshape(-1)
-
-    def call_curve_fit(self):
-
-        xdata = np.concatenate([self.XXmesh.reshape(-1)[np.newaxis].T,\
-                                self.YYmesh.reshape(-1)[np.newaxis].T],1)
-        ydata = self.data_pattern.reshape(-1)
-        p0 = self.p0
-        sigma = np.sqrt(ydata)
-
-        return op.curve_fit(self.simulation_callable,xdata,ydata,p0=p0,sigma=sigma,method='lm')
 
 # methods for chi-square minimization
     def chi_square_fun(self, experimental_data, simlulation_data):
