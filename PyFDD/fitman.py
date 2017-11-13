@@ -24,6 +24,8 @@ class fitman:
     def __init__(self):
         # Internal variable
         self.min_value = 10**12
+        self.fixed_values = {}
+        self.keys = ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
 
         # Output
         self.results = None
@@ -56,7 +58,45 @@ class fitman:
         else:
             ValueError('data_pattern input error')
 
-    def run_fits(self, *args, method='chi2', get_errors=False, fit_sigma=True, sub_pixels=1):
+    def set_fixed_values(self, **kwargs):
+        #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
+        self.fixed_values = {}
+        for key in kwargs.keys():
+            if key in self.keys:
+                self.fixed_values[key] = kwargs[key]
+            else:
+                raise(ValueError, 'key word ' + key + 'is not recognized!')
+
+    def _get_initial_values(self):
+        #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
+        p0 = ()
+        p_fix = ()
+        for key in self.keys:
+            if key in self.fixed_values:
+                p0 += (self.fixed_values[key],)
+                p_fix += (True,)
+            else:
+                if key == 'dx':
+                    p0 += (self.mm_pattern.center[0],)
+                elif key == 'dy':
+                    p0 += (self.mm_pattern.center[1],)
+                elif key == 'phi':
+                    p0 += (self.mm_pattern.angle,)
+                elif key == 'total_cts':
+                    patt = self.mm_pattern.matrixOriginal.copy()
+                    counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
+                    p0 += (counts_ordofmag,)
+                elif key == 'sigma':
+                    p0 += (0.1,)
+                else:
+                    # assuming a pattern fraction
+                    p0 += (0.25,)
+                p_fix += (False,)
+
+        return p0, p_fix
+
+
+    def run_fits(self, *args, method='chi2', get_errors=False, sub_pixels=1):
 
         # each input is a range of patterns to fit
         assert isinstance(get_errors, bool)
@@ -104,45 +144,45 @@ class fitman:
                     p3_fit = p3 if not (p3 == p1 or p3 == p2) else None
 
                     ft.set_patterns_to_fit(p1_fit, p2_fit, p3_fit)
-                    ft.fit_sigma = fit_sigma
-                    ft.sub_pixels = sub_pixels
+                    p0, p0_fix = self._get_initial_values()
+
+                    ft.parameters_dict['sub_pixels']['value'] = sub_pixels
                     append_dic = {}
                     if method == 'chi2':
                         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag,
                                             sigma=1, f_p1=1, f_p2=1, f_p3=1)
-                        ft.set_inicial_values(self.mm_pattern.center[0],
-                                              self.mm_pattern.center[1],
-                                              self.mm_pattern.angle,
-                                              counts_ordofmag, sigma=0.1)
+                        ft.set_inicial_values(p0[0],p0[1],p0[2],p0[3],p0[4],p0[5],p0[6],p0[7],p0[8])
+                        ft.fix_parameters(p0_fix[0],p0_fix[1],p0_fix[2],p0_fix[3],p0_fix[4],p0_fix[5],
+                                          p0_fix[6],p0_fix[7],p0_fix[8])
                         ft.minimize_chi2()
                         if get_errors:
                             ft.get_variance_from_hessian(ft.results['x'], func='chi_square')
                     if method == 'ml':
                         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1,
                                             sigma=1, f_p1=1, f_p2=1, f_p3=1)
-                        ft.set_inicial_values(self.mm_pattern.center[0],
-                                              self.mm_pattern.center[1],
-                                              self.mm_pattern.angle,
-                                              total_cts=-1, sigma=0.1)
+                        ft.set_inicial_values(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6], p0[7], p0[8])
+                        ft.fix_parameters(p0_fix[0], p0_fix[1], p0_fix[2], p0_fix[3], p0_fix[4], p0_fix[5],
+                                          p0_fix[6], p0_fix[7], p0_fix[8])
                         ft.maximize_likelyhood()
                         if get_errors:
                             ft.get_variance_from_hessian(ft.results['x'], func='likelihood')
+                    # keys are 'pattern_1','pattern_2','pattern_3','sub_pixels','dx','dy','phi',
+                    # 'total_cts','sigma','f_p1','f_p2','f_p3'
+                    parameter_dict = ft.parameters_dict.copy()
                     append_dic['value'] = ft.results['fun']
                     append_dic['D.O.F.'] = np.sum(~patt.mask)
-                    append_dic['x'] = ft.results['x'][0]
-                    append_dic['y'] = ft.results['x'][1]
-                    append_dic['phi'] = ft.results['x'][2]
-                    append_dic['counts'] = ft.results['x'][3] if method == 'chi2' else np.nan
-                    di = 1 if  method == 'chi2' else 0
-                    append_dic['sigma'] = ft.results['x'][3 + di] if fit_sigma else np.nan
-                    di += 1 if fit_sigma else 0
+                    append_dic['x'] = parameter_dict['dx']['value']
+                    append_dic['y'] = parameter_dict['dy']['value']
+                    append_dic['phi'] = parameter_dict['phi']['value']
+                    append_dic['counts'] = parameter_dict['total_cts']['value'] if method == 'chi2' else np.nan
+                    append_dic['sigma'] = parameter_dict['sigma']['value'] if parameter_dict['sigma']['use'] else np.nan
                     if patterns_list[0][0] is not None:
                         append_dic['site1 n'] = self.lib.ECdict["Spectrums"][p1-1]["Spectrum number"]
                         append_dic['p1'] = p1
                         append_dic['site1 description'] = self.lib.ECdict["Spectrums"][p1-1]["Spectrum_description"]
                         append_dic['site1 factor'] = self.lib.ECdict["Spectrums"][p1-1]["factor"]
                         append_dic['site1 u2'] = self.lib.ECdict["Spectrums"][p1-1]["u2"]
-                        append_dic['site1 fraction'] = ft.results['x'][3 + di]
+                        append_dic['site1 fraction'] = parameter_dict['f_p1']['value']
                     if patterns_list[1][0] is not None:
                         append_dic['site2 n'] = self.lib.ECdict["Spectrums"][p2-1]["Spectrum number"]
                         append_dic['p2'] = p2
@@ -150,7 +190,7 @@ class fitman:
                         append_dic['site2 factor'] = self.lib.ECdict["Spectrums"][p2-1]["factor"]
                         append_dic['site2 u2'] = self.lib.ECdict["Spectrums"][p2-1]["u2"]
                         if p2_fit is not None:
-                            append_dic['site2 fraction'] = ft.results['x'][4 + di]
+                            append_dic['site2 fraction'] = parameter_dict['f_p2']['value']
                     if patterns_list[2][0] is not None:
                         append_dic['site3 n'] = self.lib.ECdict["Spectrums"][p3-1]["Spectrum number"]
                         append_dic['p3'] = p3
@@ -158,22 +198,16 @@ class fitman:
                         append_dic['site3 factor'] = self.lib.ECdict["Spectrums"][p3-1]["factor"]
                         append_dic['site3 u2'] = self.lib.ECdict["Spectrums"][p3-1]["u2"]
                         if p3_fit is not None:
-                            append_dic['site3 fraction'] = ft.results['x'][5 + di]
+                            append_dic['site3 fraction'] = parameter_dict['f_p3']['value']
                     if get_errors:
-                        di = 0
-                        append_dic['x_err'] = ft.variance[0]
-                        append_dic['y_err'] = ft.variance[1]
-                        append_dic['phi_err'] = ft.variance[2]
-                        append_dic['counts_err'] = ft.variance[3] if method == 'chi2' else np.nan
-                        di += 1 if method == 'chi2' else 0
-                        append_dic['sigma_err'] = ft.variance[3 + di] if fit_sigma else np.nan
-                        di += 1 if fit_sigma else 0
-                        append_dic['fraction1_err'] = ft.variance[3 + di] if p1_fit is not None else np.nan
-                        di += 1 if p1_fit is not None else 0
-                        append_dic['fraction2_err'] = ft.variance[3 + di] if p2_fit is not None else np.nan
-                        di += 1 if p2_fit is not None else 0
-                        append_dic['fraction3_err'] = ft.variance[3 + di] if p3_fit is not None else np.nan
-                        di += 1 if p3_fit is not None else 0
+                        append_dic['x_err'] = parameter_dict['dx']['variance']
+                        append_dic['y_err'] = parameter_dict['dy']['variance']
+                        append_dic['phi_err'] = parameter_dict['phi']['variance']
+                        append_dic['counts_err'] = parameter_dict['total_cts']['variance'] if method == 'chi2' else np.nan
+                        append_dic['sigma_err'] = parameter_dict['sigma']['variance'] if fit_sigma else np.nan
+                        append_dic['fraction1_err'] = parameter_dict['f_p1']['variance'] if p1_fit is not None else np.nan
+                        append_dic['fraction2_err'] = parameter_dict['f_p2']['variance'] if p2_fit is not None else np.nan
+                        append_dic['fraction3_err'] = parameter_dict['f_p3']['variance'] if p3_fit is not None else np.nan
 
                     #print('append_dic ', append_dic)
                     self.df = self.df.append(append_dic, ignore_index=True)
@@ -234,7 +268,8 @@ if __name__ == '__main__':
 
     P1 = np.array((1,))
     P2 = np.arange(1, 3) # 249
-    fm.run_fits(P1, P2, method='chi2', get_errors=True, fit_sigma=True, sub_pixels=1)
+    fm.set_fixed_values(sigma=0)
+    fm.run_fits(P1, P2, method='chi2', get_errors=True, sub_pixels=1)
 
     #fm.save_output('/home/eric/Desktop/test_fit.xls', save_figure=True)
 
