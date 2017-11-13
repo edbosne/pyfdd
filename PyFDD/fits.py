@@ -479,7 +479,7 @@ class fits:
 # methods for calculating error
     def get_variance_from_hessian(self, x, enable_scale=False, func=''):
         x = np.array(x)
-        x /= self.p0_scale[0:len(x)] if enable_scale else np.ones(len(x))
+        x /= self._get_p0_scale() if enable_scale else np.ones(len(x))
         if func == 'likelihood':
             f = lambda xx: self.log_likelihood_call(xx, enable_scale)
         elif func == 'chi_square':
@@ -495,8 +495,13 @@ class fits:
         else:
             raise ValueError('undefined function, should be likelihood or chi_square')
         variance = np.sqrt(np.diag(hh_inv))
-        variance *= ft.p0_scale[0:5] if enable_scale else np.ones(len(x))
+        variance *= self._get_p0_scale() if enable_scale else np.ones(len(x))
         self.variance = variance
+        di = 0
+        for key in self._parameters_order:
+            if self.parameters_dict[key]['use']:
+                self.parameters_dict[key]['variance'] = variance[di]
+                di += 1
         return variance
 
     def get_location_errors(self, params, simulations, func='', first=None, last=None, delta=None):
@@ -505,14 +510,14 @@ class fits:
         phi = params[2]
         events_rand = (params[3],)  # random
         events_per_sim = ()
-        events_per_sim += (params[4],) if self.pattern_1_use else ()  # pattern 1
-        events_per_sim += (params[5],) if self.pattern_2_use else ()  # pattern 2
-        events_per_sim += (params[6],) if self.pattern_3_use else ()  # pattern 3
+        events_per_sim += (params[4],) if self.parameters_dict['pattern_1']['use'] else ()  # pattern 1
+        events_per_sim += (params[5],) if self.parameters_dict['pattern_2']['use'] else ()  # pattern 2
+        events_per_sim += (params[6],) if self.parameters_dict['pattern_3']['use'] else ()  # pattern 3
         # get patterns
         sims = ()
-        sims += (simulations[0],) if self.pattern_1_use else ()
-        sims += (simulations[1],) if self.pattern_2_use else ()
-        sims += (simulations[2],) if self.pattern_3_use else ()
+        sims += (simulations[0],) if self.parameters_dict['pattern_1']['use'] else ()
+        sims += (simulations[1],) if self.parameters_dict['pattern_2']['use'] else ()
+        sims += (simulations[2],) if self.parameters_dict['pattern_3']['use'] else ()
         print(events_rand, events_per_sim, sims)
         if first is None:
             first = 0
