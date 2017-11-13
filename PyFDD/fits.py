@@ -13,6 +13,7 @@ from PyFDD.MedipixMatrix.MedipixMatrix import MedipixMatrix
 
 
 import numpy as np
+import numpy.ma as ma
 import scipy.optimize as op
 import scipy.stats as st
 import math
@@ -41,7 +42,7 @@ class fits:
         self.data_pattern_is_set = False
         #self.p0 = (None,)
         #self.p0_scale = np.ones((8))
-        self.fit_sigma = False
+        #self.fit_sigma = False
         self.results = None
         self.variance = None
         self.pattern_generator = None
@@ -412,7 +413,7 @@ class fits:
                 di += 1
             else:
                 params_temp += (self.parameters_dict[key]['p0'],)
-        print('params_temp - ',params_temp)
+        #print('params_temp - ',params_temp)
 
         dx, dy, phi, total_cts, sigma, f_p1, f_p2, f_p3 = params_temp
         fractions_sims = ()
@@ -450,28 +451,16 @@ class fits:
                            options={'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-8,'maxcor':100}) #'eps': 0.0001,
         # TODO
         # update this part and compare results with previous version
-        if self.fit_sigma:
-            if self.pattern_1_use:
-                if self.pattern_2_use:
-                    if self.pattern_3_use:
-                        res['x'] *= self.p0_scale[0:7]
-                    else:
-                        res['x'] *= self.p0_scale[0:6]
-                else:
-                    res['x'] *= self.p0_scale[0:5]
+
+        di = 0
+        for key in self._parameters_order:
+            if self.parameters_dict[key]['use']:
+                res['x'][di] *= self.parameters_dict[key]['scale']
+                self.parameters_dict[key]['value'] = res['x'][di]
+                di += 1
             else:
-                res['x'] *= self.p0_scale[0:4]
-        else:
-            if self.pattern_1_use:
-                if self.pattern_2_use:
-                    if self.pattern_3_use:
-                        res['x'] *= self.p0_scale[0:6]
-                    else:
-                        res['x'] *= self.p0_scale[0:5]
-                else:
-                    res['x'] *= self.p0_scale[0:4]
-            else:
-                res['x'] *= self.p0_scale[0:3]
+                self.parameters_dict[key]['value'] = self.parameters_dict[key]['p0']
+
         self.results = res
 
 # methods for calculating error
@@ -573,10 +562,10 @@ if __name__ == "__main__":
     xmesh = mm.xmesh
     ymesh = mm.ymesh
 
-    #creator = PatternCreator(lib, xmesh, ymesh, (1,))#(249-249+1,377-249+1))
-    #fractions_per_sim = np.array([0.65, 0.30])#, 0.05])
-    #total_events = 1e6
-    #patt = creator.make_pattern(-0.08, 0.18, 5, fractions_per_sim, total_events, sigma=0.1, type='poisson')
+    creator = PatternCreator(lib, xmesh, ymesh, (1,65))#(249-249+1,377-249+1))
+    fractions_per_sim = np.array([0.60, 0.30, 0.10]) # first is random
+    total_events = 1e6
+    patt = creator.make_pattern(-0.08, 0.18, 5, fractions_per_sim, total_events, sigma=0.1, type='poisson')
     #patt = ma.masked_where(xmesh >=1.5,patt)
     #patt = ma.array(data=patt, mask=mm.matrixOriginal.mask)
 
@@ -584,7 +573,6 @@ if __name__ == "__main__":
     plt.contourf(xmesh, ymesh, patt)#, np.arange(0, 3000, 100))
     plt.colorbar()
     plt.show(block=False)
-    #plt.show()
 
     # set a fitting routine
     counts_ordofmag = 10**(int(math.log10(patt.sum())))
@@ -593,15 +581,6 @@ if __name__ == "__main__":
     ft.set_patterns_to_fit(1,65)#,129)
     ft.fit_sigma = True
     ft.sub_pixels = 1
-
-    if test_curve_fit:
-        popt, pcov = ft.call_curve_fit()
-        print('\noptimum values')
-        print(popt)
-        print('\nstandar dev')
-        print(np.sqrt(np.diag(pcov)))
-        print('\ncov matrix')
-        print(pcov)
 
     if test_chi2_min:
         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag, sigma=1, f_p1=1)
@@ -632,8 +611,8 @@ if __name__ == "__main__":
         print(ft.results)
         print('sigma in sim step units - ', ft.results['x'][4] / lib.xstep)
         print('Calculating errors ...')
-        var = ft.get_variance_from_hessian(ft.results['x'], enable_scale=False, func='likelihood')
-        print('var - ', var)
+        #var = ft.get_variance_from_hessian(ft.results['x'], enable_scale=False, func='likelihood')
+        #print('var - ', var)
         #ft.print_variance(ft.res['x'],var)
         #ft.get_location_errors(res['x'], (0,), last=300, func='likelihood')
 
