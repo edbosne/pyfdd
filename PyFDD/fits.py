@@ -25,22 +25,22 @@ class fits:
     def __init__(self,lib):
         assert isinstance(lib,lib2dl)
         self.lib = lib
-        self.pattern_1_n = 0
-        self.pattern_1_use = True
-        self.pattern_2_n = None
-        self.pattern_2_use = False
-        self.pattern_3_n = None
-        self.pattern_3_use = False
+        # self.pattern_1_n = 0
+        # self.pattern_1_use = True
+        # self.pattern_2_n = None
+        # self.pattern_2_use = False
+        # self.pattern_3_n = None
+        # self.pattern_3_use = False
         self.n_events = None
         self.n_events_set = False
-        self.fit_n_events = False
+        # self.fit_n_events = False
         self.XXmesh = None
         self.YYmesh = None
         self.data_pattern = None
         self.sim_pattern = None
         self.data_pattern_is_set = False
-        self.p0 = (None,)
-        self.p0_scale = np.ones((8))
+        #self.p0 = (None,)
+        #self.p0_scale = np.ones((8))
         self.fit_sigma = False
         self.results = None
         self.variance = None
@@ -50,6 +50,7 @@ class fits:
         self.parameters_dict = None
         self._init_parameters_dict()
         self._parameters_order = ('dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3')
+        self._pattern_keys = ('pattern_1', 'pattern_2', 'pattern_3')
 
         self.verbose_graphics = False
         self.verbose_graphics_ax = None
@@ -75,33 +76,16 @@ class fits:
             'f_p2': parameter_template.copy(),  # fraction site 2
             'f_p3': parameter_template.copy(),  # fraction site 3
         }
+        self.set_inicial_values()
+        self.set_scale_values()
+        self.set_bound_values()
+        self.fix_parameters(dx=False, dy=False, phi=False, total_cts=False,
+                            sigma=False, f_p1=False, f_p2=True, f_p3=True)
 
-    def set_data_pattern(self,XXmesh,YYmesh,pattern):
-        self.XXmesh = XXmesh.copy()
-        self.YYmesh = YYmesh.copy()
-        self.data_pattern = pattern.copy()
-        self.data_pattern_is_set = True
-        self.n_events = self.data_pattern.sum()
-        self.n_events_set = True
-
-    def set_patterns_to_fit(self,p1_n=None,p2_n=None,p3_n=None):
-        if p1_n is not None:
-            self.parameters_dict['pattern_1']['value'] = p1_n
-            self.parameters_dict['pattern_1']['use'] = True
-        else:
-            self.parameters_dict['pattern_1']['use'] = False
-
-        if p2_n is not None:
-            self.parameters_dict['pattern_2']['value'] = p2_n
-            self.parameters_dict['pattern_2']['use'] = True
-        else:
-            self.parameters_dict['pattern_2']['use'] = False
-
-        if p3_n is not None:
-            self.parameters_dict['pattern_3']['value'] = p3_n
-            self.parameters_dict['pattern_3']['use'] = True
-        else:
-            self.parameters_dict['pattern_3']['use'] = False
+        self.parameters_dict['pattern_1']['value'] = 0
+        self.parameters_dict['pattern_2']['value'] = 0
+        self.parameters_dict['pattern_3']['value'] = 0
+        self.parameters_dict['sub_pixels']['value'] = 1
 
     def set_inicial_values(self, dx=1, dy=1, phi=5, total_cts=1, sigma=0, f_p1=0.25, f_p2=0.25, f_p3=0.25):
         # parameter keys 'dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3'
@@ -138,15 +122,25 @@ class fits:
         self.parameters_dict['f_p2']['bounds'] = f_p2
         self.parameters_dict['f_p3']['bounds'] = f_p3
 
-    def _get_p0_scale(self, dx=1, dy=1, phi=1, total_cts=1, sigma=1, f_p1=1, f_p2=1, f_p3=1):
-        # TODO clean
+    def fix_parameters(self, dx, dy, phi, total_cts, sigma,
+                       f_p1, f_p2, f_p3):
+        # parameter keys 'dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3'
+        self.parameters_dict['dx']['use'] = not dx
+        self.parameters_dict['dy']['use'] = not dy
+        self.parameters_dict['phi']['use'] = not phi
+        self.parameters_dict['total_cts']['use'] = not total_cts
+        self.parameters_dict['sigma']['use'] = not sigma
+        self.parameters_dict['f_p1']['use'] = not f_p1
+        self.parameters_dict['f_p2']['use'] = not f_p2
+        self.parameters_dict['f_p3']['use'] = not f_p3
+
+    def _get_p0_scale(self):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         p0_scale = ()
         for key in self._parameters_order:
             if self.parameters_dict[key]['use']:
                 p0_scale += (self.parameters_dict[key]['scale'],)
-        self.p0_scale = np.array(p0_scale)
-        return self.p0_scale
+        return np.array(p0_scale)
 
     def _get_p0(self):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
@@ -155,8 +149,40 @@ class fits:
             if self.parameters_dict[key]['use']:
                 temp_p0 = self.parameters_dict[key]['p0'] / self.parameters_dict[key]['scale']
                 p0 += (temp_p0,)
-        self.p0 = np.array(p0)
-        return self.p0
+        return np.array(p0)
+
+    def set_data_pattern(self, XXmesh, YYmesh, pattern):
+        self.XXmesh = XXmesh.copy()
+        self.YYmesh = YYmesh.copy()
+        self.data_pattern = pattern.copy()
+        self.data_pattern_is_set = True
+        self.n_events = self.data_pattern.sum()
+        self.n_events_set = True
+
+    def set_patterns_to_fit(self, p1_n=None, p2_n=None, p3_n=None):
+        if p1_n is not None:
+            self.parameters_dict['pattern_1']['value'] = p1_n
+            self.parameters_dict['pattern_1']['use'] = True
+            self.parameters_dict['f_p1']['use'] = True
+        else:
+            self.parameters_dict['pattern_1']['use'] = False
+            self.parameters_dict['f_p1']['use'] = False
+
+        if p2_n is not None:
+            self.parameters_dict['pattern_2']['value'] = p2_n
+            self.parameters_dict['pattern_2']['use'] = True
+            self.parameters_dict['f_p2']['use'] = True
+        else:
+            self.parameters_dict['pattern_2']['use'] = False
+            self.parameters_dict['f_p2']['use'] = False
+
+        if p3_n is not None:
+            self.parameters_dict['pattern_3']['value'] = p3_n
+            self.parameters_dict['pattern_3']['use'] = True
+            self.parameters_dict['f_p3']['use'] = True
+        else:
+            self.parameters_dict['pattern_3']['use'] = False
+            self.parameters_dict['f_p3']['use'] = False
 
     def print_variance(self,x,var):
         # TODO add number of events
@@ -376,45 +402,54 @@ class fits:
     def log_likelihood_call(self, params, enable_scale=False):
         #print(params)
         #print('params ', params)
-        p0_scale = self.p0_scale.copy() if enable_scale else np.ones(len(params))
+        p0_scale = self._get_p0_scale() if enable_scale else np.ones(len(params))
         #print(p0_scale)
-        dx = params[0] * p0_scale[0]
-        dy = params[1] * p0_scale[1]
-        phi = params[2] * p0_scale[2]
-        sigma = (params[3] * p0_scale[3],)[0] if self.fit_sigma else 0
-        di = 1 if self.fit_sigma else 0
+        params_temp = ()
+        di = 0
+        for key in self._parameters_order:
+            if self.parameters_dict[key]['use']:
+                params_temp += (params[di] * p0_scale[di],)
+                di += 1
+            else:
+                params_temp += (self.parameters_dict[key]['p0'],)
+        print('params_temp - ',params_temp)
+
+        dx, dy, phi, total_cts, sigma, f_p1, f_p2, f_p3 = params_temp
         fractions_sims = ()
-        fractions_sims += (params[3+di] * p0_scale[3+di],) if self.pattern_1_use else () # pattern 1
-        fractions_sims += (params[4+di] * p0_scale[4+di],) if self.pattern_2_use else () # pattern 2
-        fractions_sims += (params[5+di] * p0_scale[5+di],) if self.pattern_3_use else () # pattern 3
-        # get patterns
-        #simulations  = (self.pattern_1_n,) if self.pattern_1_use else ()
-        #simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
-        #simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
+        fractions_sims += (f_p1,) if self.parameters_dict['pattern_1']['use'] else () # pattern 1
+        fractions_sims += (f_p2,) if self.parameters_dict['pattern_2']['use'] else () # pattern 2
+        fractions_sims += (f_p3,) if self.parameters_dict['pattern_3']['use'] else () # pattern 3
+        print('fractions_sims - ', fractions_sims)
         return self.log_likelihood(dx, dy, phi, fractions_sims, sigma=sigma)
 
     def maximize_likelyhood(self):
+
+        # total counts is not used in maximum likelyhood
+        self.parameters_dict['total_cts']['use'] = False
         # order of params is dx,dy,phi,sigma,f_p1,f_p2,f_p3
-        p0 = self.p0
-        #print('p0 - ', self.p0)
-        bnds = ((-3, +3), (-3, +3), (None, None)) #(self.p0[2]-5/self.p0_scale[2],self.p0[2]+5/self.p0_scale[2])) # no need for number of cts
-        bnds += ((0, None),) if self.fit_sigma else ()
-        bnds += ((0, 1),) if self.pattern_1_use else ()
-        bnds += ((0, 1),) if self.pattern_2_use else ()
-        bnds += ((0, 1),) if self.pattern_3_use else ()
+        p0 = self._get_p0()
+        print('p0 - ', p0)
+        bnds = ()
+        for key in self._parameters_order:
+            if self.parameters_dict[key]['use']:
+                bnds += (self.parameters_dict[key]['bounds'],)
         #print('bnds - ', bnds)
 
         # get patterns
-        simulations = (self.pattern_1_n,) if self.pattern_1_use else ()
-        simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
-        simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
+        simulations = ()
+        for key in self._pattern_keys:
+            if self.parameters_dict[key]['use']:
+                simulations += (self.parameters_dict[key]['value'],)
+        print('simulations - ', simulations)
 
         # generate sim pattern
         self.pattern_generator = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations,
                                                 mask=self.data_pattern.mask, sub_pixels=self.sub_pixels)
 
-        res = op.minimize(self.log_likelihood_call, self.p0, args=True, method='L-BFGS-B', bounds=bnds,\
+        res = op.minimize(self.log_likelihood_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
                            options={'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-8,'maxcor':100}) #'eps': 0.0001,
+        # TODO
+        # update this part and compare results with previous version
         if self.fit_sigma:
             if self.pattern_1_use:
                 if self.pattern_2_use:
@@ -515,14 +550,14 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     test_curve_fit = False
-    test_chi2_min = True
-    test_likelihood_max = False
+    test_chi2_min = False
+    test_likelihood_max = True
 
     #lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl")
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue567g29.2dl")
 
     ft = fits(lib)
-    ft.verbose_graphics = True
+    ft.verbose_graphics = False
 
     # set a pattern to fit
     #x=np.arange(-1.79,1.8,0.01)
