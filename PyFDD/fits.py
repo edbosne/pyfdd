@@ -42,11 +42,10 @@ class fits:
         self.data_pattern_is_set = False
         #self.p0 = (None,)
         #self.p0_scale = np.ones((8))
-        #self.fit_sigma = False
         self.results = None
         self.variance = None
         self.pattern_generator = None
-        self.sub_pixels = 1
+        #self.sub_pixels = 1
 
         self.parameters_dict = None
         self._init_parameters_dict()
@@ -131,9 +130,21 @@ class fits:
         self.parameters_dict['phi']['use'] = not phi
         self.parameters_dict['total_cts']['use'] = not total_cts
         self.parameters_dict['sigma']['use'] = not sigma
-        self.parameters_dict['f_p1']['use'] = not f_p1
-        self.parameters_dict['f_p2']['use'] = not f_p2
-        self.parameters_dict['f_p3']['use'] = not f_p3
+
+        if self.parameters_dict['pattern_1']['use']:
+            self.parameters_dict['f_p1']['use'] = not f_p1
+        else:
+            self.parameters_dict['f_p1']['use'] = False
+
+        if self.parameters_dict['pattern_2']['use']:
+            self.parameters_dict['f_p2']['use'] = not f_p2
+        else:
+            self.parameters_dict['f_p2']['use'] = False
+
+        if self.parameters_dict['pattern_3']['use']:
+            self.parameters_dict['f_p3']['use'] = not f_p3
+        else:
+            self.parameters_dict['f_p3']['use'] = False
 
     def _get_p0_scale(self):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
@@ -296,63 +307,63 @@ class fits:
     def chi_square_call(self, params, enable_scale=False):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         # print('params ', params)
-        p0_scale = self.p0_scale.copy() if enable_scale else np.ones(len(params))
+        p0_scale = self._get_p0_scale() if enable_scale else np.ones(len(params))
         #print('p0_scale ', p0_scale)
-        dx = params[0] * p0_scale[0]
-        dy = params[1] * p0_scale[1]
-        phi = params[2] * p0_scale[2]
-        total_cts = (params[3] * p0_scale[3],)  # total counts
-        sigma = (params[4] * p0_scale[4],)[0] if self.fit_sigma else 0
-        di = 1 if self.fit_sigma else 0
+        params_temp = ()
+        di = 0
+        for key in self._parameters_order:
+            if self.parameters_dict[key]['use']:
+                params_temp += (params[di] * p0_scale[di],)
+                di += 1
+            else:
+                params_temp += (self.parameters_dict[key]['p0'],)
+        # print('params_temp - ',params_temp)
+
+        dx, dy, phi, total_cts, sigma, f_p1, f_p2, f_p3 = params_temp
         fractions_sims = ()
-        fractions_sims += (params[4+di] * p0_scale[4+di],) if self.pattern_1_use else () # pattern 1
-        fractions_sims += (params[5+di] * p0_scale[5+di],) if self.pattern_2_use else () # pattern 2
-        fractions_sims += (params[6+di] * p0_scale[6+di],) if self.pattern_3_use else () # pattern 3
+        fractions_sims += (f_p1,) if self.parameters_dict['pattern_1']['use'] else ()  # pattern 1
+        fractions_sims += (f_p2,) if self.parameters_dict['pattern_2']['use'] else ()  # pattern 2
+        fractions_sims += (f_p3,) if self.parameters_dict['pattern_3']['use'] else ()  # pattern 3
+        #print('fractions_sims - ', fractions_sims)
         return self.chi_square(dx, dy, phi, total_cts, fractions_sims=fractions_sims, sigma=sigma)
 
     def minimize_chi2(self):
+
         # order of params is dx,dy,phi,total_cts,sigma,f_p1,f_p2,f_p3
-        p0 = self.p0
+        p0 = self._get_p0()
         #print('p0 - ', p0)
-        bnds = ((-3,+3), (-3,+3), (None,None), (0, None))
-        bnds += ((0, None),) if self.fit_sigma else ()
-        bnds += ((0, 1),) if self.pattern_1_use else ()
-        bnds += ((0, 1),) if self.pattern_2_use else ()
-        bnds += ((0, 1),) if self.pattern_3_use else ()
+
+        # Parameter bounds
+        bnds = ()
+        for key in self._parameters_order:
+            if self.parameters_dict[key]['use']:
+                bnds += (self.parameters_dict[key]['bounds'],)
+                # print('bnds - ', bnds)
 
         # get patterns
-        simulations = (self.pattern_1_n,) if self.pattern_1_use else ()
-        simulations += (self.pattern_2_n,) if self.pattern_2_use else ()
-        simulations += (self.pattern_3_n,) if self.pattern_3_use else ()
+        simulations = ()
+        for key in self._pattern_keys:
+            if self.parameters_dict[key]['use']:
+                simulations += (self.parameters_dict[key]['value'],)
+        # print('simulations - ', simulations)
 
         # generate sim pattern
         self.pattern_generator = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations,
-                                                mask=self.data_pattern.mask, sub_pixels=self.sub_pixels)
+                                                mask=self.data_pattern.mask,
+                                                sub_pixels=self.parameters_dict['sub_pixels']['value'])
 
         res = op.minimize(self.chi_square_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options={'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-4,'maxcor':100}) #dont change defaut eps
-        if self.fit_sigma:
-            if self.pattern_1_use:
-                if self.pattern_2_use:
-                    if self.pattern_3_use:
-                        res['x'] *= self.p0_scale[0:8]
-                    else:
-                        res['x'] *= self.p0_scale[0:7]
-                else:
-                    res['x'] *= self.p0_scale[0:6]
+                           options={'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-4,'maxcor':100}) # dont change defaut eps
+
+        di = 0
+        for key in self._parameters_order:
+            if self.parameters_dict[key]['use']:
+                res['x'][di] *= self.parameters_dict[key]['scale']
+                self.parameters_dict[key]['value'] = res['x'][di]
+                di += 1
             else:
-                res['x'] *= self.p0_scale[0:5]
-        else:
-            if self.pattern_1_use:
-                if self.pattern_2_use:
-                    if self.pattern_3_use:
-                        res['x'] *= self.p0_scale[0:7]
-                    else:
-                        res['x'] *= self.p0_scale[0:6]
-                else:
-                    res['x'] *= self.p0_scale[0:5]
-            else:
-                res['x'] *= self.p0_scale[0:4]
+                self.parameters_dict[key]['value'] = self.parameters_dict[key]['p0']
+
         self.results = res
 
 # methods for maximum likelihood
@@ -401,10 +412,10 @@ class fits:
         return -ll
 
     def log_likelihood_call(self, params, enable_scale=False):
-        #print(params)
+        # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         #print('params ', params)
         p0_scale = self._get_p0_scale() if enable_scale else np.ones(len(params))
-        #print(p0_scale)
+        # print('p0_scale ', p0_scale)
         params_temp = ()
         di = 0
         for key in self._parameters_order:
@@ -420,16 +431,19 @@ class fits:
         fractions_sims += (f_p1,) if self.parameters_dict['pattern_1']['use'] else () # pattern 1
         fractions_sims += (f_p2,) if self.parameters_dict['pattern_2']['use'] else () # pattern 2
         fractions_sims += (f_p3,) if self.parameters_dict['pattern_3']['use'] else () # pattern 3
-        print('fractions_sims - ', fractions_sims)
+        #print('fractions_sims - ', fractions_sims)
         return self.log_likelihood(dx, dy, phi, fractions_sims, sigma=sigma)
 
     def maximize_likelyhood(self):
 
         # total counts is not used in maximum likelyhood
         self.parameters_dict['total_cts']['use'] = False
+
         # order of params is dx,dy,phi,sigma,f_p1,f_p2,f_p3
         p0 = self._get_p0()
-        print('p0 - ', p0)
+        #print('p0 - ', p0)
+
+        # Parameter bounds
         bnds = ()
         for key in self._parameters_order:
             if self.parameters_dict[key]['use']:
@@ -441,16 +455,15 @@ class fits:
         for key in self._pattern_keys:
             if self.parameters_dict[key]['use']:
                 simulations += (self.parameters_dict[key]['value'],)
-        print('simulations - ', simulations)
+        #print('simulations - ', simulations)
 
         # generate sim pattern
         self.pattern_generator = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations,
-                                                mask=self.data_pattern.mask, sub_pixels=self.sub_pixels)
+                                                mask=self.data_pattern.mask,
+                                                sub_pixels=self.parameters_dict['sub_pixels']['value'])
 
         res = op.minimize(self.log_likelihood_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
                            options={'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-8,'maxcor':100}) #'eps': 0.0001,
-        # TODO
-        # update this part and compare results with previous version
 
         di = 0
         for key in self._parameters_order:
@@ -539,8 +552,8 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     test_curve_fit = False
-    test_chi2_min = False
-    test_likelihood_max = True
+    test_chi2_min = True
+    test_likelihood_max = False
 
     #lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl")
     lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue567g29.2dl")
@@ -579,13 +592,12 @@ if __name__ == "__main__":
     ft.set_data_pattern(xmesh, ymesh, patt)
     #ft.set_patterns_to_fit(249-249,377-249)
     ft.set_patterns_to_fit(1,65)#,129)
-    ft.fit_sigma = True
-    ft.sub_pixels = 1
+    ft.parameters_dict['sub_pixels']['value'] = 1
 
     if test_chi2_min:
         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag, sigma=1, f_p1=1)
-        #ft.set_inicial_values(0.1, 0.1, 1, counts_ordofmag, sigma=0.1)
-        ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, counts_ordofmag, sigma=0.1)
+        ft.set_inicial_values(0.1, 0.1, 1, counts_ordofmag, sigma=0.1)
+        #ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, counts_ordofmag, sigma=0.1)
         ft.minimize_chi2()
         print(ft.results)
         print('sigma in sim step units - ', ft.results['x'][4] / lib.xstep)
@@ -605,7 +617,8 @@ if __name__ == "__main__":
 
     if test_likelihood_max:
         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1, f_p1=1, f_p2=1)
-        ft.set_inicial_values(0.1, 0.1, 1, -1, sigma=0.1)
+        ft.set_inicial_values(-0.05, 0.1, 1, -1, sigma=0.1)
+        ft.fix_parameters(True,False,False,False,False,False,False,False)
         #ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, -1, sigma=0.1)
         ft.maximize_likelyhood()
         print(ft.results)
