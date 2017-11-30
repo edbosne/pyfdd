@@ -4,7 +4,7 @@
 #sys.path.append('/home/eric/ericathome/home/eric/PycharmProjects/CustomWidgets')
 #print(sys.path)
 
-from .CustomWidgets.CustomWidgets import AngleMeasure, RectangleSelector
+from .CustomWidgets import AngleMeasure, RectangleSelector
 
 import numpy as np
 import numpy.ma as ma

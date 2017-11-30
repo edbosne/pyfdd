@@ -7,9 +7,9 @@ The fits object gets access to a lib2dl object and performs fits and statistical
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
-from PyFDD.read2dl.lib2dl import lib2dl
-from PyFDD.patterncreator import PatternCreator, create_detector_mesh
-from PyFDD.MedipixMatrix.MedipixMatrix import MedipixMatrix
+from .read2dl import lib2dl
+from .patterncreator import PatternCreator, create_detector_mesh
+from .MedipixMatrix import MedipixMatrix
 
 
 import numpy as np
