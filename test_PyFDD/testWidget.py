@@ -1,6 +1,6 @@
 __author__ = 'eric'
 
-from .CustomWidgets import *
+from PyFDD.MedipixMatrix.CustomWidgets import *
 import numpy as np
 import matplotlib.pyplot as plt
 

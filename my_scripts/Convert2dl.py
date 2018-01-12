@@ -4,7 +4,7 @@
 # /home/eric/PycharmProjects/MedipixMatrix/Convert2dl.py -i '/media/eric/Data/University/CERN-projects/Alphapix-ITN/Data/2012-03-17_6HSiC/Analysis/Better_Depth_analysis_2013-11-22/2D-Pattern_200nm.2db' -o /home/eric/Desktop/test.2dl
 
 import sys, getopt
-from .MedipixMatrix import *
+from PyFDD.MedipixMatrix import *
 
 def main(argv):
     inputfile = ''

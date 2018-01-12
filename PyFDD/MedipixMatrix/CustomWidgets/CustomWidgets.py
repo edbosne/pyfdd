@@ -17,7 +17,7 @@ class AngleMeasure(AxesWidget):
     it.
     """
 
-    def __init__(self, ax, callonangle, **lineprops):
+    def __init__(self, ax, callonangle=print, **lineprops):
         """
         Add a cursor to *ax*.
 

@@ -1,6 +1,7 @@
 *.txt
 __*/
 *.png
+my_scripts/
 =======
 # Byte-compiled / optimized / DLL files
 __pycache__/
