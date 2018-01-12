@@ -4,7 +4,7 @@ __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
 
-from .read2dl import lib2dl
+from .lib2dl import lib2dl
 
 import numpy as np
 import numpy.ma as ma
@@ -307,12 +307,12 @@ if __name__ == "__main__":
     #xmesh, ymesh = create_detector_mesh(40, 40, 0.5, 300)
     xmesh, ymesh = create_detector_mesh(100, 100, 0.2, 300)
     # 5 subpixels is a good number for the pads
-    gen = PatternCreator(lib, xmesh, ymesh, 1, sub_pixels=5)
+    gen = PatternCreator(lib)#, xmesh, ymesh, 1, sub_pixels=5)
 
-    fractions_per_sim = np.array([0.3, 0.7])
+    fractions_per_sim = np.array([0, 1])
     #fractions_per_sim /= fractions_per_sim.sum()
     total_events = 1
-    pattern = gen.make_pattern(0.0, -0.0, -3, fractions_per_sim, total_events, sigma=0.1, type='ideal')
+    pattern = gen.make_pattern(0.0, -0.0, -0, fractions_per_sim, total_events, sigma=0.1, type='ideal')
     print(pattern.sum())
 
     plt.figure(1)

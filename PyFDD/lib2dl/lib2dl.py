@@ -88,11 +88,3 @@ class lib2dl:
         if self.ymirror:
             new_pattern = np.concatenate((np.flipud(new_pattern), new_pattern[1:,:]), 0)
         return new_pattern
-
-
-if __name__ == "__main__":
-    lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue488g34.2dl")  # 89Sr [0001]
-    plt.figure(1)
-    imgmat = lib.get_simulation_patt(1)
-    plt.contourf(imgmat)
-    plt.show()

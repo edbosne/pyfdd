@@ -7,7 +7,7 @@ The fits object gets access to a lib2dl object and performs fits and statistical
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
-from .read2dl import lib2dl
+from .lib2dl import lib2dl
 from .patterncreator import PatternCreator, create_detector_mesh
 from .MedipixMatrix import MedipixMatrix
 
@@ -51,6 +51,8 @@ class fits:
         self._init_parameters_dict()
         self._parameters_order = ('dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3')
         self._pattern_keys = ('pattern_1', 'pattern_2', 'pattern_3')
+        self._ml_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-8,'maxcor': 100}
+        self._chi2_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-4, 'maxcor': 100}
 
         self.verbose_graphics = False
         self.verbose_graphics_ax = None
@@ -197,7 +199,7 @@ class fits:
             self.parameters_dict['f_p3']['use'] = False
 
     def print_variance(self,x,var):
-        # TODO add number of events
+        # TODO remove
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         params = x
         dx = params[0]
@@ -353,7 +355,7 @@ class fits:
                                                 sub_pixels=self.parameters_dict['sub_pixels']['value'])
 
         res = op.minimize(self.chi_square_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options={'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-4,'maxcor':100}) # dont change defaut eps
+                           options={'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-5,'maxcor':100}) # dont change defaut eps
 
         di = 0
         for key in self._parameters_order:

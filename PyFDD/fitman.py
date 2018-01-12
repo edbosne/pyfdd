@@ -7,7 +7,7 @@ Fit manager is the kernel class for fitting.
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
-from .read2dl import lib2dl
+from .lib2dl import lib2dl
 #from patterncreator import PatternCreator, create_detector_mesh
 from .MedipixMatrix import MedipixMatrix
 from .fits import fits
@@ -151,18 +151,18 @@ class fitman:
                     if method == 'chi2':
                         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag,
                                             sigma=1, f_p1=1, f_p2=1, f_p3=1)
-                        ft.set_inicial_values(p0[0],p0[1],p0[2],p0[3],p0[4],p0[5],p0[6],p0[7],p0[8])
+                        ft.set_inicial_values(p0[0],p0[1],p0[2],p0[3],p0[4],p0[5],p0[6],p0[7])
                         ft.fix_parameters(p0_fix[0],p0_fix[1],p0_fix[2],p0_fix[3],p0_fix[4],p0_fix[5],
-                                          p0_fix[6],p0_fix[7],p0_fix[8])
+                                          p0_fix[6],p0_fix[7])
                         ft.minimize_chi2()
                         if get_errors:
                             ft.get_variance_from_hessian(ft.results['x'], func='chi_square')
                     if method == 'ml':
                         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1,
                                             sigma=1, f_p1=1, f_p2=1, f_p3=1)
-                        ft.set_inicial_values(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6], p0[7], p0[8])
+                        ft.set_inicial_values(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6], p0[7])
                         ft.fix_parameters(p0_fix[0], p0_fix[1], p0_fix[2], p0_fix[3], p0_fix[4], p0_fix[5],
-                                          p0_fix[6], p0_fix[7], p0_fix[8])
+                                          p0_fix[6], p0_fix[7])
                         ft.maximize_likelyhood()
                         if get_errors:
                             ft.get_variance_from_hessian(ft.results['x'], func='likelihood')
@@ -175,7 +175,7 @@ class fitman:
                     append_dic['y'] = parameter_dict['dy']['value']
                     append_dic['phi'] = parameter_dict['phi']['value']
                     append_dic['counts'] = parameter_dict['total_cts']['value'] if method == 'chi2' else np.nan
-                    append_dic['sigma'] = parameter_dict['sigma']['value'] if parameter_dict['sigma']['use'] else np.nan
+                    append_dic['sigma'] = parameter_dict['sigma']['value']
                     if patterns_list[0][0] is not None:
                         append_dic['site1 n'] = self.lib.ECdict["Spectrums"][p1-1]["Spectrum number"]
                         append_dic['p1'] = p1

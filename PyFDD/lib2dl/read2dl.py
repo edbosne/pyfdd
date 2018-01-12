@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Source for the read2dl class. It allows to read .2dl files into a python dictionary or .json file.
+Source for the lib2dl class. It allows to read .2dl files into a python dictionary or .json file.
 
 The __main__ routine plots the first patterns
 """
@@ -166,46 +166,10 @@ class read2dl:
             ll = np.concatenate((ll, l[np.newaxis]), axis=0) if ll.size else l[np.newaxis]
         return ll.tolist()
 
-def print_header(dict_2dl):
-    print("nx, ny - ", dict_2dl["nx"], ", ", dict_2dl["ny"])
-    print("xstep, ystep - ", dict_2dl["xstep"], ", ", dict_2dl["ystep"])
-    print("xfirst, yfirst - ", dict_2dl["xfirst"], ", ", dict_2dl["yfirst"])
-    print("xlast, ylast - ", dict_2dl["xlast"], ", ", dict_2dl["ylast"])
+    def print_header(self):
+        print("nx, ny - ", self.dict_2dl["nx"], ", ", self.dict_2dl["ny"])
+        print("xstep, ystep - ", self.dict_2dl["xstep"], ", ", self.dict_2dl["ystep"])
+        print("xfirst, yfirst - ", self.dict_2dl["xfirst"], ", ", self.dict_2dl["yfirst"])
+        print("xlast, ylast - ", self.dict_2dl["xlast"], ", ", self.dict_2dl["ylast"])
 
 
-if __name__ == "__main__":
-    EClib = read2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue488g34.2dl") #89Sr [0001]
-    #EClib = read2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl") #89Sr [-1102]
-    #EClib = read2dl("/home/eric/cernbox/FDD_libraries/ue646g53.2dl") #89Sr [-1101]
-
-    EClib.read_file()
-    ECdict = EClib.get_dict()
-    #print_header(ECdict)
-    #print(EClib.list_simulations())
-    nx = ECdict["nx"]
-    ny = ECdict["ny"]
-    xstep = ECdict["xstep"]
-    ystep = ECdict["ystep"]
-    numdim = nx*ny
-    print(nx, ny)
-    print(numdim)
-
-    y=[]
-    # for spec in ECdict["Spectrums"]:
-    #     #y += [np.sum(np.array(spec["array"]).reshape((ny, nx)))]
-    #     y += [np.sum(EClib.get_array(spec["array_index"]).reshape((ny, nx)))]
-    # print(y)
-    # plt.ylabel('Total sum')
-    # plt.xlabel('Pattern #')
-    # plt.plot(y)
-
-    #plt.show()
-
-
-    figN = 0
-    for i in range(0,2):
-        plt.figure(figN)
-        figN += 1
-        imgmat = EClib.get_array(ECdict["Spectrums"][i]["array_index"]).reshape((ny, nx))[:,30::]
-        plt.contourf(imgmat)
-    plt.show()
