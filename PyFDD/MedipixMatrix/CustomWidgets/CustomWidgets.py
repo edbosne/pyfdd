@@ -1,11 +1,9 @@
-__author__ = 'eric'
+__author__ = 'E. David-Bosne'
 
 
 from matplotlib.widgets import *
 import matplotlib.axes
 import math
-
-
 
 class AngleMeasure(AxesWidget):
     """
