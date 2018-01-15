@@ -33,7 +33,11 @@ mask[1,1]   = mask[1,2]   = mask[1,20]  = mask[2,1]  = mask[9,11]  = mask[9,20] 
 mask[10,12] = mask[10,19] = mask[10,20] = mask[11,2] = mask[11,11] = mask[11,20] = mask[12,1]  = mask[12,2]  = \
 mask[12,3]  = mask[13,1]  = mask[13,2]  = mask[13,3] = mask[14,2]  = mask[20,1]  = mask[20,2]  = mask[20,20] = 1
 mm2.set_mask(mask)
+#mm2.mask_std(6)
+
+# orientation to detector's point of view
 mm2.manip_orient('rr,rr')
+
 # -Angular calibration
 mm2.manip_create_mesh(pixel_size=1.4, distance=300, reverse_x=True)
 
@@ -44,15 +48,10 @@ mm2.remove_edge_pixel(1)
 # Smooth
 # mm2.manip_smooth(2.0)
 
-#mm2.mask_std(6)
-
 # Plotting
-f2 = plt.figure(2)
+f2 = plt.figure(1)
 ax2 = plt.subplot('111')
 mm2.draw(ax2, percentiles=(0.01, 0.99), plot_type='pixels')
-
-# get rectangle
-# mm2.get_rectangle_tool()
 
 # Measure angles - widget
 mm2.get_angle_tool()
@@ -68,11 +67,13 @@ print('angle widget, center ', mm2.center, ', angle ', mm2.angle)
 # mask array
 mm2.mask_limits(limits=(mm2.center[0] - 2.8, mm2.center[0] + 2.8, mm2.center[1] - 2.8, mm2.center[1] + 2.8))
 
-# save matrix
+# Show final
 f2 = plt.figure(2)
 ax2 = plt.subplot('111')
 mm2.draw(ax2, percentiles=(0.01, 0.99))
 plt.show()
+
+# save matrix
 #mm2.io_save_json(basename + '_180.json')
 # ascii if to be used with fdd
 #mm2.io_save_ascii('/home/eric/Desktop/test.txt')

@@ -52,8 +52,6 @@ class PatternCreator:
         simulations = np.array(simulations)
         if len(simulations.shape) == 0: # ensures that dimention is 1
             simulations = simulations[np.newaxis]
-        xmesh = np.array(xmesh)
-        ymesh = np.array(ymesh)
         assert isinstance(lib, lib2dl)
 
         # get original mesh if undefines
@@ -61,8 +59,8 @@ class PatternCreator:
             self._detector_xmesh = lib.XXmesh.copy()
             self._detector_ymesh = lib.YYmesh.copy()
         else:
-            self._detector_xmesh = xmesh.copy()
-            self._detector_ymesh = ymesh.copy()
+            self._detector_xmesh = np.array(xmesh)
+            self._detector_ymesh = np.array(ymesh)
 
         # expanded mesh
         assert isinstance(sub_pixels, int)

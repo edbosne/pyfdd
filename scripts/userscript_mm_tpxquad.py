@@ -46,12 +46,9 @@ mm2.manip_compress(factor=22, rm_central_pix=0, rm_edge_pix=0)
 mm2.mask_std(6)
 
 # Plotting
-f2 = plt.figure(2)
+f2 = plt.figure(1)
 ax2 = plt.subplot('111')
 mm2.draw(ax2, percentiles=(0.01, 0.99))
-
-# get rectangle
-# mm2.get_rectangle_tool()
 
 # Measure angles - widget
 mm2.get_angle_tool()
@@ -67,7 +64,13 @@ print('angle widget, center ', mm2.center, ', angle ', mm2.angle)
 # mask array
 mm2.mask_limits(limits=(mm2.center[0] - 2.8, mm2.center[0] + 2.8, mm2.center[1] - 2.8, mm2.center[1] + 2.8))
 
+# Show final
+f2 = plt.figure(2)
+ax2 = plt.subplot('111')
+mm2.draw(ax2, percentiles=(0.01, 0.99))
+plt.show()
+
 # save matrix
-mm2.io_save_json(basename + '_rebin22x22_180.json')
+#mm2.io_save_json(basename + '_rebin22x22_180.json')
 # ascii if to be used with fdd
 # mm2.io_save_ascii('/home/eric/Desktop/test.txt')

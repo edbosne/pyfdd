@@ -42,8 +42,9 @@ class lib2dl:
         self.xmirror = False
         self.ymirror = False
         self.check_mirror()
-        self.XXmesh = np.array([])
-        self.YYmesh = np.array([])
+        xrange = np.arange(self.xfirst, self.xlast+self.xstep, self.xstep)
+        yrange = np.arange(self.yfirst, self.ylast + self.ystep, self.ystep)
+        self.XXmesh, self.YYmesh = np.meshgrid(xrange, yrange)
         #self.create_coordinates_mesh()
         self.pattern_current = np.ones((self.ny_mirror, self.nx_mirror))
         self.pattern_stack = self.pattern_current[np.newaxis]

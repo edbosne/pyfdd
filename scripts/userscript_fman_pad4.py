@@ -33,7 +33,7 @@ libraries = (
     'FDD_libraries/GaN_24Na/ue725g28.2dl')  # <-2113>
 
 # fits
-for i in range(3):#len(filenames)):
+for i in range(len(filenames)):
     filename = os.path.join(folder, filenames[i])
     library = os.path.join(folder, libraries[i])
     basename, ext = os.path.splitext(filename)
