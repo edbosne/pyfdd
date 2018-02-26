@@ -195,6 +195,12 @@ class MedipixMatrix:
         self.rectangle_limits = None
         self.RS = None
 
+    def get_matrix(self):
+        return self.matrixCurrent.copy()
+
+    def get_xymesh(self):
+        return self.xmesh.copy(), self.ymesh.copy()
+
     # ===== - IO Methods - =====
     def __io_load(self, filename):
         """
