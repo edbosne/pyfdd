@@ -195,6 +195,26 @@ class MedipixMatrix:
         self.rectangle_limits = None
         self.RS = None
 
+
+    def __add__(self, other):
+        assert isinstance(other, MedipixMatrix),"Add object is not a MedipixMatrix"
+
+        #check if the shape is the same
+        if not self.matrixCurrent.shape == other.matrixCurrent.shape:
+            raise ValueError("error the medipix matrices have different shape")
+
+        #check if the number of chips is the same
+        if not (self.nChipsX == other.nChipsX and
+                        self.nChipsY == other.nChipsY):
+            raise ValueError("error, the MedipixMatrix have different number of chips")
+
+        #check if the mesh is the same
+        if not (np.allclose(self.xmesh, other.xmesh) and
+                np.allclose(self.ymesh, other.ymesh)):
+            raise ValueError("error, the MedipixMatrix have different angular mesh")
+
+        self.matrixCurrent += other.matrixCurrent
+
     def get_matrix(self):
         return self.matrixCurrent.copy()
 
@@ -222,8 +242,7 @@ class MedipixMatrix:
         elif self.filetype_in == '.json':
             self.io_load_json()
         else:
-            print('Unknown requested file type extension')
-            return
+            raise ValueError('Unknown requested file type extension')
 
     def io_save(self, filename):
         pass
