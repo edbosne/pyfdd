@@ -197,11 +197,16 @@ class MedipixMatrix:
 
 
     def __add__(self, other):
+
+        # verify if possible and get values
         assert isinstance(other, MedipixMatrix),"Add object is not a MedipixMatrix"
 
         #check if the shape is the same
         if not self.matrixCurrent.shape == other.matrixCurrent.shape:
             raise ValueError("error the medipix matrices have different shape")
+
+        new_pattern = self.matrixCurrent.data + other.matrixCurrent.data
+        new_pattern_mask = self.matrixCurrent.mask + other.matrixCurrent.mask
 
         #check if the number of chips is the same
         if not (self.nChipsX == other.nChipsX and
@@ -213,7 +218,17 @@ class MedipixMatrix:
                 np.allclose(self.ymesh, other.ymesh)):
             raise ValueError("error, the MedipixMatrix have different angular mesh")
 
-        self.matrixCurrent += other.matrixCurrent
+        new_xmesh = self.xmesh
+        new_ymesh = self.ymesh
+
+        # Create new MM
+        new_mm = MedipixMatrix(pattern_array=new_pattern)
+        new_mm.xmesh = new_xmesh
+        new_mm.ymesh = new_ymesh
+        new_mm.matrixOriginal.mask = new_pattern_mask
+        new_mm.matrixCurrent.mask = new_pattern_mask
+
+        return new_mm
 
     def get_matrix(self):
         return self.matrixCurrent.copy()

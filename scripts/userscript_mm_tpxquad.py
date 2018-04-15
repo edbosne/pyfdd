@@ -46,10 +46,10 @@ mm2.manip_compress(factor=22, rm_central_pix=0, rm_edge_pix=0)
 mm2.mask_std(6)
 
 # Plotting
+
 f2 = plt.figure(1)
 ax2 = plt.subplot('111')
 mm2.draw(ax2, percentiles=(0.01, 0.99))
-
 # Measure angles - widget
 mm2.get_angle_tool()
 
