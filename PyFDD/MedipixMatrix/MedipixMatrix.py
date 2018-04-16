@@ -210,8 +210,12 @@ class MedipixMatrix:
 
         #check if the number of chips is the same
         if not (self.nChipsX == other.nChipsX and
-                        self.nChipsY == other.nChipsY):
+                self.nChipsY == other.nChipsY):
             raise ValueError("error, the MedipixMatrix have different number of chips")
+
+        # check if the real size of central pixels is the same
+        if not (self.real_size == other.real_size):
+            raise ValueError("error, the MedipixMatrix have different real size of central pixels")
 
         #check if the mesh is the same
         if not (np.allclose(self.xmesh, other.xmesh) and
@@ -222,7 +226,8 @@ class MedipixMatrix:
         new_ymesh = self.ymesh
 
         # Create new MM
-        new_mm = MedipixMatrix(pattern_array=new_pattern)
+        new_mm = MedipixMatrix(pattern_array=new_pattern,
+                               nChipsX=self.nChipsX, nChipsY=self.nChipsY, real_size=self.real_size)
         new_mm.xmesh = new_xmesh
         new_mm.ymesh = new_ymesh
         new_mm.matrixOriginal.mask = new_pattern_mask
