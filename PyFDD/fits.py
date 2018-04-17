@@ -148,6 +148,20 @@ class fits:
         else:
             self.parameters_dict['f_p3']['use'] = False
 
+
+    def set_optimization_profile(self,profile='default'):
+        if profile == 'coarse':
+            self._ml_fit_options =   {'disp':False, 'maxiter':15, 'maxfun':200, 'ftol':1e-7, 'maxcor':100}
+            self._chi2_fit_options = {'disp':False, 'maxiter':15, 'maxfun':200, 'ftol':1e-3, 'maxcor':100}
+        elif profile == 'default':
+            self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-8, 'maxcor':100}
+            self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-4, 'maxcor':100}
+        elif profile == 'fine':
+            self._ml_fit_options =   {'disp':False, 'maxiter':50, 'maxfun':600, 'ftol':1e-9, 'maxcor':100}
+            self._chi2_fit_options = {'disp':False, 'maxiter':50, 'maxfun':600, 'ftol':1e-5, 'maxcor':100}
+        else:
+            raise ValueError('profile value should be set to: coarse, default or fine.')
+
     def _get_p0_scale(self):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         p0_scale = ()
@@ -355,7 +369,7 @@ class fits:
                                                 sub_pixels=self.parameters_dict['sub_pixels']['value'])
 
         res = op.minimize(self.chi_square_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options={'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-5,'maxcor':100}) # dont change defaut eps
+                           options=self._chi2_fit_options) # dont change defaut eps
 
         di = 0
         for key in self._parameters_order:
@@ -465,7 +479,7 @@ class fits:
                                                 sub_pixels=self.parameters_dict['sub_pixels']['value'])
 
         res = op.minimize(self.log_likelihood_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options={'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-8,'maxcor':100}) #'eps': 0.0001,
+                           options=self._ml_fit_options) #'eps': 0.0001,
 
         di = 0
         for key in self._parameters_order:

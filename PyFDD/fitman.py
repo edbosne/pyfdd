@@ -96,7 +96,7 @@ class fitman:
         return p0, p_fix
 
 
-    def run_fits(self, *args, method='chi2', get_errors=False, sub_pixels=1):
+    def run_fits(self, *args, method='chi2', get_errors=False, sub_pixels=1, optimization_profile='default'):
 
         # each input is a range of patterns to fit
         assert isinstance(get_errors, bool)
@@ -136,6 +136,9 @@ class fitman:
                 for p3 in patterns_list[2]:
                     print('P1, P2, P3 - ', p1, ', ', p2, ', ', p3)
                     ft = fits(self.lib)
+
+                    ft.set_optimization_profile(optimization_profile)
+
                     ft.set_data_pattern(xmesh, ymesh, patt)
 
                     # ignore similar patterns

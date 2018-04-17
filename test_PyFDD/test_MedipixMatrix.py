@@ -84,6 +84,43 @@ def test_MedipixMatrix():
     plt.show()
     #mm2.io_save_json('/home/eric/Desktop/jsontest.json')
 
+def test_compress():
+    # one chip
+    print('one chip')
+    # 256 %16
+    print('\n256 %16')
+    pattern = np.random.poisson(1000,(256,256))
+    mm = MedipixMatrix(pattern_array=pattern)
+    mm.manip_compress(factor=16, rm_central_pix=0, rm_edge_pix=0)
+
+    # 256 %22
+    print('\n256 %22')
+    pattern = np.random.poisson(1000, (256, 256))
+    mm = MedipixMatrix(pattern_array=pattern)
+    mm.manip_compress(factor=22, rm_central_pix=0, rm_edge_pix=0)
+
+    # 516 %22
+    print('\n516 %22')
+    pattern = np.random.poisson(1000, (516, 516))
+    mm = MedipixMatrix(pattern_array=pattern)
+    mm.manip_compress(factor=22, rm_central_pix=0, rm_edge_pix=0)
+
+    # two chips
+    print('\n\nTwo chips')
+    # 512 %16
+    print('\n512 %16')
+    pattern = np.random.poisson(1000, (512, 512))
+    mm = MedipixMatrix(pattern_array=pattern, nChipsX=2, nChipsY=2)
+    mm.manip_compress(factor=16, rm_central_pix=0, rm_edge_pix=0)
+
+    # 512 %22
+    print('\n516 %22')
+    pattern = np.random.poisson(1000, (512, 512))
+    mm = MedipixMatrix(pattern_array=pattern, nChipsX=2, nChipsY=2)
+    mm.manip_compress(factor=22, rm_central_pix=0, rm_edge_pix=0)
+
+
 
 if __name__ == '__main__':
-    test_MedipixMatrix()
+    #test_MedipixMatrix()
+    test_compress()

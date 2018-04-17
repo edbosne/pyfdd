@@ -521,17 +521,27 @@ class MedipixMatrix:
                 self.zero_central_pix(rm_central_pix+(self.real_size-1))
 
         # verify if the rest of the matrix is divisable by factor
-        # 256 is the size of the chip
-        rest = (256-rm_edge_pix-rm_central_pix)%factor #((nx - 2*rm_edge_pix) - (2 * (self.real_size + rm_central_pix - 1)))%factor
-        if rest != 0:
-            rm_edge_pix += rest
-            print("warning removed edge pixels increased to ", rm_edge_pix)
+        # Update remove edge pixels
+        # TODO single chip with arbitrary size
+        if 2 == self.nChipsX and 2 == self.nChipsY:
+            # 256 is the size of the chip
+            rest = (256-rm_edge_pix-rm_central_pix)%factor
+            if rest != 0:
+                rm_edge_pix += rest
+                print("warning removed edge pixels increased to ", rm_edge_pix)
+        elif 1 == self.nChipsX and 1 == self.nChipsY:
+            rest = (self.nx - 2 * rm_edge_pix) % factor
+            if rest != 0:
+                rm_edge_pix += rest / 2
+                print("warning removed edge pixels increased to ", rm_edge_pix)
+
         rm_edge_pix = int(rm_edge_pix)
         print('rest - ',rest)
 
         final_size = int((nx - rm_edge_pix*2)/factor)
         print('final_size',final_size)
-        #big.reshape([Nsmall, Nbig/Nsmall, Nsmall, Nbig/Nsmall]).mean(3).mean(1)
+
+        # Reshaping the matrix
         retrnArr = self.matrixCurrent.data[rm_edge_pix:ny-rm_edge_pix,rm_edge_pix:nx-rm_edge_pix]\
                        .reshape([final_size, factor, final_size, factor]).sum(3).sum(1)
         retrnMa = self.matrixCurrent.mask[rm_edge_pix:ny - rm_edge_pix, rm_edge_pix:nx - rm_edge_pix] \
