@@ -1,6 +1,5 @@
 # PyFDD
 
-Current Version 0.1 2017/1/14
 
 ## General usage notes
 ===========================
@@ -12,6 +11,19 @@ Current Version 0.1 2017/1/14
 - Use medipix matrix to prepare the data
 
 - Use fit or fitman for fitting
+
+
+## Structure
+
+- The MedipixMatrix class is the data class. It holds the measured patter, angular calibration and the necessary tools for edition.
+
+- The lib2dl class reads 2dl libraries and puts them in the format that is necessary for the fit.
+
+- The fits class does the fits. If one need to do one single fit for testing this class can be used but for regular analysis the fitman class is advised.
+
+- The fitman is the general purpose fit class and the most used in practice. It can fit a pattern over several lattice sites and outputs the results in a .csv file that can be opened with excel.
+
+In the scripts folder one can see examples of how to use the MedipxMatrix to prepare patterns for analysis and then run the analysis with fitman.
 
 
 ## Contact
