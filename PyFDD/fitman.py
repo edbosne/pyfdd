@@ -98,12 +98,13 @@ class fitman:
 
     def run_fits(self, *args, method='chi2', get_errors=False, sub_pixels=1, optimization_profile='default'):
 
+        assert isinstance(self.mm_pattern, MedipixMatrix)
         # each input is a range of patterns to fit
         assert isinstance(get_errors, bool)
         if method not in ('chi2', 'ml'):
             raise ValueError('method not valid. Use chi2 or ml')
 
-        patt = self.mm_pattern.matrixOriginal.copy()
+        patt = self.mm_pattern.matrixCurrent.copy()
         xmesh = self.mm_pattern.xmesh.copy()
         ymesh = self.mm_pattern.ymesh.copy()
         counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
