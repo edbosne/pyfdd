@@ -18,6 +18,7 @@ import scipy.optimize as op
 import scipy.stats as st
 import math
 import numdifftools as nd
+import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
 
 
@@ -158,7 +159,7 @@ class fits:
             self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-4, 'maxcor':100}
         elif profile == 'fine':
             self._ml_fit_options =   {'disp':False, 'maxiter':50, 'maxfun':600, 'ftol':1e-9, 'maxcor':100}
-            self._chi2_fit_options = {'disp':False, 'maxiter':50, 'maxfun':600, 'ftol':1e-5, 'maxcor':100}
+            self._chi2_fit_options = {'disp':False, 'maxiter':50, 'maxfun':600, 'ftol':1e-4, 'maxcor':100}
         else:
             raise ValueError('profile value should be set to: coarse, default or fine.')
 
