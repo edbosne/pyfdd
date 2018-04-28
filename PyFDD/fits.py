@@ -153,14 +153,14 @@ class fits:
     def set_optimization_profile(self,profile='default'):
         # using a profile to fine may lead to memory problems and non ending fits
         if profile == 'coarse':
-            self._ml_fit_options =   {'disp':False, 'maxiter':15, 'maxfun':200, 'ftol':1e-8, 'maxcor':100}
-            self._chi2_fit_options = {'disp':False, 'maxiter':15, 'maxfun':200, 'ftol':1e-3, 'maxcor':100}
+            self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-2, 'maxcor':100}
+            self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-2, 'maxcor':100}
         elif profile == 'default':
-            self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':200, 'ftol':1e-9, 'gtol':1e-5, 'maxcor':100} #maxfun to 200 prevents memory problems
-            self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-4, 'gtol':1e-5, 'maxcor':100}
+            self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-3, 'maxcor':100} #maxfun to 200 prevents memory problems
+            self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-3, 'maxcor':100}
         elif profile == 'fine':
-            self._ml_fit_options =   {'disp':False, 'maxiter':50, 'maxfun':200, 'ftol':1e-10, 'gtol':1e-7, 'maxcor':100}
-            self._chi2_fit_options = {'disp':False, 'maxiter':50, 'maxfun':600, 'ftol':1e-4,  'gtol':1e-7, 'maxcor':100}
+            self._ml_fit_options =   {'disp':False, 'maxiter':50, 'maxfun':600, 'ftol':1e-4, 'maxcor':100}
+            self._chi2_fit_options = {'disp':False, 'maxiter':50, 'maxfun':600, 'ftol':1e-4, 'maxcor':100}
         else:
             raise ValueError('profile value should be set to: coarse, default or fine.')
 
@@ -481,7 +481,7 @@ class fits:
                                                 sub_pixels=self.parameters_dict['sub_pixels']['value'])
 
         res = op.minimize(self.log_likelihood_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options=self._ml_fit_options) #'eps': 0.0001,
+                           options=self._ml_fit_options) #'eps': 0.0001, L-BFGS-B
 
         di = 0
         for key in self._parameters_order:
