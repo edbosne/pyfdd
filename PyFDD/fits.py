@@ -151,7 +151,8 @@ class fits:
 
 
     def set_optimization_profile(self,profile='default'):
-        # using a profile to fine may lead to memory problems and non ending fits
+        # Using a coarse profile will lead to faster results and less optimized. tought sometimes it is also smoother
+        # Using a fine profile can lead to rounding errors and jumping to other minima which causes artifacts
         if profile == 'coarse':
             self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-2, 'maxcor':100}
             self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-2, 'maxcor':100}
