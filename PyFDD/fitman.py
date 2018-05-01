@@ -58,6 +58,11 @@ class fitman:
         else:
             ValueError('data_pattern input error')
 
+        print('\nMedipix pattern added')
+        print('Inicial orientation (x, y, phi) is (',
+              self.mm_pattern.center[0], ', ', self.mm_pattern.center[1], ',',
+              self.mm_pattern.angle, ')')
+
     def set_fixed_values(self, **kwargs):
         #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         self.fixed_values = {}
@@ -137,6 +142,7 @@ class fitman:
                 for p3 in patterns_list[2]:
                     print('P1, P2, P3 - ', p1, ', ', p2, ', ', p3)
                     ft = fits(self.lib)
+                    ft.verbose_graphics = False
 
                     ft.set_optimization_profile(optimization_profile)
 
