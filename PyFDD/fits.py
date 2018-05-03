@@ -160,8 +160,8 @@ class fits:
             self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':200, 'ftol':1e-4, 'maxcor':100} #maxfun to 200 prevents memory problems
             self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-4, 'maxcor':100}
         elif profile == 'fine':
-            self._ml_fit_options =   {'disp':False, 'maxiter':50, 'maxfun':600, 'ftol':1e-6, 'maxcor':100}
-            self._chi2_fit_options = {'disp':False, 'maxiter':50, 'maxfun':600, 'ftol':1e-6, 'maxcor':100}
+            self._ml_fit_options =   {'disp':False, 'maxiter':50, 'maxfun':300, 'ftol':1e-5, 'maxcor':100}
+            self._chi2_fit_options = {'disp':False, 'maxiter':50, 'maxfun':600, 'ftol':1e-5, 'maxcor':100}
         else:
             raise ValueError('profile value should be set to: coarse, default or fine.')
 
