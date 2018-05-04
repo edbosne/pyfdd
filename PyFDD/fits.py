@@ -154,14 +154,14 @@ class fits:
         # Using a coarse profile will lead to faster results and less optimized. tought sometimes it is also smoother
         # Using a fine profile can lead to rounding errors and jumping to other minima which causes artifacts
         if profile == 'coarse':
-            self._ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-3, 'maxcor':100}
-            self._chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-3, 'maxcor':100}
+            self._ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100}
+            self._chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100}
         elif profile == 'default':
-            self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-7, 'maxcor':100} #maxfun to 200 prevents memory problems
+            self._ml_fit_options =   {'disp':True, 'maxiter':20, 'maxfun':200, 'ftol':1e-7, 'maxcor':100} #maxfun to 200 prevents memory problems
             self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100}
         elif profile == 'fine':
-            self._ml_fit_options =   {'disp':True, 'maxiter':20, 'maxfun':200, 'ftol':1e-8, 'maxcor':100}
-            self._chi2_fit_options = {'disp':True, 'maxiter':20, 'maxfun':600, 'ftol':1e-7, 'maxcor':100}
+            self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-8, 'maxcor':100}
+            self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':600, 'ftol':1e-7, 'maxcor':100}
         else:
             raise ValueError('profile value should be set to: coarse, default or fine.')
 

@@ -6,14 +6,14 @@ import numpy as np
 
 analysis_path = "/home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/"
 lib_path = analysis_path + "FDD_libraries/GaN_24Na/ue567g29.2dl"
-mm_path = analysis_path + "2015_GaN_24Na/2018 Analysis/TPX/RT/-1102/pattern_d3_Npix0-20_rebin2x2_180.json"
+mm_path = analysis_path + "2015_GaN_24Na/2018 Analysis/TPX/RT/-1102/pattern_d3_Npix0-20_rebin2x2_180_100k.json"
 
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
-    test_chi2_min = True
-    test_likelihood_max = False
+    test_chi2_min = False
+    test_likelihood_max = True
 
     #lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl")
     lib = lib2dl(lib_path)
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     if test_chi2_min:
         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag, sigma=1, f_p1=1)
-        ft.set_inicial_values(-1, 0.5, 1, counts_ordofmag, sigma=0.1)
+        ft.set_inicial_values(-1, 0.5, 180, counts_ordofmag, sigma=0.1)
         ft.set_optimization_profile('fine')
         #ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, counts_ordofmag, sigma=0.1)
         ft.minimize_chi2()
@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     if test_likelihood_max:
         ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1, f_p1=1, f_p2=1)
-        ft.set_inicial_values(-1, 0.5, 1, -1, sigma=0.1)
+        ft.set_inicial_values(-1, 0.5, 0, -1, sigma=0.1)
         ft.fix_parameters(False,False,False,False,False,False,False,False)
         ft.set_optimization_profile('fine')
         #ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, -1, sigma=0.1)
