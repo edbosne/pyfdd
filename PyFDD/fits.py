@@ -155,7 +155,7 @@ class fits:
         # Using a fine profile can lead to rounding errors and jumping to other minima which causes artifacts
         if profile == 'coarse':
             # if even with coarse the fit hangs consider other techniques for better fitting
-            self._ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100}
+            self._ml_fit_options =   {'disp':False, 'maxiter':1000, 'maxfun':200, 'ftol':1e-8, 'maxcor':100, 'rhobeg':1e-2}
             self._chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100}
         elif profile == 'default':
             self._ml_fit_options =   {'disp':True, 'maxiter':20, 'maxfun':200, 'ftol':1e-7, 'maxcor':100} #maxfun to 200 prevents memory problems
@@ -482,7 +482,7 @@ class fits:
                                                 mask=self.data_pattern.mask,
                                                 sub_pixels=self.parameters_dict['sub_pixels']['value'])
 
-        res = op.minimize(self.log_likelihood_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
+        res = op.minimize(self.log_likelihood_call, p0, args=True, method='SLSQP', bounds=bnds,\
                            options=self._ml_fit_options) #'eps': 0.0001, L-BFGS-B
 
         di = 0
