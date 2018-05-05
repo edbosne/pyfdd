@@ -17,6 +17,7 @@ import os
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+import warnings
 
 
 class fitman:
@@ -34,6 +35,15 @@ class fitman:
         self.best_fit = None
         self.mm_pattern = None
         self.lib = None
+
+        # order of columns in results
+        self.columns = \
+            ['value', 'D.O.F.', 'x', 'x_err', 'y', 'y_err', 'phi', 'phi_err',
+             'counts', 'counts_err', 'sigma', 'sigma_err',
+             'site1 n', 'p1', 'site1 description', 'site1 factor', 'site1 u2', 'site1 fraction', 'fraction1_err',
+             'site2 n', 'p2', 'site2 description', 'site2 factor', 'site2 u2', 'site2 fraction', 'fraction2_err',
+             'site3 n', 'p3', 'site3 description', 'site3 factor', 'site3 u2', 'site3 fraction', 'fraction3_err']
+        self.df = pd.DataFrame(data=None, columns=self.columns)
 
     def add_pattern(self,data_pattern, library):
         if isinstance(data_pattern, MedipixMatrix):
@@ -100,8 +110,109 @@ class fitman:
 
         return p0, p_fix
 
+    def _build_fits_obj(self, method='chi2', optimization_profile='default', sub_pixels=1, p1=None, p2=None, p3=None,
+                        verbose_graphics=False):
 
-    def run_fits(self, *args, method='chi2', get_errors=False, sub_pixels=1, optimization_profile='default'):
+        ft = fits(self.lib)
+        ft.verbose_graphics = verbose_graphics
+
+        ft.set_optimization_profile(optimization_profile)
+
+        patt = self.mm_pattern.matrixCurrent.copy()
+        xmesh = self.mm_pattern.xmesh.copy()
+        ymesh = self.mm_pattern.ymesh.copy()
+
+        ft.set_data_pattern(xmesh, ymesh, patt)
+
+        # ignore similar patterns
+        p1_fit = p1
+        p2_fit = p2 if not p2 == p1 else None
+        p3_fit = p3 if not (p3 == p1 or p3 == p2) else None
+        ft.set_patterns_to_fit(p1_fit, p2_fit, p3_fit)
+
+        p0, p0_fix = self._get_initial_values()
+        ft.parameters_dict['sub_pixels']['value'] = sub_pixels
+        append_dic = {}
+        if method == 'chi2':
+            counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
+            ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag,
+                                sigma=1, f_p1=1, f_p2=1, f_p3=1)
+            ft.set_inicial_values(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6], p0[7])
+            ft.fix_parameters(p0_fix[0], p0_fix[1], p0_fix[2], p0_fix[3], p0_fix[4], p0_fix[5],
+                              p0_fix[6], p0_fix[7])
+
+        if method == 'ml':
+            ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1,
+                                sigma=1, f_p1=1, f_p2=1, f_p3=1)
+            ft.set_inicial_values(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6], p0[7])
+            ft.fix_parameters(p0_fix[0], p0_fix[1], p0_fix[2], p0_fix[3], p0_fix[4], p0_fix[5],
+                              p0_fix[6], p0_fix[7])
+            ft.maximize_likelyhood()
+
+        return ft
+
+
+    def _fill_results_dict(self,ft, method, get_errors, p1=None, p2=None, p3=None):
+
+        assert isinstance(ft, fits), "ft is not of type PyFDD.fits."
+
+        patt = self.mm_pattern.matrixCurrent.copy()
+
+        # keys are 'pattern_1','pattern_2','pattern_3','sub_pixels','dx','dy','phi',
+        # 'total_cts','sigma','f_p1','f_p2','f_p3'
+        parameter_dict = ft.parameters_dict.copy()
+        append_dic = {}
+        append_dic['value'] = ft.results['fun']
+        append_dic['D.O.F.'] = np.sum(~patt.mask)
+        append_dic['x'] = parameter_dict['dx']['value']
+        append_dic['y'] = parameter_dict['dy']['value']
+        append_dic['phi'] = parameter_dict['phi']['value']
+        append_dic['counts'] = parameter_dict['total_cts']['value'] if method == 'chi2' else np.nan
+        append_dic['sigma'] = parameter_dict['sigma']['value']
+        if p1 is not None:
+            append_dic['site1 n'] = self.lib.ECdict["Spectrums"][p1 - 1]["Spectrum number"]
+            append_dic['p1'] = p1
+            append_dic['site1 description'] = self.lib.ECdict["Spectrums"][p1 - 1]["Spectrum_description"]
+            append_dic['site1 factor'] = self.lib.ECdict["Spectrums"][p1 - 1]["factor"]
+            append_dic['site1 u2'] = self.lib.ECdict["Spectrums"][p1 - 1]["u2"]
+            append_dic['site1 fraction'] = parameter_dict['f_p1']['value']
+        if p2 is not None:
+            append_dic['site2 n'] = self.lib.ECdict["Spectrums"][p2 - 1]["Spectrum number"]
+            append_dic['p2'] = p2
+            append_dic['site2 description'] = self.lib.ECdict["Spectrums"][p2 - 1]["Spectrum_description"]
+            append_dic['site2 factor'] = self.lib.ECdict["Spectrums"][p2 - 1]["factor"]
+            append_dic['site2 u2'] = self.lib.ECdict["Spectrums"][p2 - 1]["u2"]
+            if not p2 == p1:
+                append_dic['site2 fraction'] = parameter_dict['f_p2']['value']
+        if p3 is not None:
+            append_dic['site3 n'] = self.lib.ECdict["Spectrums"][p3 - 1]["Spectrum number"]
+            append_dic['p3'] = p3
+            append_dic['site3 description'] = self.lib.ECdict["Spectrums"][p3 - 1]["Spectrum_description"]
+            append_dic['site3 factor'] = self.lib.ECdict["Spectrums"][p3 - 1]["factor"]
+            append_dic['site3 u2'] = self.lib.ECdict["Spectrums"][p3 - 1]["u2"]
+            if not (p3 == p1 or p3 == p2):
+                append_dic['site3 fraction'] = parameter_dict['f_p3']['value']
+        if get_errors:
+            append_dic['x_err'] = parameter_dict['dx']['variance']
+            append_dic['y_err'] = parameter_dict['dy']['variance']
+            append_dic['phi_err'] = parameter_dict['phi']['variance']
+            append_dic['counts_err'] = parameter_dict['total_cts']['variance'] if method == 'chi2' else np.nan
+            append_dic['sigma_err'] = parameter_dict['sigma']['variance'] if fit_sigma else np.nan
+            append_dic['fraction1_err'] = parameter_dict['f_p1']['variance'] if p1 is not None else np.nan
+            append_dic['fraction2_err'] = parameter_dict['f_p2']['variance'] if p2 is not None and \
+                                                                                not p2 == p1 \
+                                                                                else np.nan
+            append_dic['fraction3_err'] = parameter_dict['f_p3']['variance'] if p3 is not None and \
+                                                                                not (p3 == p1 or p3 == p2) \
+                                                                                else np.nan
+
+        # print('append_dic ', append_dic)
+        self.df = self.df.append(append_dic, ignore_index=True)
+        self.df = self.df[self.columns]
+        # print('self.df ', self.df)
+
+
+    def run_fits(self, *args, method='chi2', sub_pixels=1, optimization_profile='default', get_errors=False):
 
         assert isinstance(self.mm_pattern, MedipixMatrix)
         # each input is a range of patterns to fit
@@ -109,10 +220,9 @@ class fitman:
         if method not in ('chi2', 'ml'):
             raise ValueError('method not valid. Use chi2 or ml')
 
-        patt = self.mm_pattern.matrixCurrent.copy()
-        xmesh = self.mm_pattern.xmesh.copy()
-        ymesh = self.mm_pattern.ymesh.copy()
-        counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
+        if get_errors is not False:
+            raise warnings.warn('Errors and visualization are by default off in run_fits. Use run_single_fit')
+
 
         patterns_list = ()
         for ar in args:
@@ -130,102 +240,45 @@ class fitman:
 
         #print('patterns_list ', patterns_list)
 
-        columns = ['value', 'D.O.F.', 'x', 'x_err', 'y', 'y_err', 'phi', 'phi_err',
-                   'counts', 'counts_err', 'sigma', 'sigma_err',
-                   'site1 n', 'p1', 'site1 description', 'site1 factor', 'site1 u2', 'site1 fraction', 'fraction1_err',
-                   'site2 n', 'p2', 'site2 description', 'site2 factor', 'site2 u2', 'site2 fraction', 'fraction2_err',
-                   'site3 n', 'p3', 'site3 description', 'site3 factor', 'site3 u2', 'site3 fraction', 'fraction3_err']
-        self.df = pd.DataFrame(data=None, columns=columns)
-
         for p1 in patterns_list[0]:
             for p2 in patterns_list[1]:
                 for p3 in patterns_list[2]:
                     print('P1, P2, P3 - ', p1, ', ', p2, ', ', p3)
-                    ft = fits(self.lib)
-                    ft.verbose_graphics = False
 
-                    ft.set_optimization_profile(optimization_profile)
+                    # errors and visualization are by default off in run_fits
+                    self.run_single_fit(p1, p2, p3, method, sub_pixels, optimization_profile,
+                                   verbose_graphics=False, get_errors=False)
 
-                    ft.set_data_pattern(xmesh, ymesh, patt)
 
-                    # ignore similar patterns
-                    p1_fit = p1
-                    p2_fit = p2 if not p2 == p1 else None
-                    p3_fit = p3 if not (p3 == p1 or p3 == p2) else None
+    def run_single_fit(self, p1, p2=None, p3=None, method='chi2', sub_pixels=1,
+                       optimization_profile='default', verbose_graphics=False, get_errors=False):
 
-                    ft.set_patterns_to_fit(p1_fit, p2_fit, p3_fit)
-                    p0, p0_fix = self._get_initial_values()
+        assert isinstance(self.mm_pattern, MedipixMatrix)
+        # each input is a range of patterns to fit
+        assert isinstance(verbose_graphics, bool)
+        assert isinstance(get_errors, bool)
+        if method not in ('chi2', 'ml'):
+            raise ValueError('method not valid. Use chi2 or ml')
 
-                    ft.parameters_dict['sub_pixels']['value'] = sub_pixels
-                    append_dic = {}
-                    if method == 'chi2':
-                        ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag,
-                                            sigma=1, f_p1=1, f_p2=1, f_p3=1)
-                        ft.set_inicial_values(p0[0],p0[1],p0[2],p0[3],p0[4],p0[5],p0[6],p0[7])
-                        ft.fix_parameters(p0_fix[0],p0_fix[1],p0_fix[2],p0_fix[3],p0_fix[4],p0_fix[5],
-                                          p0_fix[6],p0_fix[7])
-                        ft.minimize_chi2()
-                        if get_errors:
-                            ft.get_variance_from_hessian(ft.results['x'], func='chi_square')
-                    if method == 'ml':
-                        ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1,
-                                            sigma=1, f_p1=1, f_p2=1, f_p3=1)
-                        ft.set_inicial_values(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6], p0[7])
-                        ft.fix_parameters(p0_fix[0], p0_fix[1], p0_fix[2], p0_fix[3], p0_fix[4], p0_fix[5],
-                                          p0_fix[6], p0_fix[7])
-                        ft.maximize_likelyhood()
-                        if get_errors:
-                            ft.get_variance_from_hessian(ft.results['x'], func='likelihood')
-                    # keys are 'pattern_1','pattern_2','pattern_3','sub_pixels','dx','dy','phi',
-                    # 'total_cts','sigma','f_p1','f_p2','f_p3'
-                    parameter_dict = ft.parameters_dict.copy()
-                    append_dic['value'] = ft.results['fun']
-                    append_dic['D.O.F.'] = np.sum(~patt.mask)
-                    append_dic['x'] = parameter_dict['dx']['value']
-                    append_dic['y'] = parameter_dict['dy']['value']
-                    append_dic['phi'] = parameter_dict['phi']['value']
-                    append_dic['counts'] = parameter_dict['total_cts']['value'] if method == 'chi2' else np.nan
-                    append_dic['sigma'] = parameter_dict['sigma']['value']
-                    if patterns_list[0][0] is not None:
-                        append_dic['site1 n'] = self.lib.ECdict["Spectrums"][p1-1]["Spectrum number"]
-                        append_dic['p1'] = p1
-                        append_dic['site1 description'] = self.lib.ECdict["Spectrums"][p1-1]["Spectrum_description"]
-                        append_dic['site1 factor'] = self.lib.ECdict["Spectrums"][p1-1]["factor"]
-                        append_dic['site1 u2'] = self.lib.ECdict["Spectrums"][p1-1]["u2"]
-                        append_dic['site1 fraction'] = parameter_dict['f_p1']['value']
-                    if patterns_list[1][0] is not None:
-                        append_dic['site2 n'] = self.lib.ECdict["Spectrums"][p2-1]["Spectrum number"]
-                        append_dic['p2'] = p2
-                        append_dic['site2 description'] = self.lib.ECdict["Spectrums"][p2-1]["Spectrum_description"]
-                        append_dic['site2 factor'] = self.lib.ECdict["Spectrums"][p2-1]["factor"]
-                        append_dic['site2 u2'] = self.lib.ECdict["Spectrums"][p2-1]["u2"]
-                        if p2_fit is not None:
-                            append_dic['site2 fraction'] = parameter_dict['f_p2']['value']
-                    if patterns_list[2][0] is not None:
-                        append_dic['site3 n'] = self.lib.ECdict["Spectrums"][p3-1]["Spectrum number"]
-                        append_dic['p3'] = p3
-                        append_dic['site3 description'] = self.lib.ECdict["Spectrums"][p3-1]["Spectrum_description"]
-                        append_dic['site3 factor'] = self.lib.ECdict["Spectrums"][p3-1]["factor"]
-                        append_dic['site3 u2'] = self.lib.ECdict["Spectrums"][p3-1]["u2"]
-                        if p3_fit is not None:
-                            append_dic['site3 fraction'] = parameter_dict['f_p3']['value']
-                    if get_errors:
-                        append_dic['x_err'] = parameter_dict['dx']['variance']
-                        append_dic['y_err'] = parameter_dict['dy']['variance']
-                        append_dic['phi_err'] = parameter_dict['phi']['variance']
-                        append_dic['counts_err'] = parameter_dict['total_cts']['variance'] if method == 'chi2' else np.nan
-                        append_dic['sigma_err'] = parameter_dict['sigma']['variance'] if fit_sigma else np.nan
-                        append_dic['fraction1_err'] = parameter_dict['f_p1']['variance'] if p1_fit is not None else np.nan
-                        append_dic['fraction2_err'] = parameter_dict['f_p2']['variance'] if p2_fit is not None else np.nan
-                        append_dic['fraction3_err'] = parameter_dict['f_p3']['variance'] if p3_fit is not None else np.nan
+        ft = self._build_fits_obj(method, optimization_profile, sub_pixels,
+                                  p1, p2, p3)
+        ft.verbose_graphics = verbose_graphics
 
-                    #print('append_dic ', append_dic)
-                    self.df = self.df.append(append_dic, ignore_index=True)
-                    #print('self.df ', self.df)
+        if method == 'chi2':
+            ft.minimize_chi2()
+            if get_errors:
+                ft.get_variance_from_hessian(ft.results['x'], func='chi_square')
+        if method == 'ml':
+            ft.maximize_likelyhood()
+            if get_errors:
+                ft.get_variance_from_hessian(ft.results['x'], func='likelihood')
 
-                    if ft.results['fun'] < self.min_value:
-                        self.best_fit = ft
-        self.df = self.df[columns]
+        self._fill_results_dict(ft, method, get_errors, p1, p2, p3)
+
+        if ft.results['fun'] < self.min_value:
+            self.best_fit = ft
+            self.min_value = ft.results['fun']
+
 
     def save_output(self, filename, save_figure=False):
         self.df.to_csv(filename)
