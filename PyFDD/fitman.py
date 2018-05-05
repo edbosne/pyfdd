@@ -182,7 +182,7 @@ class fitman:
             append_dic['site2 description'] = self.lib.ECdict["Spectrums"][p2 - 1]["Spectrum_description"]
             append_dic['site2 factor'] = self.lib.ECdict["Spectrums"][p2 - 1]["factor"]
             append_dic['site2 u2'] = self.lib.ECdict["Spectrums"][p2 - 1]["u2"]
-            if p2_fit is not None:
+            if not p2 == p1:
                 append_dic['site2 fraction'] = parameter_dict['f_p2']['value']
         if p3 is not None:
             append_dic['site3 n'] = self.lib.ECdict["Spectrums"][p3 - 1]["Spectrum number"]
@@ -190,7 +190,7 @@ class fitman:
             append_dic['site3 description'] = self.lib.ECdict["Spectrums"][p3 - 1]["Spectrum_description"]
             append_dic['site3 factor'] = self.lib.ECdict["Spectrums"][p3 - 1]["factor"]
             append_dic['site3 u2'] = self.lib.ECdict["Spectrums"][p3 - 1]["u2"]
-            if p3_fit is not None:
+            if not (p3 == p1 or p3 == p2):
                 append_dic['site3 fraction'] = parameter_dict['f_p3']['value']
         if get_errors:
             append_dic['x_err'] = parameter_dict['dx']['variance']
@@ -198,9 +198,13 @@ class fitman:
             append_dic['phi_err'] = parameter_dict['phi']['variance']
             append_dic['counts_err'] = parameter_dict['total_cts']['variance'] if method == 'chi2' else np.nan
             append_dic['sigma_err'] = parameter_dict['sigma']['variance'] if fit_sigma else np.nan
-            append_dic['fraction1_err'] = parameter_dict['f_p1']['variance'] if p1_fit is not None else np.nan
-            append_dic['fraction2_err'] = parameter_dict['f_p2']['variance'] if p2_fit is not None else np.nan
-            append_dic['fraction3_err'] = parameter_dict['f_p3']['variance'] if p3_fit is not None else np.nan
+            append_dic['fraction1_err'] = parameter_dict['f_p1']['variance'] if p1 is not None else np.nan
+            append_dic['fraction2_err'] = parameter_dict['f_p2']['variance'] if p2 is not None and \
+                                                                                not p2 == p1 \
+                                                                                else np.nan
+            append_dic['fraction3_err'] = parameter_dict['f_p3']['variance'] if p3 is not None and \
+                                                                                not (p3 == p1 or p3 == p2) \
+                                                                                else np.nan
 
         # print('append_dic ', append_dic)
         self.df = self.df.append(append_dic, ignore_index=True)
