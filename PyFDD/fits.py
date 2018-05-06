@@ -161,7 +161,7 @@ class fits:
             self._ml_fit_options =   {'disp':True, 'maxiter':20, 'maxfun':200, 'ftol':1e-7, 'maxcor':100} #maxfun to 200 prevents memory problems
             self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100}
         elif profile == 'fine':
-            self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-8, 'maxcor':100}
+            self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-8, 'maxcor':100, 'eps':1e-5}
             self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':600, 'ftol':1e-7, 'maxcor':100}
         else:
             raise ValueError('profile value should be set to: coarse, default or fine.')
@@ -302,7 +302,10 @@ class fits:
         # generate sim pattern
         gen = self.pattern_generator
         fractions = np.concatenate((rnd_events, fractions_sims))
-        sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, sigma=sigma, type='ideal')
+        # mask out of range false means that points that are out of the range of simulations are not masked,
+        # instead they are substituted by a very small number 1e-12
+        sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, sigma=sigma, type='ideal',
+                                       mask_out_of_range=False)
         self.sim_pattern = sim_pattern.copy()
         # chi2, pval = self.chi_square_fun(data_pattern,sim_pattern)
         chi2 = np.sum((data_pattern - sim_pattern) ** 2 / np.abs(sim_pattern))
@@ -409,7 +412,8 @@ class fits:
         gen = self.pattern_generator
         # gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations, mask=data_pattern.mask)
         fractions = np.concatenate((rnd_events, fractions_sims))
-        sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, sigma=sigma, type='ideal')
+        sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, sigma=sigma, type='ideal',
+                                       mask_out_of_range=False)
         self.sim_pattern = sim_pattern.copy()
         # log likelihood
         ll = np.sum(data_pattern * np.log(sim_pattern))
