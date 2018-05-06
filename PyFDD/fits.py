@@ -153,16 +153,17 @@ class fits:
     def set_optimization_profile(self,profile='default'):
         # Using a coarse profile will lead to faster results and less optimized. tought sometimes it is also smoother
         # Using a fine profile can lead to rounding errors and jumping to other minima which causes artifacts
+        # default eps is 1e-8 this is too small to correctly get the derivative of phi
         if profile == 'coarse':
             # if even with coarse the fit hangs consider other techniques for better fitting
-            self._ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100}
-            self._chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100}
+            self._ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
+            self._chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
         elif profile == 'default':
-            self._ml_fit_options =   {'disp':True, 'maxiter':20, 'maxfun':200, 'ftol':1e-7, 'maxcor':100} #maxfun to 200 prevents memory problems
-            self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100}
+            self._ml_fit_options =   {'disp':True, 'maxiter':20, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
+            self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
         elif profile == 'fine':
-            self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-8, 'maxcor':100}
-            self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':600, 'ftol':1e-7, 'maxcor':100}
+            self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-8, 'maxcor':100, 'eps':1e-6}
+            self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':600, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
         else:
             raise ValueError('profile value should be set to: coarse, default or fine.')
 
