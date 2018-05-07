@@ -159,7 +159,7 @@ class fits:
             self._ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
             self._chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
         elif profile == 'default':
-            self._ml_fit_options =   {'disp':True, 'maxiter':20, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
+            self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
             self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
         elif profile == 'fine':
             # use default eps with fine
