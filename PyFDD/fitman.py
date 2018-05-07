@@ -105,7 +105,7 @@ class fitman:
                     p0 += (0.1,)
                 else:
                     # assuming a pattern fraction
-                    p0 += (0.25,)
+                    p0 += (0.15,)
                 p_fix += (False,)
 
         return p0, p_fix
