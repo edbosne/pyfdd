@@ -156,15 +156,15 @@ class fits:
         # default eps is 1e-8 this, sometimes, is too small to correctly get the derivative of phi
         if profile == 'coarse':
             # if even with coarse the fit hangs consider other techniques for better fitting
-            self._ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
-            self._chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
+            self._ml_fit_options =   {'method':'L-BFGS-B', 'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
+            self._chi2_fit_options = {'method':'L-BFGS-B', 'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
         elif profile == 'default':
-            self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
-            self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
+            self._ml_fit_options =   {'method':'L-BFGS-B', 'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
+            self._chi2_fit_options = {'method':'L-BFGS-B', 'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
         elif profile == 'fine':
             # use default eps with fine
-            self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-8, 'maxcor':100, 'eps':1e-7}
-            self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7, 'maxcor':100}
+            self._ml_fit_options =   {'method':'L-BFGS-B', 'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-8, 'maxcor':100, 'eps':1e-7}
+            self._chi2_fit_options = {'method':'L-BFGS-B', 'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7, 'maxcor':100}
         else:
             raise ValueError('profile value should be set to: coarse, default or fine.')
 
@@ -353,43 +353,7 @@ class fits:
         return self.chi_square(dx, dy, phi, total_cts, fractions_sims=fractions_sims, sigma=sigma)
 
     def minimize_chi2(self):
-
-        # order of params is dx,dy,phi,total_cts,sigma,f_p1,f_p2,f_p3
-        p0 = self._get_p0()
-        #print('p0 - ', p0)
-
-        # Parameter bounds
-        bnds = ()
-        for key in self._parameters_order:
-            if self.parameters_dict[key]['use']:
-                bnds += (self.parameters_dict[key]['bounds'],)
-                # print('bnds - ', bnds)
-
-        # get patterns
-        simulations = ()
-        for key in self._pattern_keys:
-            if self.parameters_dict[key]['use']:
-                simulations += (self.parameters_dict[key]['value'],)
-        # print('simulations - ', simulations)
-
-        # generate sim pattern
-        self.pattern_generator = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations,
-                                                mask=self.data_pattern.mask,
-                                                sub_pixels=self.parameters_dict['sub_pixels']['value'])
-
-        res = op.minimize(self.chi_square_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options=self._chi2_fit_options) # dont change defaut eps
-
-        di = 0
-        for key in self._parameters_order:
-            if self.parameters_dict[key]['use']:
-                res['x'][di] *= self.parameters_dict[key]['scale']
-                self.parameters_dict[key]['value'] = res['x'][di]
-                di += 1
-            else:
-                self.parameters_dict[key]['value'] = self.parameters_dict[key]['p0']
-
-        self.results = res
+        minimize_cost_function(cost_func='chi2')
 
 # methods for maximum likelihood
     def log_likelihood(self, dx, dy, phi, fractions_sims, sigma=0):
@@ -461,35 +425,59 @@ class fits:
         return self.log_likelihood(dx, dy, phi, fractions_sims, sigma=sigma)
 
     def maximize_likelyhood(self):
+        minimize_cost_function(cost_func='ml')
 
-        # total counts is not used in maximum likelyhood
-        self.parameters_dict['total_cts']['use'] = False
+    def minimize_cost_function(self, cost_func='chi2'):
+
+        assert(cost_func in ('ml', 'chi2'), 'cost function should be \'chi2\' or \'ml\'')
+
+        if cost_func == 'ml':
+            # total counts is not used in maximum likelyhood
+            self.parameters_dict['total_cts']['use'] = False
 
         # order of params is dx,dy,phi,sigma,f_p1,f_p2,f_p3
         p0 = self._get_p0()
-        #print('p0 - ', p0)
+        # print('p0 - ', p0)
 
         # Parameter bounds
         bnds = ()
         for key in self._parameters_order:
             if self.parameters_dict[key]['use']:
                 bnds += (self.parameters_dict[key]['bounds'],)
-        #print('bnds - ', bnds)
+        # print('bnds - ', bnds)
 
         # get patterns
         simulations = ()
         for key in self._pattern_keys:
             if self.parameters_dict[key]['use']:
                 simulations += (self.parameters_dict[key]['value'],)
-        #print('simulations - ', simulations)
+        # print('simulations - ', simulations)
 
         # generate sim pattern
         self.pattern_generator = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations,
                                                 mask=self.data_pattern.mask,
                                                 sub_pixels=self.parameters_dict['sub_pixels']['value'])
 
-        res = op.minimize(self.log_likelihood_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options=self._ml_fit_options) #'eps': 0.0001, L-BFGS-B
+        # defining cost function and get options
+        function = None
+        all_options = {}
+        if cost_func == 'chi2':
+            function = self.chi_square_call
+            all_options = self._chi2_fit_options
+        elif cost_func == 'ml':
+            function = self.log_likelihood_call
+            all_options = self._ml_fit_options
+
+        # defining method
+        if 'method' in all_options.keys():
+            method = all_options['method']
+            all_options.pop('method', None)
+        else:
+            method = 'L-BFGS-B'
+
+
+        res = op.minimize(function, p0, args=True, method=method, bounds=bnds, \
+                          options=all_options)  # 'eps': 0.0001, L-BFGS-B
         # minimization with cobyla also seems to be a good option with {'rhobeg':1e-1/1e-2} . but it is unconstrained
 
         di = 0
