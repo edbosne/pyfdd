@@ -12,7 +12,7 @@ mm_path = analysis_path + "2015_GaN_24Na/2018 Analysis/TPX/RT/-1102/pattern_d3_N
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
-    test_chi2_min = False
+    test_chi2_min = True
     test_likelihood_max = True
 
     #lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_24Na/ue646g26.2dl")

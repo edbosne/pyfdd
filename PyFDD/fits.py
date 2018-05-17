@@ -20,6 +20,8 @@ import math
 import numdifftools as nd
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
+import iminuit
+
 
 
 
@@ -52,8 +54,8 @@ class fits:
         self._init_parameters_dict()
         self._parameters_order = ('dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3')
         self._pattern_keys = ('pattern_1', 'pattern_2', 'pattern_3')
-        self._ml_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-8,'maxcor': 100}
-        self._chi2_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-4, 'maxcor': 100}
+        self._ml_fit_options = {'method':'L-BFGS-B', 'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-8,'maxcor': 100}
+        self._chi2_fit_options = {'method':'L-BFGS-B', 'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-4, 'maxcor': 100}
 
         self.verbose_graphics = False
         self.verbose_graphics_ax = None
@@ -353,7 +355,7 @@ class fits:
         return self.chi_square(dx, dy, phi, total_cts, fractions_sims=fractions_sims, sigma=sigma)
 
     def minimize_chi2(self):
-        minimize_cost_function(cost_func='chi2')
+        self.minimize_cost_function(cost_func='chi2')
 
 # methods for maximum likelihood
     def log_likelihood(self, dx, dy, phi, fractions_sims, sigma=0):
@@ -401,6 +403,7 @@ class fits:
         # =====
         return -ll
 
+
     def log_likelihood_call(self, params, enable_scale=False):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         #print('params ', params)
@@ -425,11 +428,12 @@ class fits:
         return self.log_likelihood(dx, dy, phi, fractions_sims, sigma=sigma)
 
     def maximize_likelyhood(self):
-        minimize_cost_function(cost_func='ml')
+        self.minimize_cost_function(cost_func='ml')
 
     def minimize_cost_function(self, cost_func='chi2'):
 
-        assert(cost_func in ('ml', 'chi2'), 'cost function should be \'chi2\' or \'ml\'')
+        if not cost_func in ('ml', 'chi2'):
+            raise ValueError('cost function should be \'chi2\' or \'ml\'')
 
         if cost_func == 'ml':
             # total counts is not used in maximum likelyhood
@@ -475,10 +479,13 @@ class fits:
         else:
             method = 'L-BFGS-B'
 
-
-        res = op.minimize(function, p0, args=True, method=method, bounds=bnds, \
-                          options=all_options)  # 'eps': 0.0001, L-BFGS-B
-        # minimization with cobyla also seems to be a good option with {'rhobeg':1e-1/1e-2} . but it is unconstrained
+        if method == 'minuit':
+            minuit = self._create_migrad(cost_func)
+            minuit.migrad()
+        else:
+            res = op.minimize(function, p0, args=True, method=method, bounds=bnds, \
+                              options=all_options)  # 'eps': 0.0001, L-BFGS-B
+            # minimization with cobyla also seems to be a good option with {'rhobeg':1e-1/1e-2} . but it is unconstrained
 
         di = 0
         for key in self._parameters_order:
@@ -490,6 +497,53 @@ class fits:
                 self.parameters_dict[key]['value'] = self.parameters_dict[key]['p0']
 
         self.results = res
+
+    def _create_migrad(self, cost_func='chi2', options={}):
+        # parameters_order is ('dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3')
+        arguments = {}
+        for key in self._parameters_order:
+            if cost_func == 'ml' and key == 'total_cts':
+                continue
+
+            # starting value
+            arguments['key'] = self.parameters_dict[key]['p0']
+
+            # fix if not in use
+            if self.parameters_dict[key]['use']:
+                arguments['fix_' + 'key'] = False
+            else:
+                arguments['fix_' + 'key'] = True
+                continue
+            arguments['error_' + 'key'] = 1e-2 * self.parameters_dict[key]['scale']
+
+            # bounds
+            arguments['limit_' + 'key'] = self.parameters_dict[key]['bounds']
+
+        minuit =  None
+        if cost_func == 'chi2':
+            minuit = iminuit.Minuit(self.chi_square_call_migrad, arguments)
+        elif cost_func == 'ml':
+            minuit = iminuit.Minuit(self.log_likelihood_call_migrad, arguments)
+        return minuit
+
+
+    def log_likelihood_call_migrad(self, dx, dy, phi, sigma, f_p1, f_p2, f_p3):
+        fractions_sims = ()
+        fractions_sims += (f_p1,) if self.parameters_dict['pattern_1']['use'] else ()  # pattern 1
+        fractions_sims += (f_p2,) if self.parameters_dict['pattern_2']['use'] else ()  # pattern 2
+        fractions_sims += (f_p3,) if self.parameters_dict['pattern_3']['use'] else ()  # pattern 3
+        # print('fractions_sims - ', fractions_sims)
+        return self.log_likelihood(dx, dy, phi, fractions_sims, sigma=sigma)
+
+
+    def chi_square_call_migrad(self, dx, dy, phi, total_cts, sigma, f_p1, f_p2, f_p3):
+        fractions_sims = ()
+        fractions_sims += (f_p1,) if self.parameters_dict['pattern_1']['use'] else ()  # pattern 1
+        fractions_sims += (f_p2,) if self.parameters_dict['pattern_2']['use'] else ()  # pattern 2
+        fractions_sims += (f_p3,) if self.parameters_dict['pattern_3']['use'] else ()  # pattern 3
+        # print('fractions_sims - ', fractions_sims)
+        return self.chi_square(dx, dy, phi, total_cts, fractions_sims, sigma=sigma)
+
 
 # methods for calculating error
     def get_variance_from_hessian(self, x, enable_scale=False, func=''):
