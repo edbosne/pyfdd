@@ -67,7 +67,7 @@ for i in range(0, len(filenames)):
     #P2 = np.array((129,))
     P2 = np.arange(1, 249) # 249
     fm.set_fixed_values(sigma=0.064)  # pad=0.094, tpx=0.064
-    fm.run_fits(P1, P2, method='chi2', get_errors=False, sub_pixels=1)
+    fm.run_fits(P1, P2, cost_func='chi2', get_errors=False, sub_pixels=1)
 
     #fm.save_output(basename + '_2site-fit_subpix5.xls', save_figure=False)
     #fm.save_output(basename + '_2site(1,129)-fit-chi2_errors.csv', save_figure=False)

@@ -578,17 +578,17 @@ class fits:
     def get_std_from_hessian(self, x, enable_scale=False, func=''):
         x = np.array(x)
         x /= self._get_p0_scale() if enable_scale else np.ones(len(x))
-        if func == 'likelihood':
+        if func == 'ml':
             f = lambda xx: self.log_likelihood_call(xx, enable_scale)
-        elif func == 'chi_square':
+        elif func == 'chi2':
             f = lambda xx: self.chi_square_call(xx, enable_scale)
         else:
             raise ValueError('undefined function, should be likelihood or chi_square')
         H = nd.Hessian(f)  # ,step=1e-9)
         hh = H(x)
-        if func == 'likelihood':
+        if func == 'ml':
             hh_inv = np.linalg.inv(hh)
-        elif func == 'chi_square':
+        elif func == 'chi2':
             hh_inv = np.linalg.inv(0.5*hh)
         else:
             raise ValueError('undefined function, should be likelihood or chi_square')

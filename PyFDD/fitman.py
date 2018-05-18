@@ -110,13 +110,13 @@ class fitman:
 
         return p0, p_fix
 
-    def _build_fits_obj(self, method='chi2', optimization_profile='default', sub_pixels=1, p1=None, p2=None, p3=None,
-                        verbose_graphics=False):
+    def _build_fits_obj(self, cost_func='chi2', optimization_profile='default', min_method='L-BFGS-B',
+                        sub_pixels=1, p1=None, p2=None, p3=None, verbose_graphics=False):
 
         ft = fits(self.lib)
         ft.verbose_graphics = verbose_graphics
 
-        ft.set_optimization_profile(optimization_profile)
+        ft.set_optimization_profile(optimization_profile, min_method)
 
         patt = self.mm_pattern.matrixCurrent.copy()
         xmesh = self.mm_pattern.xmesh.copy()
@@ -133,7 +133,7 @@ class fitman:
         p0, p0_fix = self._get_initial_values()
         ft.parameters_dict['sub_pixels']['value'] = sub_pixels
         append_dic = {}
-        if method == 'chi2':
+        if cost_func == 'chi2':
             counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
             ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag,
                                 sigma=0.1, f_p1=1, f_p2=1, f_p3=1)
@@ -141,7 +141,7 @@ class fitman:
             ft.fix_parameters(p0_fix[0], p0_fix[1], p0_fix[2], p0_fix[3], p0_fix[4], p0_fix[5],
                               p0_fix[6], p0_fix[7])
 
-        if method == 'ml':
+        if cost_func == 'ml':
             # setting the sigma scale to 0.1 helps avoid big changes in sigma at the start and better calculation of
             # the gradient
             ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1,
@@ -149,12 +149,11 @@ class fitman:
             ft.set_inicial_values(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6], p0[7])
             ft.fix_parameters(p0_fix[0], p0_fix[1], p0_fix[2], p0_fix[3], p0_fix[4], p0_fix[5],
                               p0_fix[6], p0_fix[7])
-            ft.maximize_likelyhood()
 
         return ft
 
 
-    def _fill_results_dict(self,ft, method, get_errors, p1=None, p2=None, p3=None):
+    def _fill_results_dict(self, ft, cost_func, get_errors, p1=None, p2=None, p3=None):
 
         assert isinstance(ft, fits), "ft is not of type PyFDD.fits."
 
@@ -169,7 +168,7 @@ class fitman:
         append_dic['x'] = parameter_dict['dx']['value']
         append_dic['y'] = parameter_dict['dy']['value']
         append_dic['phi'] = parameter_dict['phi']['value']
-        append_dic['counts'] = parameter_dict['total_cts']['value'] if method == 'chi2' else np.nan
+        append_dic['counts'] = parameter_dict['total_cts']['value'] if cost_func == 'chi2' else np.nan
         append_dic['sigma'] = parameter_dict['sigma']['value']
         if p1 is not None:
             append_dic['site1 n'] = self.lib.ECdict["Spectrums"][p1 - 1]["Spectrum number"]
@@ -198,7 +197,7 @@ class fitman:
             append_dic['x_err'] = parameter_dict['dx']['std']
             append_dic['y_err'] = parameter_dict['dy']['std']
             append_dic['phi_err'] = parameter_dict['phi']['std']
-            append_dic['counts_err'] = parameter_dict['total_cts']['std'] if method == 'chi2' else np.nan
+            append_dic['counts_err'] = parameter_dict['total_cts']['std'] if cost_func == 'chi2' else np.nan
             append_dic['sigma_err'] = parameter_dict['sigma']['std'] if fit_sigma else np.nan
             append_dic['fraction1_err'] = parameter_dict['f_p1']['std'] if p1 is not None else np.nan
             append_dic['fraction2_err'] = parameter_dict['f_p2']['std'] if p2 is not None and \
@@ -214,17 +213,21 @@ class fitman:
         # print('self.df ', self.df)
 
 
-    def run_fits(self, *args, method='chi2', sub_pixels=1, optimization_profile='default', get_errors=False):
+    def run_fits(self, *args, cost_func='chi2', sub_pixels=1, optimization_profile='default',
+                 min_method='L-BFGS-B', get_errors=False):
 
         assert isinstance(self.mm_pattern, MedipixMatrix)
         # each input is a range of patterns to fit
         assert isinstance(get_errors, bool)
-        if method not in ('chi2', 'ml'):
-            raise ValueError('method not valid. Use chi2 or ml')
+        if cost_func not in ('chi2', 'ml'):
+            raise ValueError('cost_func not valid. Use chi2 or ml')
 
-        if get_errors is not False:
-            raise warnings.warn('Errors and visualization are by default off in run_fits. Use run_single_fit')
+        if get_errors is not False and min_method != 'minuit':
+            raise warnings.warn('Errors and visualization are by default off in run_fits (exept minuit). Use run_single_fit')
+            get_errors = False
 
+        if min_method == 'minuit':
+            get_errors = True
 
         patterns_list = ()
         for ar in args:
@@ -248,38 +251,39 @@ class fitman:
                     print('P1, P2, P3 - ', p1, ', ', p2, ', ', p3)
 
                     # errors and visualization are by default off in run_fits
-                    self.run_single_fit(p1, p2, p3, method, sub_pixels, optimization_profile,
-                                   verbose_graphics=False, get_errors=False)
+                    self.run_single_fit(p1, p2, p3, cost_func, sub_pixels, optimization_profile, min_method=min_method,
+                                        verbose_graphics=False, get_errors=get_errors)
 
 
-    def run_single_fit(self, p1, p2=None, p3=None, method='chi2', sub_pixels=1,
-                       optimization_profile='default', verbose_graphics=False, get_errors=False):
+    def run_single_fit(self, p1, p2=None, p3=None, cost_func='chi2', sub_pixels=1,
+                       optimization_profile='default', min_method='L-BFGS-B',
+                       verbose_graphics=False, get_errors=False):
 
         assert isinstance(self.mm_pattern, MedipixMatrix)
         # each input is a range of patterns to fit
         assert isinstance(verbose_graphics, bool)
         assert isinstance(get_errors, bool)
-        if method not in ('chi2', 'ml'):
-            raise ValueError('method not valid. Use chi2 or ml')
+        if cost_func not in ('chi2', 'ml'):
+            raise ValueError('cost_func not valid. Use chi2 or ml')
 
-        ft = self._build_fits_obj(method, optimization_profile, sub_pixels,
+        if min_method == 'minuit':
+            get_errors = True
+
+        ft = self._build_fits_obj(cost_func, optimization_profile, min_method, sub_pixels,
                                   p1, p2, p3)
         ft.verbose_graphics = verbose_graphics
 
-        if method == 'chi2':
-            ft.minimize_chi2()
-            if get_errors:
-                ft.get_std_from_hessian(ft.results['x'], func='chi_square')
-        if method == 'ml':
-            ft.maximize_likelyhood()
-            if get_errors:
-                ft.get_std_from_hessian(ft.results['x'], func='likelihood')
+        ft.minimize_cost_function(cost_func)
 
-        self._fill_results_dict(ft, method, get_errors, p1, p2, p3)
+        if get_errors and min_method != 'minuit':
+            ft.get_std_from_hessian(ft.results['x'], func='cost_func')
 
-        if ft.results['fun'] < self.min_value:
-            self.best_fit = ft
-            self.min_value = ft.results['fun']
+        self._fill_results_dict(ft, cost_func, get_errors, p1, p2, p3)
+
+        # TODO save best fit
+        # if ft.results['fun'] < self.min_value:
+        #    self.best_fit = ft
+        #    self.min_value = ft.results['fun']
 
 
     def save_output(self, filename, save_figure=False):
@@ -334,7 +338,7 @@ if __name__ == '__main__':
     P1 = np.array((1,))
     P2 = np.arange(1, 3) # 249
     fm.set_fixed_values(sigma=0)
-    fm.run_fits(P1, P2, method='chi2', get_errors=True, sub_pixels=1)
+    fm.run_fits(P1, P2, cost_func='chi2', get_errors=True, sub_pixels=1)
 
     #fm.save_output('/home/eric/Desktop/test_fit.xls', save_figure=True)
 
