@@ -60,7 +60,7 @@ class fits:
         self._pattern_keys = ('pattern_1', 'pattern_2', 'pattern_3')
         self._ml_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-8,'maxcor': 100}
         self._chi2_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-4, 'maxcor': 100}
-        self._minuit_fit_options = {'tol': 0.1}
+        self._minuit_fit_options = {'print_level':0, 'tol': 0.1}
         self._minization_method = 'L-BFGS-B'
         self.verbose_graphics = False
         self.verbose_graphics_ax = None
@@ -179,9 +179,9 @@ class fits:
         if min_method == 'minuit':
             if profile == 'coarse':
                 # if even with coarse the fit hangs consider other techniques for better fitting
-                self._minuit_fit_options = {'tol':100}
+                self._minuit_fit_options = {'print_level':0, 'tol':100}
             elif profile == 'default':
-                self._minuit_fit_options = {'tol': 1}
+                self._minuit_fit_options = {'print_level':0, 'tol': 1}
             elif profile == 'fine':
                 # use default eps with fine
                 self._minuit_fit_options = {'tol': 0.1}
@@ -494,12 +494,11 @@ class fits:
         if self._minization_method == 'minuit':
             minuit = self._create_minuit(cost_func)
             res = minuit.migrad()
-            print('migrad res', res)
             self.results = res
 
-            for param_res in res:
-                if 'name' not in param_res.keys():
-                    continue
+            for param_res in self.results[1]:
+                # print('\ntype param_res', type(param_res))
+                # print('\nparam_res', param_res)
                 key = param_res['name']
                 # scale is inactive when using minuit
                 self.parameters_dict[key]['value'] = param_res['value']
@@ -523,6 +522,8 @@ class fits:
         # parameters_order is ('dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3')
         arguments = {}
 
+        arguments['print_level'] = self._minuit_fit_options['print_level']
+
         # value for calculating a 1 sigma error
         if cost_func == 'chi2':
             arguments['errordef'] = 1
@@ -545,14 +546,13 @@ class fits:
 
             # bounds
             arguments['limit_' + key] = self.parameters_dict[key]['bounds']
-        print('arguments\n', arguments)
+        #print('arguments\n', arguments)
         minuit =  None
         if cost_func == 'chi2':
             minuit = iminuit.Minuit(self.chi_square_call_migrad, **arguments)
         elif cost_func == 'ml':
             minuit = iminuit.Minuit(self.log_likelihood_call_migrad, **arguments)
         minuit.tol = self._minuit_fit_options['tol']
-        print('tol', minuit.tol)
         return minuit
 
 

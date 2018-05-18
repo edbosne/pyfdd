@@ -163,7 +163,12 @@ class fitman:
         # 'total_cts','sigma','f_p1','f_p2','f_p3'
         parameter_dict = ft.parameters_dict.copy()
         append_dic = {}
-        append_dic['value'] = ft.results['fun']
+        if isinstance(ft.results, dict):
+            # scipy
+            append_dic['value'] = ft.results['fun']
+        else:
+            # minuit
+            append_dic['value'] = ft.results[0]['fval']
         append_dic['D.O.F.'] = np.sum(~patt.mask)
         append_dic['x'] = parameter_dict['dx']['value']
         append_dic['y'] = parameter_dict['dy']['value']
@@ -198,7 +203,7 @@ class fitman:
             append_dic['y_err'] = parameter_dict['dy']['std']
             append_dic['phi_err'] = parameter_dict['phi']['std']
             append_dic['counts_err'] = parameter_dict['total_cts']['std'] if cost_func == 'chi2' else np.nan
-            append_dic['sigma_err'] = parameter_dict['sigma']['std'] if fit_sigma else np.nan
+            append_dic['sigma_err'] = parameter_dict['sigma']['std']
             append_dic['fraction1_err'] = parameter_dict['f_p1']['std'] if p1 is not None else np.nan
             append_dic['fraction2_err'] = parameter_dict['f_p2']['std'] if p2 is not None and \
                                                                                 not p2 == p1 \
