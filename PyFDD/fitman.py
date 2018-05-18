@@ -266,7 +266,7 @@ class fitman:
 
         ft = self._build_fits_obj(cost_func, optimization_profile, min_method, sub_pixels,
                                   p1, p2, p3)
-                                  p1, p2, p3)
+
         ft.verbose_graphics = verbose_graphics
 
         ft.minimize_cost_function(cost_func)
