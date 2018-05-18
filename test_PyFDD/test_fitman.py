@@ -33,5 +33,5 @@ if __name__ == '__main__':
     fm.add_pattern(mm, lib)
     P1 = np.arange(1, 249)  # last 248 set to 249
     fm.set_fixed_values(dx=0, dy=0, phi=0, sigma=0.1)  # pad=0.094, tpx=0.064
-    fm.run_fits(P1, method='ml')
+    fm.run_fits(P1, cost_func='ml')
     fm.save_output('tpx_1site_fixed-orientation_test.csv', save_figure=False)
