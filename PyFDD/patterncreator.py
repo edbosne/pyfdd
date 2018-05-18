@@ -40,9 +40,10 @@ class PatternCreator:
     Can create patterns for a specific detector configuration
     Can create ideal patterns, patterns with poisson noise and by Monte Carlo
     '''
-    def __init__(self, lib, xmesh=None, ymesh=None, simulations=0, mask=ma.nomask, sub_pixels=1):
+    def __init__(self, lib, xmesh=None, ymesh=None, simulations=0, mask=ma.nomask, sub_pixels=1, mask_out_of_range = True):
         """
         __init__ method for PatternCreator. Simulation and mesh are to be stated here.
+        mask_out_of_range false means that points that are out of the range of simulations are not masked,
         :type lib: lib2dl
         :param lib: A lib2dl type object that points to the desired library
         :param xmesh: The horizontal mesh of the detector
@@ -53,6 +54,8 @@ class PatternCreator:
         if len(simulations.shape) == 0: # ensures that dimention is 1
             simulations = simulations[np.newaxis]
         assert isinstance(lib, lib2dl)
+
+        self.mask_out_of_range = mask_out_of_range
 
         # get original mesh if undefines
         if xmesh is None or ymesh is None:
@@ -115,7 +118,7 @@ class PatternCreator:
 
         self.fractions_per_sim = np.zeros(simulations.size + 1) # +1 for random
 
-    def make_pattern(self, dx, dy, phi, fractions_per_sim, total_events, sigma=0, type='ideal', mask_out_of_range=True):
+    def make_pattern(self, dx, dy, phi, fractions_per_sim, total_events, sigma=0, type='ideal'):
         """
         Makes a pattern acoording to library and spectruns selected in the iniciation of the patterncreator
         Set total_events=1 and type='ideal' for a normalized spectrum.
@@ -148,7 +151,7 @@ class PatternCreator:
         # move mesh
         self._move(dx,dy)
         # render normalized pattern
-        self._grid_interpolation(total_events, mask_out_of_range=mask_out_of_range)
+        self._grid_interpolation(total_events)
         mask = self._pattern_current.mask.copy()
         sim_pattern = self._pattern_current
         # types
@@ -208,8 +211,9 @@ class PatternCreator:
         """
         # positive counterclockwise
         ang = -ang
+        cval = 0 if self.mask_out_of_range else 1e-12
         self._pattern_current = rotate(self._pattern_current, ang, reshape=True, order=2, mode='constant',
-                                       cval=1e-12, prefilter=False) #the order needs to be 2 for smoothness during fit
+                                       cval=cval, prefilter=False) #the order needs to be 2 for smoothness during fit
 
         # rotation can increase matrix size and therefore the mesh needs to be updates
         self._xfirst = self._xfirst_original - self._xstep_original * \
@@ -259,11 +263,10 @@ class PatternCreator:
         self._xmesh = self._xmesh + dx
         self._ymesh = self._ymesh + dy
 
-    def _grid_interpolation(self, total_events, mask_out_of_range=True):
+    def _grid_interpolation(self, total_events, ):
         '''
         uses interpolation to get the values of the pattern at the grid positons
         it also normalizes each pattern to the previously set numbet or events for the given range
-        mask_out_of_range false means that points that are out of the range of simulations are not masked,
         instead they are substituted by a very small number 1e-12
         :return the updated pattern in the detector mesh
         '''
@@ -289,7 +292,7 @@ class PatternCreator:
 
         #interpolation
         temp_pattern = np.array([])
-        cval = 0 if mask_out_of_range else 1e-12
+        cval = 0 if self.mask_out_of_range else 1e-12
         temp_pattern = map_coordinates(self._pattern_current, (grid_y_temp, grid_x_temp),
                                        order=1, prefilter=False, mode='constant', cval=cval)
         if self.sub_pixels > 1:
@@ -299,7 +302,7 @@ class PatternCreator:
             temp_pattern = temp_pattern.reshape([y_final_size, factor, x_final_size, factor]).sum(3).sum(1)
         temp_pattern = ma.array(data=temp_pattern, mask=self.mask)
         temp_pattern = temp_pattern / temp_pattern.sum() * total_events # number of events
-        if mask_out_of_range:
+        if self.mask_out_of_range:
             self._pattern_current = ma.masked_equal(temp_pattern, 0)
         else:
             self._pattern_current = ma.array(temp_pattern, mask=False)
