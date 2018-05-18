@@ -476,7 +476,8 @@ class fits:
         # generate sim pattern
         self.pattern_generator = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations,
                                                 mask=self.data_pattern.mask,
-                                                sub_pixels=self.parameters_dict['sub_pixels']['value'])
+                                                sub_pixels=self.parameters_dict['sub_pixels']['value'],
+                                                mask_out_of_range = False)
 
         # defining cost function and get options
         function = None
