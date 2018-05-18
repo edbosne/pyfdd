@@ -179,12 +179,12 @@ class fits:
         if min_method == 'minuit':
             if profile == 'coarse':
                 # if even with coarse the fit hangs consider other techniques for better fitting
-                self._minuit_fit_options = {'print_level':0, 'tol':100}
+                self._minuit_fit_options = {'print_level':1, 'tol':100}
             elif profile == 'default':
                 self._minuit_fit_options = {'print_level':0, 'tol': 1}
             elif profile == 'fine':
                 # use default eps with fine
-                self._minuit_fit_options = {'tol': 0.1}
+                self._minuit_fit_options = {'print_level':0, 'tol': 0.1}
             else:
                 raise ValueError('profile value should be set to: coarse, default or fine.')
 
@@ -493,7 +493,7 @@ class fits:
         # select method
         if self._minization_method == 'minuit':
             minuit = self._create_minuit(cost_func)
-            res = minuit.migrad()
+            res = minuit.migrad(ncall=1000, nsplit=1)
             self.results = res
 
             for param_res in self.results[1]:
@@ -562,7 +562,9 @@ class fits:
         fractions_sims += (f_p2,) if self.parameters_dict['pattern_2']['use'] else ()  # pattern 2
         fractions_sims += (f_p3,) if self.parameters_dict['pattern_3']['use'] else ()  # pattern 3
         # print('fractions_sims - ', fractions_sims)
-        return self.log_likelihood(dx, dy, phi, fractions_sims, sigma=sigma)
+        value = self.log_likelihood(dx, dy, phi, fractions_sims, sigma=sigma)
+        print('function value, ', value)
+        return value
 
 
     def chi_square_call_migrad(self, dx, dy, phi, total_cts, sigma, f_p1, f_p2, f_p3):
@@ -571,7 +573,9 @@ class fits:
         fractions_sims += (f_p2,) if self.parameters_dict['pattern_2']['use'] else ()  # pattern 2
         fractions_sims += (f_p3,) if self.parameters_dict['pattern_3']['use'] else ()  # pattern 3
         # print('fractions_sims - ', fractions_sims)
-        return self.chi_square(dx, dy, phi, total_cts, fractions_sims, sigma=sigma)
+        value = self.chi_square(dx, dy, phi, total_cts, fractions_sims, sigma=sigma)
+        print('function value, ', value)
+        return value
 
 
 # methods for calculating error
