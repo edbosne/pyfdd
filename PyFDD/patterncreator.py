@@ -208,8 +208,8 @@ class PatternCreator:
         """
         # positive counterclockwise
         ang = -ang
-        self._pattern_current = rotate(self._pattern_current, ang, reshape=True, order=1, mode='constant',
-                                       cval=0, prefilter=False)
+        self._pattern_current = rotate(self._pattern_current, ang, reshape=True, order=2, mode='constant',
+                                       cval=1e-12, prefilter=False) #the order needs to be 2 for smoothness during fit
 
         # rotation can increase matrix size and therefore the mesh needs to be updates
         self._xfirst = self._xfirst_original - self._xstep_original * \
