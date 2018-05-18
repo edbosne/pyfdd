@@ -105,42 +105,12 @@ def test_ml_fit(lib, xmesh, ymesh, patt):
 
     return ft
 
-def test_minuit_fit(lib, xmesh, ymesh, patt):
-    ft = fits(lib)
-    ft.verbose_graphics = True
-
-    # set a fitting routine
-    counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
-    ft.set_data_pattern(xmesh, ymesh, patt)
-    # ft.set_patterns_to_fit(249-249,377-249)
-    ft.set_patterns_to_fit(1, 65)  # ,129)
-    ft.parameters_dict['sub_pixels']['value'] = 1
-
-    ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1, f_p1=1, f_p2=1)
-    ft.set_inicial_values(-1, 0.5, 0, -1, sigma=0.1)
-    ft.fix_parameters(False, False, False, False, False, False, False, False)
-    ft.set_optimization_profile(profile='coarse',min_method='minuit')
-    # ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, -1, sigma=0.1)
-    ft.minimize_cost_function(cost_func='ml')
-    print(ft.results)
-    #print('sigma in sim step units - ', ft.results['x'][4] / lib.xstep)
-    print('Calculating errors ...')
-    # var = ft.get_variance_from_hessian(ft.results['x'], enable_scale=False, func='likelihood')
-    # print('var - ', var)
-    # ft.print_variance(ft.res['x'],var)
-    # ft.get_location_errors(res['x'], (0,), last=300, func='likelihood')$
-
-    print('data points ', np.sum(~patt.mask))
-
-    return ft
-
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     test_chi2_min = False
     test_likelihood_max = False
-    test_likelihood_max_minuit = True
 
     lib = lib2dl(lib_path)
 
@@ -163,9 +133,6 @@ if __name__ == "__main__":
 
     if test_likelihood_max:
         ft = test_ml_fit(lib, xmesh, ymesh, patt)
-
-    if test_likelihood_max_minuit:
-        ft = test_minuit_fit(lib, xmesh, ymesh, patt)
 
     plt.figure(2)
     plt.contourf(xmesh, ymesh, ft.sim_pattern)
