@@ -60,7 +60,7 @@ class fits:
         self._pattern_keys = ('pattern_1', 'pattern_2', 'pattern_3')
         self._ml_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-8,'maxcor': 100}
         self._chi2_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-4, 'maxcor': 100}
-        self._minuit_fit_options = {'print_level':0, 'tol': 0.1}
+        self._minuit_fit_options = {'print_level':0, 'tol': 0.1, 'ncall':10000}
         self._minization_method = 'L-BFGS-B'
         self.verbose_graphics = False
         self.verbose_graphics_ax = None
@@ -179,12 +179,12 @@ class fits:
         if min_method == 'minuit':
             if profile == 'coarse':
                 # if even with coarse the fit hangs consider other techniques for better fitting
-                self._minuit_fit_options = {'print_level':1, 'tol':100}
+                self._minuit_fit_options = {'print_level':1, 'tol':1e5, 'ncall':500}
             elif profile == 'default':
-                self._minuit_fit_options = {'print_level':0, 'tol': 1}
+                self._minuit_fit_options = {'print_level':0, 'tol': 1e4, 'ncall':1000}
             elif profile == 'fine':
                 # use default eps with fine
-                self._minuit_fit_options = {'print_level':0, 'tol': 0.1}
+                self._minuit_fit_options = {'print_level':1, 'tol': 1e3, 'ncall':1000}
             else:
                 raise ValueError('profile value should be set to: coarse, default or fine.')
 
@@ -492,7 +492,7 @@ class fits:
         # select method
         if self._minization_method == 'minuit':
             minuit = self._create_minuit(cost_func)
-            res = minuit.migrad(ncall=1000, nsplit=1)
+            res = minuit.migrad(ncall=self._minuit_fit_options['ncall'])
             self.results = res
 
             for param_res in self.results[1]:
@@ -562,7 +562,7 @@ class fits:
         fractions_sims += (f_p3,) if self.parameters_dict['pattern_3']['use'] else ()  # pattern 3
         # print('fractions_sims - ', fractions_sims)
         value = self.log_likelihood(dx, dy, phi, fractions_sims, sigma=sigma)
-        print('function value, ', value)
+        # print('function value, ', value)
         return value
 
 
@@ -573,7 +573,7 @@ class fits:
         fractions_sims += (f_p3,) if self.parameters_dict['pattern_3']['use'] else ()  # pattern 3
         # print('fractions_sims - ', fractions_sims)
         value = self.chi_square(dx, dy, phi, total_cts, fractions_sims, sigma=sigma)
-        print('function value, ', value)
+        # print('function value, ', value)
         return value
 
 
