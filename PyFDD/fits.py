@@ -20,7 +20,11 @@ import math
 import numdifftools as nd
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter
-import iminuit
+
+import importlib
+iminuit_loader = importlib.find_loader('iminuit')
+if iminuit_loader is not None:
+    import iminuit
 
 
 
@@ -54,9 +58,10 @@ class fits:
         self._init_parameters_dict()
         self._parameters_order = ('dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3')
         self._pattern_keys = ('pattern_1', 'pattern_2', 'pattern_3')
-        self._ml_fit_options = {'method':'L-BFGS-B', 'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-8,'maxcor': 100}
-        self._chi2_fit_options = {'method':'L-BFGS-B', 'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-4, 'maxcor': 100}
-
+        self._ml_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-8,'maxcor': 100}
+        self._chi2_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-4, 'maxcor': 100}
+        self._minuit_fit_options = {'tol': 0.1}
+        self._minization_method = 'L-BFGS-B'
         self.verbose_graphics = False
         self.verbose_graphics_ax = None
         self.verbose_graphics_fg = None
@@ -152,23 +157,36 @@ class fits:
             self.parameters_dict['f_p3']['use'] = False
 
 
-    def set_optimization_profile(self,profile='default'):
+    def set_optimization_profile(self,profile='default',min_method='L-BFGS-B'):
         # Using a coarse profile will lead to faster results and less optimized. tought sometimes it is also smoother
         # Using a fine profile can lead to rounding errors and jumping to other minima which causes artifacts
         # default eps is 1e-8 this, sometimes, is too small to correctly get the derivative of phi
-        if profile == 'coarse':
-            # if even with coarse the fit hangs consider other techniques for better fitting
-            self._ml_fit_options =   {'method':'L-BFGS-B', 'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
-            self._chi2_fit_options = {'method':'L-BFGS-B', 'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
-        elif profile == 'default':
-            self._ml_fit_options =   {'method':'L-BFGS-B', 'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
-            self._chi2_fit_options = {'method':'L-BFGS-B', 'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
-        elif profile == 'fine':
-            # use default eps with fine
-            self._ml_fit_options =   {'method':'L-BFGS-B', 'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-8, 'maxcor':100, 'eps':1e-7}
-            self._chi2_fit_options = {'method':'L-BFGS-B', 'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7, 'maxcor':100}
-        else:
-            raise ValueError('profile value should be set to: coarse, default or fine.')
+        self._minization_method = min_method
+        if min_method == 'L-BFGS-B':
+            if profile == 'coarse':
+                # if even with coarse the fit hangs consider other techniques for better fitting
+                self._ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
+                self._chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
+            elif profile == 'default':
+                self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
+                self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
+            elif profile == 'fine':
+                # use default eps with fine
+                self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-8, 'maxcor':100, 'eps':1e-7}
+                self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7, 'maxcor':100}
+            else:
+                raise ValueError('profile value should be set to: coarse, default or fine.')
+        if min_method == 'minuit':
+            if profile == 'coarse':
+                # if even with coarse the fit hangs consider other techniques for better fitting
+                self._minuit_fit_options = {'tol':100}
+            elif profile == 'default':
+                self._minuit_fit_options = {'tol': 1}
+            elif profile == 'fine':
+                # use default eps with fine
+                self._minuit_fit_options = {'tol': 0.1}
+            else:
+                raise ValueError('profile value should be set to: coarse, default or fine.')
 
     def _get_p0_scale(self):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
@@ -472,58 +490,61 @@ class fits:
             function = self.log_likelihood_call
             all_options = self._ml_fit_options
 
-        # defining method
-        if 'method' in all_options.keys():
-            method = all_options['method']
-            all_options.pop('method', None)
+        # select method
+        if self._minization_method == 'minuit':
+            minuit = self._create_minuit(cost_func)
+            res = minuit.migrad()
+            print('migrad res', res)
+            self.results = res
         else:
-            method = 'L-BFGS-B'
-
-        if method == 'minuit':
-            minuit = self._create_migrad(cost_func)
-            minuit.migrad()
-        else:
-            res = op.minimize(function, p0, args=True, method=method, bounds=bnds, \
+            res = op.minimize(function, p0, args=True, method=self._minization_method, bounds=bnds, \
                               options=all_options)  # 'eps': 0.0001, L-BFGS-B
             # minimization with cobyla also seems to be a good option with {'rhobeg':1e-1/1e-2} . but it is unconstrained
+            di = 0
+            for key in self._parameters_order:
+                if self.parameters_dict[key]['use']:
+                    res['x'][di] *= self.parameters_dict[key]['scale']
+                    self.parameters_dict[key]['value'] = res['x'][di]
+                    di += 1
+                else:
+                    self.parameters_dict[key]['value'] = self.parameters_dict[key]['p0']
 
-        di = 0
-        for key in self._parameters_order:
-            if self.parameters_dict[key]['use']:
-                res['x'][di] *= self.parameters_dict[key]['scale']
-                self.parameters_dict[key]['value'] = res['x'][di]
-                di += 1
-            else:
-                self.parameters_dict[key]['value'] = self.parameters_dict[key]['p0']
+            self.results = res
 
-        self.results = res
-
-    def _create_migrad(self, cost_func='chi2', options={}):
+    def _create_minuit(self, cost_func='chi2', options={}):
         # parameters_order is ('dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3')
         arguments = {}
+
+        # value for calculating a 1 sigma error
+        if cost_func == 'chi2':
+            arguments['errordef'] = 1
+        elif cost_func == 'ml':
+            arguments['errordef'] = 0.5
         for key in self._parameters_order:
             if cost_func == 'ml' and key == 'total_cts':
                 continue
 
             # starting value
-            arguments['key'] = self.parameters_dict[key]['p0']
+            arguments[key] = self.parameters_dict[key]['p0']
 
             # fix if not in use
             if self.parameters_dict[key]['use']:
-                arguments['fix_' + 'key'] = False
+                arguments['fix_' + key] = False
             else:
-                arguments['fix_' + 'key'] = True
+                arguments['fix_' + key] = True
                 continue
-            arguments['error_' + 'key'] = 1e-2 * self.parameters_dict[key]['scale']
+            arguments['error_' + key] = 1e-3 * self.parameters_dict[key]['scale']
 
             # bounds
-            arguments['limit_' + 'key'] = self.parameters_dict[key]['bounds']
-
+            arguments['limit_' + key] = self.parameters_dict[key]['bounds']
+        print('arguments\n', arguments)
         minuit =  None
         if cost_func == 'chi2':
-            minuit = iminuit.Minuit(self.chi_square_call_migrad, arguments)
+            minuit = iminuit.Minuit(self.chi_square_call_migrad, **arguments)
         elif cost_func == 'ml':
-            minuit = iminuit.Minuit(self.log_likelihood_call_migrad, arguments)
+            minuit = iminuit.Minuit(self.log_likelihood_call_migrad, **arguments)
+        minuit.tol = self._minuit_fit_options['tol']
+        print('tol', minuit.tol)
         return minuit
 
 
