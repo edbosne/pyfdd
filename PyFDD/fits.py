@@ -50,7 +50,7 @@ class fits:
         #self.p0 = (None,)
         #self.p0_scale = np.ones((8))
         self.results = None
-        self.variance = None
+        self.std = None
         self.pattern_generator = None
         #self.sub_pixels = 1
 
@@ -68,7 +68,7 @@ class fits:
 
     def _init_parameters_dict(self):
         parameter_template = \
-            {'p0':None, 'value':None, 'use':False, 'variance':None, 'scale':1, 'bounds':(None,None)}
+            {'p0':None, 'value':None, 'use':False, 'std':None, 'scale':1, 'bounds':(None,None)}
         # parameters are, site 1 2 and 3,dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         # keys are 'pattern_1','pattern_2','pattern_3','sub_pixels','dx','dy','phi',
         # 'total_cts','sigma','f_p1','f_p2','f_p3'
@@ -496,6 +496,14 @@ class fits:
             res = minuit.migrad()
             print('migrad res', res)
             self.results = res
+
+            for param_res in res:
+                if 'name' not in param_res.keys():
+                    continue
+                key = param_res['name']
+                # scale is inactive when using minuit
+                self.parameters_dict[key]['value'] = param_res['value']
+                self.parameters_dict[key]['std'] = param_res['error']
         else:
             res = op.minimize(function, p0, args=True, method=self._minization_method, bounds=bnds, \
                               options=all_options)  # 'eps': 0.0001, L-BFGS-B
@@ -567,7 +575,7 @@ class fits:
 
 
 # methods for calculating error
-    def get_variance_from_hessian(self, x, enable_scale=False, func=''):
+    def get_std_from_hessian(self, x, enable_scale=False, func=''):
         x = np.array(x)
         x /= self._get_p0_scale() if enable_scale else np.ones(len(x))
         if func == 'likelihood':
@@ -584,15 +592,15 @@ class fits:
             hh_inv = np.linalg.inv(0.5*hh)
         else:
             raise ValueError('undefined function, should be likelihood or chi_square')
-        variance = np.sqrt(np.diag(hh_inv))
-        variance *= self._get_p0_scale() if enable_scale else np.ones(len(x))
-        self.variance = variance
+        std = np.sqrt(np.diag(hh_inv))
+        std *= self._get_p0_scale() if enable_scale else np.ones(len(x))
+        self.std = std
         di = 0
         for key in self._parameters_order:
             if self.parameters_dict[key]['use']:
-                self.parameters_dict[key]['variance'] = variance[di]
+                self.parameters_dict[key]['std'] = std[di]
                 di += 1
-        return variance
+        return std
 
     def get_location_errors(self, params, simulations, func='', first=None, last=None, delta=None):
         dx = params[0]

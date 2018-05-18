@@ -123,7 +123,7 @@ def test_minuit_fit(lib, xmesh, ymesh, patt):
     # ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, -1, sigma=0.1)
     ft.minimize_cost_function(cost_func='ml')
     print(ft.results)
-    print('sigma in sim step units - ', ft.results['x'][4] / lib.xstep)
+    #print('sigma in sim step units - ', ft.results['x'][4] / lib.xstep)
     print('Calculating errors ...')
     # var = ft.get_variance_from_hessian(ft.results['x'], enable_scale=False, func='likelihood')
     # print('var - ', var)

@@ -195,16 +195,16 @@ class fitman:
             if not (p3 == p1 or p3 == p2):
                 append_dic['site3 fraction'] = parameter_dict['f_p3']['value']
         if get_errors:
-            append_dic['x_err'] = parameter_dict['dx']['variance']
-            append_dic['y_err'] = parameter_dict['dy']['variance']
-            append_dic['phi_err'] = parameter_dict['phi']['variance']
-            append_dic['counts_err'] = parameter_dict['total_cts']['variance'] if method == 'chi2' else np.nan
-            append_dic['sigma_err'] = parameter_dict['sigma']['variance'] if fit_sigma else np.nan
-            append_dic['fraction1_err'] = parameter_dict['f_p1']['variance'] if p1 is not None else np.nan
-            append_dic['fraction2_err'] = parameter_dict['f_p2']['variance'] if p2 is not None and \
+            append_dic['x_err'] = parameter_dict['dx']['std']
+            append_dic['y_err'] = parameter_dict['dy']['std']
+            append_dic['phi_err'] = parameter_dict['phi']['std']
+            append_dic['counts_err'] = parameter_dict['total_cts']['std'] if method == 'chi2' else np.nan
+            append_dic['sigma_err'] = parameter_dict['sigma']['std'] if fit_sigma else np.nan
+            append_dic['fraction1_err'] = parameter_dict['f_p1']['std'] if p1 is not None else np.nan
+            append_dic['fraction2_err'] = parameter_dict['f_p2']['std'] if p2 is not None and \
                                                                                 not p2 == p1 \
                                                                                 else np.nan
-            append_dic['fraction3_err'] = parameter_dict['f_p3']['variance'] if p3 is not None and \
+            append_dic['fraction3_err'] = parameter_dict['f_p3']['std'] if p3 is not None and \
                                                                                 not (p3 == p1 or p3 == p2) \
                                                                                 else np.nan
 
@@ -269,11 +269,11 @@ class fitman:
         if method == 'chi2':
             ft.minimize_chi2()
             if get_errors:
-                ft.get_variance_from_hessian(ft.results['x'], func='chi_square')
+                ft.get_std_from_hessian(ft.results['x'], func='chi_square')
         if method == 'ml':
             ft.maximize_likelyhood()
             if get_errors:
-                ft.get_variance_from_hessian(ft.results['x'], func='likelihood')
+                ft.get_std_from_hessian(ft.results['x'], func='likelihood')
 
         self._fill_results_dict(ft, method, get_errors, p1, p2, p3)
 
