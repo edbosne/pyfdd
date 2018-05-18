@@ -44,7 +44,7 @@ class fits:
         #self.p0 = (None,)
         #self.p0_scale = np.ones((8))
         self.results = None
-        self.variance = None
+        self.std = None
         self.pattern_generator = None
         #self.sub_pixels = 1
 
@@ -61,7 +61,7 @@ class fits:
 
     def _init_parameters_dict(self):
         parameter_template = \
-            {'p0':None, 'value':None, 'use':False, 'variance':None, 'scale':1, 'bounds':(None,None)}
+            {'p0':None, 'value':None, 'use':False, 'std':None, 'scale':1, 'bounds':(None,None)}
         # parameters are, site 1 2 and 3,dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         # keys are 'pattern_1','pattern_2','pattern_3','sub_pixels','dx','dy','phi',
         # 'total_cts','sigma','f_p1','f_p2','f_p3'
@@ -150,23 +150,25 @@ class fits:
             self.parameters_dict['f_p3']['use'] = False
 
 
-    def set_optimization_profile(self,profile='default'):
+    def set_optimization_profile(self,profile='default',min_method='L-BFGS-B'):
         # Using a coarse profile will lead to faster results and less optimized. tought sometimes it is also smoother
         # Using a fine profile can lead to rounding errors and jumping to other minima which causes artifacts
         # default eps is 1e-8 this, sometimes, is too small to correctly get the derivative of phi
-        if profile == 'coarse':
-            # if even with coarse the fit hangs consider other techniques for better fitting
-            self._ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
-            self._chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
-        elif profile == 'default':
-            self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
-            self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
-        elif profile == 'fine':
-            # use default eps with fine
-            self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-8, 'maxcor':100, 'eps':1e-7}
-            self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7, 'maxcor':100}
-        else:
-            raise ValueError('profile value should be set to: coarse, default or fine.')
+        self._minization_method = min_method
+        if min_method == 'L-BFGS-B':
+            if profile == 'coarse':
+                # if even with coarse the fit hangs consider other techniques for better fitting
+                self._ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
+                self._chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
+            elif profile == 'default':
+                self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
+                self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
+            elif profile == 'fine':
+                # use default eps with fine
+                self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-8, 'maxcor':100, 'eps':1e-7}
+                self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7, 'maxcor':100}
+            else:
+                raise ValueError('profile value should be set to: coarse, default or fine.')
 
     def _get_p0_scale(self):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
@@ -352,43 +354,7 @@ class fits:
         return self.chi_square(dx, dy, phi, total_cts, fractions_sims=fractions_sims, sigma=sigma)
 
     def minimize_chi2(self):
-
-        # order of params is dx,dy,phi,total_cts,sigma,f_p1,f_p2,f_p3
-        p0 = self._get_p0()
-        #print('p0 - ', p0)
-
-        # Parameter bounds
-        bnds = ()
-        for key in self._parameters_order:
-            if self.parameters_dict[key]['use']:
-                bnds += (self.parameters_dict[key]['bounds'],)
-                # print('bnds - ', bnds)
-
-        # get patterns
-        simulations = ()
-        for key in self._pattern_keys:
-            if self.parameters_dict[key]['use']:
-                simulations += (self.parameters_dict[key]['value'],)
-        # print('simulations - ', simulations)
-
-        # generate sim pattern
-        self.pattern_generator = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations,
-                                                mask=self.data_pattern.mask,
-                                                sub_pixels=self.parameters_dict['sub_pixels']['value'])
-
-        res = op.minimize(self.chi_square_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options=self._chi2_fit_options) # dont change defaut eps
-
-        di = 0
-        for key in self._parameters_order:
-            if self.parameters_dict[key]['use']:
-                res['x'][di] *= self.parameters_dict[key]['scale']
-                self.parameters_dict[key]['value'] = res['x'][di]
-                di += 1
-            else:
-                self.parameters_dict[key]['value'] = self.parameters_dict[key]['p0']
-
-        self.results = res
+        self.minimize_cost_function(cost_func='chi2')
 
 # methods for maximum likelihood
     def log_likelihood(self, dx, dy, phi, fractions_sims, sigma=0):
@@ -459,9 +425,16 @@ class fits:
         return self.log_likelihood(dx, dy, phi, fractions_sims, sigma=sigma)
 
     def maximize_likelyhood(self):
+        self.minimize_cost_function(cost_func='ml')
 
-        # total counts is not used in maximum likelyhood
-        self.parameters_dict['total_cts']['use'] = False
+    def minimize_cost_function(self, cost_func='chi2'):
+
+        if not cost_func in ('ml', 'chi2'):
+            raise ValueError('cost function should be \'chi2\' or \'ml\'')
+
+        if cost_func == 'ml':
+            # total counts is not used in maximum likelyhood
+            self.parameters_dict['total_cts']['use'] = False
 
         # order of params is dx,dy,phi,sigma,f_p1,f_p2,f_p3
         p0 = self._get_p0()
@@ -484,12 +457,22 @@ class fits:
         # generate sim pattern
         self.pattern_generator = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations,
                                                 mask=self.data_pattern.mask,
-                                                sub_pixels=self.parameters_dict['sub_pixels']['value'])
+                                                sub_pixels=self.parameters_dict['sub_pixels']['value'],
+                                                mask_out_of_range = False)
 
-        res = op.minimize(self.log_likelihood_call, p0, args=True, method='L-BFGS-B', bounds=bnds,\
-                           options=self._ml_fit_options) #'eps': 0.0001, L-BFGS-B
+        # defining cost function and get options
+        functiodns = {}
+        if cost_func == 'chi2':
+            function = self.chi_square_call
+            all_options = self._chi2_fit_options
+        elif cost_func == 'ml':
+            function = self.log_likelihood_call
+            all_options = self._ml_fit_options
+
+        # select method
+        res = op.minimize(function, p0, args=True, method=self._minization_method, bounds=bnds, \
+                          options=all_options)  # 'eps': 0.0001, L-BFGS-B
         # minimization with cobyla also seems to be a good option with {'rhobeg':1e-1/1e-2} . but it is unconstrained
-
         di = 0
         for key in self._parameters_order:
             if self.parameters_dict[key]['use']:
@@ -499,35 +482,35 @@ class fits:
             else:
                 self.parameters_dict[key]['value'] = self.parameters_dict[key]['p0']
 
-        self.results = res
+            self.results = res
 
 # methods for calculating error
-    def get_variance_from_hessian(self, x, enable_scale=False, func=''):
+    def get_std_from_hessian(self, x, enable_scale=False, func=''):
         x = np.array(x)
         x /= self._get_p0_scale() if enable_scale else np.ones(len(x))
-        if func == 'likelihood':
+        if func == 'ml':
             f = lambda xx: self.log_likelihood_call(xx, enable_scale)
-        elif func == 'chi_square':
+        elif func == 'chi2':
             f = lambda xx: self.chi_square_call(xx, enable_scale)
         else:
             raise ValueError('undefined function, should be likelihood or chi_square')
         H = nd.Hessian(f)  # ,step=1e-9)
         hh = H(x)
-        if func == 'likelihood':
+        if func == 'ml':
             hh_inv = np.linalg.inv(hh)
-        elif func == 'chi_square':
+        elif func == 'chi2':
             hh_inv = np.linalg.inv(0.5*hh)
         else:
             raise ValueError('undefined function, should be likelihood or chi_square')
-        variance = np.sqrt(np.diag(hh_inv))
-        variance *= self._get_p0_scale() if enable_scale else np.ones(len(x))
-        self.variance = variance
+        std = np.sqrt(np.diag(hh_inv))
+        std *= self._get_p0_scale() if enable_scale else np.ones(len(x))
+        self.std = std
         di = 0
         for key in self._parameters_order:
             if self.parameters_dict[key]['use']:
-                self.parameters_dict[key]['variance'] = variance[di]
+                self.parameters_dict[key]['std'] = std[di]
                 di += 1
-        return variance
+        return std
 
     def get_location_errors(self, params, simulations, func='', first=None, last=None, delta=None):
         dx = params[0]

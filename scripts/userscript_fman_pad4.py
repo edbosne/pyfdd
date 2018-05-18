@@ -46,7 +46,7 @@ for i in range(len(filenames)):
     #P2 = np.array((129,)) #129 GaN best fit
     P2 = np.arange(1,249) # 249 max
     #fm.set_fixed_values(sigma=0.17) #pad=0.094, tpx=0.064
-    fm.run_fits(P1, P2, method='chi2', get_errors=False, sub_pixels=25)
+    fm.run_fits(P1, P2, cost_func='chi2', get_errors=False, sub_pixels=25)
 
     #fm.save_output(basename + '_2site-fit_subpix1.xls', save_figure=False)
     #fm.save_output(basename + '_2site(1,129)-fit_errors.csv', save_figure=False)
