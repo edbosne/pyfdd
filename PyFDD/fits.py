@@ -326,8 +326,7 @@ class fits:
         fractions = np.concatenate((rnd_events, fractions_sims))
         # mask out of range false means that points that are out of the range of simulations are not masked,
         # instead they are substituted by a very small number 1e-12
-        sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, sigma=sigma, type='ideal',
-                                       mask_out_of_range=False)
+        sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, sigma=sigma, type='ideal')
         self.sim_pattern = sim_pattern.copy()
         # chi2, pval = self.chi_square_fun(data_pattern,sim_pattern)
         chi2 = np.sum((data_pattern - sim_pattern) ** 2 / np.abs(sim_pattern))
@@ -398,8 +397,7 @@ class fits:
         gen = self.pattern_generator
         # gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations, mask=data_pattern.mask)
         fractions = np.concatenate((rnd_events, fractions_sims))
-        sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, sigma=sigma, type='ideal',
-                                       mask_out_of_range=False)
+        sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, sigma=sigma, type='ideal')
         self.sim_pattern = sim_pattern.copy()
         # log likelihood
         ll = np.sum(data_pattern * np.log(sim_pattern))
