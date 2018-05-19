@@ -166,7 +166,7 @@ class fits:
             elif profile == 'fine':
                 # use default eps with fine
                 self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-8, 'maxcor':100, 'eps':1e-7}
-                self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7, 'maxcor':100}
+                self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7, 'maxcor':100, 'eps':1e-7}
             else:
                 raise ValueError('profile value should be set to: coarse, default or fine.')
 
@@ -311,7 +311,8 @@ class fits:
         sim_pattern = gen.make_pattern(dx, dy, phi, fractions, total_events, sigma=sigma, type='ideal')
         self.sim_pattern = sim_pattern.copy()
         # chi2, pval = self.chi_square_fun(data_pattern,sim_pattern)
-        chi2 = np.sum((data_pattern - sim_pattern) ** 2 / np.abs(sim_pattern))
+        #chi2 = np.sum((data_pattern - sim_pattern) ** 2 / np.abs(sim_pattern))
+        chi2 = np.sum((data_pattern - sim_pattern)**2 / sim_pattern)
         #print('chi2 - ', chi2)
         # print('p-value - ',pval)
         # =====
