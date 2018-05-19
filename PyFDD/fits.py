@@ -54,6 +54,7 @@ class fits:
         self._pattern_keys = ('pattern_1', 'pattern_2', 'pattern_3')
         self._ml_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-8,'maxcor': 100}
         self._chi2_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-4, 'maxcor': 100}
+        self._minimization_method = 'L-BFGS-B'
 
         self.verbose_graphics = False
         self.verbose_graphics_ax = None
@@ -154,7 +155,7 @@ class fits:
         # Using a coarse profile will lead to faster results and less optimized. tought sometimes it is also smoother
         # Using a fine profile can lead to rounding errors and jumping to other minima which causes artifacts
         # default eps is 1e-8 this, sometimes, is too small to correctly get the derivative of phi
-        self._minization_method = min_method
+        self._minimization_method = min_method
         if min_method == 'L-BFGS-B':
             if profile == 'coarse':
                 # if even with coarse the fit hangs consider other techniques for better fitting
@@ -472,7 +473,7 @@ class fits:
             all_options = self._ml_fit_options
 
         # select method
-        res = op.minimize(function, p0, args=True, method=self._minization_method, bounds=bnds, \
+        res = op.minimize(function, p0, args=True, method=self._minimization_method, bounds=bnds, \
                           options=all_options)  # 'eps': 0.0001, L-BFGS-B
         # minimization with cobyla also seems to be a good option with {'rhobeg':1e-1/1e-2} . but it is unconstrained
         di = 0
