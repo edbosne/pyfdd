@@ -158,15 +158,16 @@ class fits:
         if min_method == 'L-BFGS-B':
             if profile == 'coarse':
                 # if even with coarse the fit hangs consider other techniques for better fitting
+                # likelihood values are orders of mag bigger than chi2, so they need smaller ftol
                 self._ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
                 self._chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
             elif profile == 'default':
-                self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
+                self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-8, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
                 self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
             elif profile == 'fine':
                 # use default eps with fine
-                self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-8, 'maxcor':100, 'eps':1e-7}
-                self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7, 'maxcor':100, 'eps':1e-7}
+                self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-9, 'maxcor':100, 'eps':1e-6}
+                self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
             else:
                 raise ValueError('profile value should be set to: coarse, default or fine.')
 
@@ -484,6 +485,27 @@ class fits:
                 self.parameters_dict[key]['value'] = self.parameters_dict[key]['p0']
 
             self.results = res
+
+    def log_likelihood_call_explicit(self, dx, dy, phi, sigma, f_p1, f_p2, f_p3):
+        fractions_sims = ()
+        fractions_sims += (f_p1,) if self.parameters_dict['pattern_1']['use'] else ()  # pattern 1
+        fractions_sims += (f_p2,) if self.parameters_dict['pattern_2']['use'] else ()  # pattern 2
+        fractions_sims += (f_p3,) if self.parameters_dict['pattern_3']['use'] else ()  # pattern 3
+        # print('fractions_sims - ', fractions_sims)
+        value = self.log_likelihood(dx, dy, phi, fractions_sims, sigma=sigma)
+        # print('function value, ', value)
+        return value
+
+    def chi_square_call_explicit(self, dx, dy, phi, total_cts, sigma, f_p1, f_p2, f_p3):
+        fractions_sims = ()
+        fractions_sims += (f_p1,) if self.parameters_dict['pattern_1']['use'] else ()  # pattern 1
+        fractions_sims += (f_p2,) if self.parameters_dict['pattern_2']['use'] else ()  # pattern 2
+        fractions_sims += (f_p3,) if self.parameters_dict['pattern_3']['use'] else ()  # pattern 3
+        # print('fractions_sims - ', fractions_sims)
+        value = self.chi_square(dx, dy, phi, total_cts, fractions_sims, sigma=sigma)
+        # print('function value, ', value)
+        return value
+
 
 # methods for calculating error
     def get_std_from_hessian(self, x, enable_scale=False, func=''):
