@@ -294,7 +294,7 @@ class PatternCreator:
         temp_pattern = np.array([])
         cval = 0 if self.mask_out_of_range else 1e-12
         temp_pattern = map_coordinates(self._pattern_current, (grid_y_temp, grid_x_temp),
-                                       order=1, prefilter=False, mode='constant', cval=cval)
+                                       order=2, prefilter=False, mode='constant', cval=cval)
         if self.sub_pixels > 1:
             y_final_size, x_final_size = self._detector_ymesh.shape
             factor = self.sub_pixels

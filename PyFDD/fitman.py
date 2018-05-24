@@ -24,7 +24,7 @@ class fitman:
     # pattern, library, pattern numbers, fit options
     def __init__(self):
         # Internal variable
-        self.min_value = 10**12
+        self.min_value = None
         self.fixed_values = {}
         self.keys = ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
 
@@ -274,7 +274,7 @@ class fitman:
 
         self._fill_results_dict(ft, cost_func, get_errors, p1, p2, p3)
 
-        if ft.results['fun'] < self.min_value:
+        if ft.results['fun'] < self.min_value or self.min_value is None:
            self.best_fit = ft
            self.min_value = ft.results['fun']
 
