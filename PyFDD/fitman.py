@@ -33,6 +33,7 @@ class fitman:
 
         # Stored objects
         self.best_fit = None
+        self.last_fit = None
         self.mm_pattern = None
         self.lib = None
 
@@ -82,36 +83,40 @@ class fitman:
             else:
                 raise(ValueError, 'key word ' + key + 'is not recognized!')
 
-    def _get_initial_values(self):
+    def _get_initial_values(self,pass_results=False):
         #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         p0 = ()
         p_fix = ()
+        p0_pass = pass_results and self.last_fit is not None
+        p0_last = self.last_fit.results['x'] if p0_pass else None
+        p0_last_i = 0
         for key in self.keys:
             if key in self.fixed_values:
                 p0 += (self.fixed_values[key],)
                 p_fix += (True,)
             else:
                 if key == 'dx':
-                    p0 += (self.mm_pattern.center[0],)
+                    p0 += (p0_last[p0_last_i],) if p0_pass else (self.mm_pattern.center[0],)
                 elif key == 'dy':
-                    p0 += (self.mm_pattern.center[1],)
+                    p0 += (p0_last[p0_last_i],) if p0_pass else (self.mm_pattern.center[1],)
                 elif key == 'phi':
-                    p0 += (self.mm_pattern.angle,)
+                    p0 += (p0_last[p0_last_i],) if p0_pass else (self.mm_pattern.angle,)
                 elif key == 'total_cts':
                     patt = self.mm_pattern.matrixOriginal.copy()
                     counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
-                    p0 += (counts_ordofmag,)
+                    p0 += (p0_last[p0_last_i],) if p0_pass else (counts_ordofmag,)
                 elif key == 'sigma':
-                    p0 += (0.1,)
+                    p0 += (p0_last[p0_last_i],) if p0_pass else (0.1,)
                 else:
                     # assuming a pattern fraction
-                    p0 += (0.15,)
+                    p0 += (p0_last[p0_last_i],) if p0_pass else (0.15,)
                 p_fix += (False,)
-
+                if p0_pass:
+                    p0_last_i += 1
         return p0, p_fix
 
     def _build_fits_obj(self, cost_func='chi2', optimization_profile='default', min_method='L-BFGS-B',
-                        sub_pixels=1, p1=None, p2=None, p3=None, verbose_graphics=False):
+                        sub_pixels=1, p1=None, p2=None, p3=None, verbose_graphics=False, pass_results=False):
 
         ft = fits(self.lib)
         ft.verbose_graphics = verbose_graphics
@@ -133,7 +138,8 @@ class fitman:
             p3_fit = p3 if not (p3 == p1 or p3 == p2) else None
         ft.set_patterns_to_fit(p1_fit, p2_fit, p3_fit)
 
-        p0, p0_fix = self._get_initial_values()
+        p0, p0_fix = self._get_initial_values(pass_results=pass_results)
+
         ft.parameters_dict['sub_pixels']['value'] = sub_pixels
         append_dic = {}
         if cost_func == 'chi2':
@@ -215,7 +221,7 @@ class fitman:
 
 
     def run_fits(self, *args, cost_func='chi2', sub_pixels=1, optimization_profile='default',
-                 min_method='L-BFGS-B', get_errors=False):
+                 min_method='L-BFGS-B', get_errors=False, pass_results=False):
 
         assert isinstance(self.mm_pattern, MedipixMatrix)
         # each input is a range of patterns to fit
@@ -251,12 +257,12 @@ class fitman:
 
                     # errors and visualization are by default off in run_fits
                     self.run_single_fit(p1, p2, p3, cost_func, sub_pixels, optimization_profile, min_method=min_method,
-                                        verbose_graphics=False, get_errors=get_errors)
+                                        verbose_graphics=False, get_errors=get_errors, pass_results=pass_results)
 
 
     def run_single_fit(self, p1, p2=None, p3=None, cost_func='chi2', sub_pixels=1,
                        optimization_profile='default', min_method='L-BFGS-B',
-                       verbose_graphics=False, get_errors=False):
+                       verbose_graphics=False, get_errors=False, pass_results=False):
 
         assert isinstance(self.mm_pattern, MedipixMatrix)
         # each input is a range of patterns to fit
@@ -266,7 +272,7 @@ class fitman:
             raise ValueError('cost_func not valid. Use chi2 or ml')
 
         ft = self._build_fits_obj(cost_func, optimization_profile, min_method, sub_pixels,
-                                  p1, p2, p3)
+                                  p1, p2, p3, pass_results=pass_results)
 
         ft.verbose_graphics = verbose_graphics
 
@@ -283,6 +289,8 @@ class fitman:
         elif ft.results['fun'] < self.min_value:
            self.best_fit = ft
            self.min_value = ft.results['fun']
+
+        self.last_fit = ft
 
 
     def save_output(self, filename, save_figure=False):
