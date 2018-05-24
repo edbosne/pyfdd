@@ -99,8 +99,9 @@ class fitman:
                     p0 += (self.mm_pattern.angle,)
                 elif key == 'total_cts':
                     patt = self.mm_pattern.matrixOriginal.copy()
-                    counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
-                    p0 += (counts_ordofmag,)
+                    #counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
+                    counts= patt.sum()
+                    p0 += (counts,)
                 elif key == 'sigma':
                     p0 += (0.1,)
                 else:
