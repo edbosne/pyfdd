@@ -89,6 +89,7 @@ class fitman:
         p_fix = ()
         p0_pass = pass_results and self.last_fit is not None
         p0_last = self.last_fit.results['x'] if p0_pass else None
+        print('p0_last', p0_last)
         p0_last_i = 0
         for key in self.keys:
             if key in self.fixed_values:
@@ -109,10 +110,11 @@ class fitman:
                     p0 += (p0_last[p0_last_i],) if p0_pass else (0.1,)
                 else:
                     # assuming a pattern fraction
-                    p0 += (p0_last[p0_last_i],) if p0_pass else (0.15,)
+                    p0 += (p0_last[p0_last_i],) if p0_pass and p0_last_i<len(p0_last) else (0.15,)
                 p_fix += (False,)
                 if p0_pass:
                     p0_last_i += 1
+        print('p0',p0,'\np_fix', p_fix)
         return p0, p_fix
 
     def _build_fits_obj(self, cost_func='chi2', optimization_profile='default', min_method='L-BFGS-B',
