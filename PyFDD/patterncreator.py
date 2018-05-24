@@ -197,6 +197,8 @@ class PatternCreator:
         self._pattern_current = new_pattern.copy()
 
     def _gaussian_conv(self, sigma=0):
+        if sigma < 0:
+            sigma = 0
         if sigma == 0:
             return
         assert self._xstep_original == self._ystep_original, 'Simulations steps are not the same in x and y'

@@ -274,7 +274,10 @@ class fitman:
 
         self._fill_results_dict(ft, cost_func, get_errors, p1, p2, p3)
 
-        if ft.results['fun'] < self.min_value or self.min_value is None:
+        if self.min_value is None:
+            self.best_fit = ft
+            self.min_value = ft.results['fun']
+        elif ft.results['fun'] < self.min_value:
            self.best_fit = ft
            self.min_value = ft.results['fun']
 
