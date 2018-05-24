@@ -203,7 +203,8 @@ class PatternCreator:
             return
         assert self._xstep_original == self._ystep_original, 'Simulations steps are not the same in x and y'
         sigma_pix = sigma / self._xstep_original
-        self._pattern_current = gaussian_filter(self._pattern_current, sigma_pix)
+        # Truncating at 4 causes that some fits are unstable. Chose 2 to be faster.
+        self._pattern_current = gaussian_filter(self._pattern_current, sigma_pix, truncate=2)
 
     def _rotate(self, ang=0):
         # Rotation
