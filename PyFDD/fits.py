@@ -114,7 +114,7 @@ class fits:
         self.parameters_dict['f_p3']['scale'] = f_p3
 
     def set_bound_values(self, dx=(-3, +3), dy=(-3, +3), phi=(None, None),
-                         total_cts=(0, None), sigma=(0, None),
+                         total_cts=(1, None), sigma=(0.01, None),
                          f_p1=(0, 1), f_p2=(0, 1), f_p3=(0, 1)):
         # parameter keys 'dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3'
         self.parameters_dict['dx']['bounds'] = dx
