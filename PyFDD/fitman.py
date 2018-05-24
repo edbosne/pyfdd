@@ -125,9 +125,12 @@ class fitman:
         ft.set_data_pattern(xmesh, ymesh, patt)
 
         # ignore similar patterns
+        p1_fit = p2_fit = p3_fit = None
         p1_fit = p1
-        p2_fit = p2 if not p2 == p1 else None
-        p3_fit = p3 if not (p3 == p1 or p3 == p2) else None
+        if p2 is not None:
+            p2_fit = p2 if not p2 == p1 else None
+        if p3 is not None:
+            p3_fit = p3 if not (p3 == p1 or p3 == p2) else None
         ft.set_patterns_to_fit(p1_fit, p2_fit, p3_fit)
 
         p0, p0_fix = self._get_initial_values()
