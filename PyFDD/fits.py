@@ -189,6 +189,24 @@ class fits:
                 p0 += (temp_p0,)
         return np.array(p0)
 
+    def _get_bounds(self):
+        # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
+        bnds = ()
+
+        for key in self._parameters_order:
+            if self.parameters_dict[key]['use']:
+                if self.parameters_dict[key]['bounds'](0) is not None
+                    temp_0 += self.parameters_dict[key]['bounds'](0) / self.parameters_dict[key]['scale']
+                else:
+                    temp_0 = None
+                if self.parameters_dict[key]['bounds'](1) is not None
+                    temp_1 += self.parameters_dict[key]['bounds'](1) / self.parameters_dict[key]['scale']
+                else:
+                    temp_1 = None
+                bnds += ((temp_0,temp_1),)
+        #print('bnds - ', bnds)
+        return bnds
+
     def set_data_pattern(self, XXmesh, YYmesh, pattern):
         self.XXmesh = XXmesh.copy()
         self.YYmesh = YYmesh.copy()
@@ -444,11 +462,8 @@ class fits:
         #print('p0 - ', p0)
 
         # Parameter bounds
-        bnds = ()
-        for key in self._parameters_order:
-            if self.parameters_dict[key]['use']:
-                bnds += (self.parameters_dict[key]['bounds'],)
-        #print('bnds - ', bnds)
+        bnds = self._get_bounds()
+
 
         # get patterns
         simulations = ()
