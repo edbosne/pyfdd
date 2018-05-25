@@ -114,7 +114,7 @@ class fits:
         self.parameters_dict['f_p3']['scale'] = f_p3
 
     def set_bound_values(self, dx=(-3, +3), dy=(-3, +3), phi=(None, None),
-                         total_cts=(0, None), sigma=(0, None),
+                         total_cts=(1, None), sigma=(0.01, None),
                          f_p1=(0, 1), f_p2=(0, 1), f_p3=(0, 1)):
         # parameter keys 'dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3'
         self.parameters_dict['dx']['bounds'] = dx
@@ -163,11 +163,11 @@ class fits:
                 self._ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
                 self._chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
             elif profile == 'default':
-                self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-8, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
+                self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-9, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
                 self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
             elif profile == 'fine':
                 # use default eps with fine
-                self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-10, 'maxcor':100, 'eps':1e-6}
+                self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-12, 'maxcor':100, 'eps':1e-6}
                 self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
             else:
                 raise ValueError('profile value should be set to: coarse, default or fine.')
@@ -188,6 +188,24 @@ class fits:
                 temp_p0 = self.parameters_dict[key]['p0'] / self.parameters_dict[key]['scale']
                 p0 += (temp_p0,)
         return np.array(p0)
+
+    def _get_bounds(self):
+        # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
+        bnds = ()
+
+        for key in self._parameters_order:
+            if self.parameters_dict[key]['use']:
+                if self.parameters_dict[key]['bounds'][0] is not None:
+                    temp_0 = self.parameters_dict[key]['bounds'][0] / self.parameters_dict[key]['scale']
+                else:
+                    temp_0 = None
+                if self.parameters_dict[key]['bounds'][1] is not None:
+                    temp_1 = self.parameters_dict[key]['bounds'][1] / self.parameters_dict[key]['scale']
+                else:
+                    temp_1 = None
+                bnds += ((temp_0,temp_1),)
+        #print('bnds - ', bnds)
+        return bnds
 
     def set_data_pattern(self, XXmesh, YYmesh, pattern):
         self.XXmesh = XXmesh.copy()
@@ -444,11 +462,8 @@ class fits:
         #print('p0 - ', p0)
 
         # Parameter bounds
-        bnds = ()
-        for key in self._parameters_order:
-            if self.parameters_dict[key]['use']:
-                bnds += (self.parameters_dict[key]['bounds'],)
-        #print('bnds - ', bnds)
+        bnds = self._get_bounds()
+
 
         # get patterns
         simulations = ()

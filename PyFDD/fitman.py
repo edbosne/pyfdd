@@ -104,8 +104,9 @@ class fitman:
                     p0 += (p0_last[p0_last_i],) if p0_pass else (self.mm_pattern.angle,)
                 elif key == 'total_cts':
                     patt = self.mm_pattern.matrixOriginal.copy()
-                    counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
-                    p0 += (p0_last[p0_last_i],) if p0_pass else (counts_ordofmag,)
+                    #counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
+                    counts= patt.sum()
+                    p0 += (counts,)
                 elif key == 'sigma':
                     p0 += (p0_last[p0_last_i],) if p0_pass else (0.1,)
                 else:
@@ -279,6 +280,7 @@ class fitman:
         ft.verbose_graphics = verbose_graphics
 
         ft.minimize_cost_function(cost_func)
+        print(ft.results)
 
         if get_errors:
             ft.get_std_from_hessian(ft.results['x'], func='cost_func')
