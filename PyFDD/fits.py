@@ -163,11 +163,11 @@ class fits:
                 self._ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
                 self._chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
             elif profile == 'default':
-                self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-8, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
+                self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-9, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
                 self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
             elif profile == 'fine':
                 # use default eps with fine
-                self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-10, 'maxcor':100, 'eps':1e-6}
+                self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-12, 'maxcor':100, 'eps':1e-6}
                 self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
             else:
                 raise ValueError('profile value should be set to: coarse, default or fine.')
@@ -195,12 +195,12 @@ class fits:
 
         for key in self._parameters_order:
             if self.parameters_dict[key]['use']:
-                if self.parameters_dict[key]['bounds'](0) is not None
-                    temp_0 += self.parameters_dict[key]['bounds'](0) / self.parameters_dict[key]['scale']
+                if self.parameters_dict[key]['bounds'][0] is not None:
+                    temp_0 = self.parameters_dict[key]['bounds'][0] / self.parameters_dict[key]['scale']
                 else:
                     temp_0 = None
-                if self.parameters_dict[key]['bounds'](1) is not None
-                    temp_1 += self.parameters_dict[key]['bounds'](1) / self.parameters_dict[key]['scale']
+                if self.parameters_dict[key]['bounds'][1] is not None:
+                    temp_1 = self.parameters_dict[key]['bounds'][1] / self.parameters_dict[key]['scale']
                 else:
                     temp_1 = None
                 bnds += ((temp_0,temp_1),)

@@ -272,6 +272,7 @@ class fitman:
         ft.verbose_graphics = verbose_graphics
 
         ft.minimize_cost_function(cost_func)
+        print(ft.results)
 
         if get_errors:
             ft.get_std_from_hessian(ft.results['x'], func='cost_func')
