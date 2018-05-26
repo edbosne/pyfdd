@@ -167,7 +167,7 @@ class fits:
                 self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
             elif profile == 'fine':
                 # use default eps with fine
-                self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':300, 'ftol':1e-12, 'maxcor':100, 'eps':1e-6}
+                self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-12, 'maxcor':100, 'eps':1e-6}
                 self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
             else:
                 raise ValueError('profile value should be set to: coarse, default or fine.')

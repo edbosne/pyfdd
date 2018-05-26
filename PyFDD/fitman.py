@@ -87,9 +87,12 @@ class fitman:
         #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         p0 = ()
         p_fix = ()
-        p0_pass = pass_results and self.last_fit is not None
-        p0_last = self.last_fit.results['x'] if p0_pass else None
-        print('p0_last', p0_last)
+        p0_pass = pass_results \
+                  and self.last_fit is not None \
+                  and self.last_fit.results['success']
+        # starting too close from a minimum can cause errors so 1e-5 is added
+        p0_last = self.last_fit.results['x'] + 1e-5 if p0_pass else None
+        #print('p0_last', p0_last)
         p0_last_i = 0
         for key in self.keys:
             if key in self.fixed_values:
@@ -115,7 +118,7 @@ class fitman:
                 p_fix += (False,)
                 if p0_pass:
                     p0_last_i += 1
-        print('p0',p0,'\np_fix', p_fix)
+        #print('p0',p0,'\np_fix', p_fix)
         return p0, p_fix
 
     def _build_fits_obj(self, cost_func='chi2', optimization_profile='default', min_method='L-BFGS-B',
@@ -280,7 +283,7 @@ class fitman:
         ft.verbose_graphics = verbose_graphics
 
         ft.minimize_cost_function(cost_func)
-        print(ft.results)
+        #print(ft.results)
 
         if get_errors:
             ft.get_std_from_hessian(ft.results['x'], func='cost_func')
