@@ -150,14 +150,14 @@ class fitman:
         append_dic = {}
         if cost_func == 'chi2':
             counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
-            ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag,
+            ft.set_scale_values(dx=1, dy=1, phi=50, total_cts=counts_ordofmag,
                                 sigma=1, f_p1=1, f_p2=1, f_p3=1)
             ft.set_inicial_values(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6], p0[7])
             ft.fix_parameters(p0_fix[0], p0_fix[1], p0_fix[2], p0_fix[3], p0_fix[4], p0_fix[5],
                               p0_fix[6], p0_fix[7])
 
         if cost_func == 'ml':
-            ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1,
+            ft.set_scale_values(dx=1, dy=1, phi=50, total_cts=-1,
                                 sigma=1, f_p1=1, f_p2=1, f_p3=1)
             ft.set_inicial_values(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6], p0[7])
             ft.fix_parameters(p0_fix[0], p0_fix[1], p0_fix[2], p0_fix[3], p0_fix[4], p0_fix[5],
