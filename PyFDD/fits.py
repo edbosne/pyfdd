@@ -52,6 +52,7 @@ class fits:
         self._init_parameters_dict()
         self._parameters_order = ('dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3')
         self._pattern_keys = ('pattern_1', 'pattern_2', 'pattern_3')
+        self._fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-8, 'maxcor': 100}
         self._ml_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-8,'maxcor': 100}
         self._chi2_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-4, 'maxcor': 100}
         self._minimization_method = 'L-BFGS-B'
@@ -150,27 +151,16 @@ class fits:
         else:
             self.parameters_dict['f_p3']['use'] = False
 
+    def set_fit_options(self, options):
 
-    def set_optimization_profile(self,profile='default',min_method='L-BFGS-B'):
-        # Using a coarse profile will lead to faster results and less optimized. tought sometimes it is also smoother
-        # Using a fine profile can lead to rounding errors and jumping to other minima which causes artifacts
-        # default eps is 1e-8 this, sometimes, is too small to correctly get the derivative of phi
-        self._minimization_method = min_method
-        if min_method == 'L-BFGS-B':
-            if profile == 'coarse':
-                # if even with coarse the fit hangs consider other techniques for better fitting
-                # likelihood values are orders of mag bigger than chi2, so they need smaller ftol
-                self._ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
-                self._chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
-            elif profile == 'default':
-                self._ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-9, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
-                self._chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
-            elif profile == 'fine':
-                # use default eps with fine
-                self._ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-12, 'maxcor':100, 'eps':1e-6}
-                self._chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
-            else:
-                raise ValueError('profile value should be set to: coarse, default or fine.')
+        if not isinstance(options, dict):
+            raise ValueError('options must be of type dict')
+
+        for key in options.keys():
+            self._fit_options[key] = options[key]
+
+    def set_sub_pixels(self, sub_pixels):
+        self.parameters_dict['sub_pixels']['value'] = sub_pixels
 
     def _get_p0_scale(self):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3

@@ -41,7 +41,7 @@ for i in range(len(filenames)):
     print('Fitting ', filename, '\nwith ', library)
 
     fm = fitman()
-    fm.add_pattern(filename, library)
+    fm.set_pattern(filename, library)
     P1 = np.array((1,))
     #P2 = np.array((129,)) #129 GaN best fit
     P2 = np.arange(1,249) # 249 max

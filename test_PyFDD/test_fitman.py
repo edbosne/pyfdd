@@ -29,9 +29,15 @@ if __name__ == '__main__':
     lib = lib2dl("/home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl")
     mm = make_tpx_pattern(lib)
 
-    fm = fitman()
-    fm.add_pattern(mm, lib)
-    P1 = np.arange(1, 249)  # last 248 set to 249
-    fm.set_fixed_values(dx=0, dy=0, phi=0, sigma=0.1)  # pad=0.094, tpx=0.064
-    fm.run_fits(P1, cost_func='ml')
+    fm = fitman(cost_function='chi2', sub_pixels=1)
+    fm.set_pattern(mm, lib)
+    fm.set_fixed_values(dx=0, dy=0, sigma=0.1)  # pad=0.094, tpx=0.064
+    fm.set_bounds(phi=(-20,20))
+    fm.set_scale(phi=10)
+    fm.set_initial_values(phi=0.5)
+    fm.set_minimization_settings(profile='fine')
+
+    # last 248 set to 249
+    P1 = np.arange(1, 249)
+    fm.run_fits(P1, pass_results=False, verbose=1)
     fm.save_output('tpx_1site_fixed-orientation_test.csv', save_figure=False)
