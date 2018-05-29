@@ -121,14 +121,14 @@ class fitman:
         assert isinstance(ft, fits)
         print('\n')
         print('Fit settings')
-        print('Cost function \t\t-', self._cost_function)
+        print('Cost function       -', self._cost_function)
         print('Minimization method -', self._minimization_method)
-        print('Fit option profile \t-', self._fit_options_profile)
-        print('Fit options \t\t-', self._fit_options)
-        print('Sub pixels \t\t\t-', self._sub_pixels)
+        print('Fit option profile  -', self._fit_options_profile)
+        print('Fit options         -', self._fit_options)
+        print('Sub pixels          -', self._sub_pixels)
         print('\nParameter settings')
         print('{:<16}{:<16}{:<16}{:<16}{:<16}'.format('Name', 'Inicial Value', 'Fixed', 'Bounds', 'Scale'))
-        string_temp = '{:<16}{:<16}{:<16}{:<16}{:<16}'
+        string_temp = '{:<16}{:<16.2f}{:<16}{:<16}{:<16}'
         for key in self.keys:
             # {'p0':None, 'value':None, 'use':False, 'std':None, 'scale':1, 'bounds':(None,None)}
             print(string_temp.format(
