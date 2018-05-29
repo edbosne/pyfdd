@@ -53,8 +53,6 @@ class fits:
         self._parameters_order = ('dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3')
         self._pattern_keys = ('pattern_1', 'pattern_2', 'pattern_3')
         self._fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-8, 'maxcor': 100}
-        self._ml_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-8,'maxcor': 100}
-        self._chi2_fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-4, 'maxcor': 100}
         self._minimization_method = 'L-BFGS-B'
 
         self.verbose_graphics = False
@@ -469,17 +467,14 @@ class fits:
                                                 mask_out_of_range = False)
 
         # defining cost function and get options
-        functiodns = {}
         if cost_func == 'chi2':
             function = self.chi_square_call
-            all_options = self._chi2_fit_options
         elif cost_func == 'ml':
             function = self.log_likelihood_call
-            all_options = self._ml_fit_options
 
         # select method
         res = op.minimize(function, p0, args=True, method=self._minimization_method, bounds=bnds, \
-                          options=all_options)  # 'eps': 0.0001, L-BFGS-B
+                          options=self._fit_options)  # 'eps': 0.0001, L-BFGS-B
         # minimization with cobyla also seems to be a good option with {'rhobeg':1e-1/1e-2} . but it is unconstrained
         di = 0
         for key in self._parameters_order:
