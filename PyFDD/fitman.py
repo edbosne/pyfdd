@@ -63,13 +63,13 @@ class fitman:
         # total_cts is overwriten with values from the data pattern
         self._scale = {'dx':1, 'dy':1, 'phi':50, 'total_cts':None,
                        'sigma':1, 'f_p1':1, 'f_p2':1, 'f_p3':1}
+        self._bounds = {'dx': (-3, +3), 'dy': (-3, +3), 'phi': (None, None), 'total_cts': (1, None),
+                         'sigma': (0.01, None), 'f_p1': (0, 1), 'f_p2': (0, 1), 'f_p3': (0, 1)}
 
         # Fit parameters settings
         # overwrite defaults from fits
         self.p_initial_values = {}
         self.p_fixed_values = {}
-        self.p_bounds = {}
-        self.p_scale  = {}
 
         # order of columns in results
         self.columns = \
@@ -178,7 +178,7 @@ class fitman:
             if key in self.keys:
                 if not isinstance(kwargs[key], tuple) or len(kwargs[key]) != 2:
                     raise (ValueError, 'Bounds must be a tuple of length 2.')
-                self.p_bounds[key] = kwargs[key]
+                self._bounds[key] = kwargs[key]
             else:
                 raise (ValueError, 'key word ' + key + 'is not recognized!' +
                        '\n Valid keys are, \'dx\',\'dy\',\'phi\',\'total_cts\',\'sigma\',\'f_p1\',\'f_p2\',\'f_p3\'')
@@ -193,7 +193,7 @@ class fitman:
         #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         for key in kwargs.keys():
             if key in self.keys:
-                self.p_scale[key] = kwargs[key]
+                self._scale[key] = kwargs[key]
             else:
                 raise (ValueError, 'key word ' + key + 'is not recognized!' +
                        '\n Valid keys are, \'dx\',\'dy\',\'phi\',\'total_cts\',\'sigma\',\'f_p1\',\'f_p2\',\'f_p3\'')
@@ -303,19 +303,16 @@ class fitman:
         scale = ()
         for key in self.keys:
             # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
-            if key in self.p_scale.keys():
-                scale += (self.p_scale[key],)
+            # total_cts is a spacial case at it uses the counts from the pattern
+            if key == 'total_cts':
+                if self._cost_function == 'chi2':
+                    patt = self.mm_pattern.matrixCurrent
+                    counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
+                    scale += (counts_ordofmag,)
+                elif self._cost_function == 'ml':
+                    scale += (-1,)
             else:
-                # total_cts is a spacial case at it uses the counts from the pattern
-                if key == 'total_cts':
-                    if self._cost_function == 'chi2':
-                        patt = self.mm_pattern.matrixCurrent
-                        counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
-                        scale += (counts_ordofmag,)
-                    elif self._cost_function == 'ml':
-                        scale += (-1,)
-                else:
-                    scale += (self._scale[key],)
+                scale += (self._scale[key],)
         return scale
 
     def _build_fits_obj(self, p1=None, p2=None, p3=None, verbose_graphics=False, pass_results=False):
@@ -357,9 +354,15 @@ class fitman:
 
         ft.set_scale_values(dx=scale[0], dy=scale[1], phi=scale[2], total_cts=scale[3],
                             sigma=scale[4], f_p1=scale[5], f_p2=scale[6], f_p3=scale[7])
+
         ft.set_inicial_values(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6], p0[7])
+
         ft.fix_parameters(p0_fix[0], p0_fix[1], p0_fix[2], p0_fix[3], p0_fix[4], p0_fix[5],
                           p0_fix[6], p0_fix[7])
+
+        ft.set_bound_values(dx=self._bounds['dx'], dy=self._bounds['dy'], phi=self._bounds['phi'],
+                            total_cts=self._bounds['total_cts'], sigma=self._bounds['sigma'],
+                            f_p1=self._bounds['f_p1'], f_p2=self._bounds['f_p2'], f_p3=self._bounds['f_p3'])
 
         return ft
 

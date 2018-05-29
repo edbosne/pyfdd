@@ -518,7 +518,7 @@ class fits:
             f = lambda xx: self.chi_square_call(xx, enable_scale)
         else:
             raise ValueError('undefined function, should be likelihood or chi_square')
-        H = nd.Hessian(f)  # ,step=1e-9)
+        H = nd.Hessian(f, step=1e-4)
         hh = H(x)
         if func == 'ml':
             hh_inv = np.linalg.inv(hh)
