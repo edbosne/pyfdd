@@ -61,7 +61,7 @@ class fitman:
         self.set_minimization_settings()
         self._sub_pixels = sub_pixels
         # total_cts is overwriten with values from the data pattern
-        self._scale = {'dx':1, 'dy':1, 'phi':50, 'total_cts':None,
+        self._scale = {'dx':1, 'dy':1, 'phi':1, 'total_cts':1,
                        'sigma':1, 'f_p1':1, 'f_p2':1, 'f_p3':1}
         self._bounds = {'dx': (-3, +3), 'dy': (-3, +3), 'phi': (None, None), 'total_cts': (1, None),
                          'sigma': (0.01, None), 'f_p1': (0, 1), 'f_p2': (0, 1), 'f_p3': (0, 1)}
@@ -183,11 +183,12 @@ class fitman:
                 raise (ValueError, 'key word ' + key + 'is not recognized!' +
                        '\n Valid keys are, \'dx\',\'dy\',\'phi\',\'total_cts\',\'sigma\',\'f_p1\',\'f_p2\',\'f_p3\'')
 
-    def set_scale(self, **kwargs):
+    def set_step_modifier(self, **kwargs):
         '''
-        Set the scale to be used for a parameter.
-        If a scale of 10 is used for parameter foo the fit will use foo/10 for fittting.
-        Results are scalled back 1.
+        Set a step modifier value for a parameter.
+        If a modifier of 10 is used for parameter P the fit will try step 10x the default step.
+        For the L-BFGS-B minimization method the default steps are 1 for each value exept for the total counts
+        that is the order of magnitude of the counts in the data pattern
         :param kwargs: possible arguments are 'dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3'
         '''
         #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
@@ -308,7 +309,7 @@ class fitman:
                 if self._cost_function == 'chi2':
                     patt = self.mm_pattern.matrixCurrent
                     counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
-                    scale += (counts_ordofmag,)
+                    scale += (counts_ordofmag / self._scale[key],)
                 elif self._cost_function == 'ml':
                     scale += (-1,)
             else:

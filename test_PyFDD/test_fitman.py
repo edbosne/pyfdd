@@ -33,7 +33,7 @@ if __name__ == '__main__':
     fm.set_pattern(mm, lib)
     fm.set_fixed_values(dx=0, dy=0, sigma=0.1)  # pad=0.094, tpx=0.064
     fm.set_bounds(phi=(-20,20))
-    fm.set_scale(phi=10)
+    fm.set_step_modifier(phi=10)
     fm.set_initial_values(phi=0.5)
     fm.set_minimization_settings(profile='fine')
 
