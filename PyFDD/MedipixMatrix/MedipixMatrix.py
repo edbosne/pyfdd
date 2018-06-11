@@ -376,13 +376,35 @@ class MedipixMatrix:
 
     # ===== - Mask Methods - =====
 
-    def load_mask(self,filename):
+    def load_mask(self, filename, expand_by=0):
         mask = np.loadtxt(filename)
+        self._espand_mask(mask, expand_by)
         self.matrixCurrent.mask = (mask == 1)
 
-    def set_mask(self, mask):
+    def set_mask(self, mask, expand_by=0):
         mask = np.array(mask)
+        self._espand_mask(mask, expand_by)
         self.matrixCurrent.mask = mask
+
+    def _espand_mask(self, mask, expand_by=0):
+        '''
+        masks pixels that are adjacent to masked pixels up to a distance of expand_by.
+        :param mask:
+        :param expand_by:
+        :return:
+        '''
+
+        if not isinstance(expand_by, int):
+            raise ValueError('expand_by must be an int')
+
+        kernel = np.ones((expand_by * 2 + 1))
+        nr, nc = mask.shape
+        for r in range(nr):
+            mask[r, :] = np.convolve(mask[r, :], kernel, 'same')
+
+        for c in range(nc):
+            mask[:, c] = np.convolve(mask[:, c], kernel, 'same')
+        return mask
 
     def mask_limits(self,limits=None):
         assert isinstance(self.matrixCurrent, ma.MaskedArray)
