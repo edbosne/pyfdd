@@ -227,15 +227,15 @@ class fitman:
 
             if profile == 'coarse':
                 # likelihood values are orders of mag bigger than chi2, so they need smaller ftol
-                ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-6}
-                chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
+                ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-5}
+                chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-5}
             elif profile == 'default':
-                ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-9, 'maxcor':100, 'eps':1e-6} #maxfun to 200 prevents memory problems
-                chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-6}
+                ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-9, 'maxcor':100, 'eps':1e-5} #maxfun to 200 prevents memory problems
+                chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-5}
             elif profile == 'fine':
                 # use default eps with fine
-                ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-12, 'maxcor':100, 'eps':1e-6}
-                chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7,  'maxcor':100, 'eps':1e-6}
+                ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-12, 'maxcor':100, 'eps':1e-5}
+                chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7,  'maxcor':100, 'eps':1e-5}
             else:
                 raise ValueError('profile value should be set to: coarse, default or fine.')
 
@@ -309,7 +309,7 @@ class fitman:
                 if self._cost_function == 'chi2':
                     patt = self.mm_pattern.matrixCurrent
                     counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
-                    scale += (counts_ordofmag / self._scale[key],)
+                    scale += (counts_ordofmag * self._scale[key],)
                 elif self._cost_function == 'ml':
                     scale += (-1,)
             else:
