@@ -493,7 +493,7 @@ class fitman:
             print(ft.results)
 
         if get_errors:
-            ft.get_std_from_hessian(ft.results['x'], func='cost_func')
+            ft.get_std_from_hessian(ft.results['x'], func=self._cost_function)
 
         self._fill_results_dict(ft, get_errors, p1, p2, p3)
 
