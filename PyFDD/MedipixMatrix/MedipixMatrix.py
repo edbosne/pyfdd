@@ -614,7 +614,7 @@ class MedipixMatrix:
         assert isinstance(axes, plt.Axes)
         self.ax = axes
 
-        colormap = kwargs.get('colormap', 'spectral_r')  # PiYG #coolwarm #spectral
+        colormap = kwargs.get('colormap', 'jet')  # PiYG #coolwarm #spectral
         n_color_bins = kwargs.get('n_color_bins', 10)
         smooth_fwhm = kwargs.get('smooth_fwhm', 0)
         percentiles = kwargs.get('percentiles', (0.01, 0.99))

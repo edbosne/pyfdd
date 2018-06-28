@@ -59,7 +59,7 @@ def test_MedipixMatrix():
     # Plotting
     f2 = plt.figure(2)
     ax2 = plt.subplot('111')
-    mm2.draw(ax2, percentiles=(0.01, 0.99))
+    mm2.draw(ax2, percentiles=(0.03, 0.99))
 
     # get rectangle
     #mm2.get_rectangle_tool()
@@ -80,7 +80,7 @@ def test_MedipixMatrix():
 
     f2 = plt.figure(2)
     ax2 = plt.subplot('111')
-    mm2.draw(ax2, percentiles=(0.01, 0.99))
+    mm2.draw(ax2, percentiles=(0.1, 0.95))
     plt.show()
     #mm2.io_save_json('/home/eric/Desktop/jsontest.json')
 
@@ -122,5 +122,5 @@ def test_compress():
 
 
 if __name__ == '__main__':
-    #test_MedipixMatrix()
-    test_compress()
+    test_MedipixMatrix()
+    #test_compress()
