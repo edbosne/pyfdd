@@ -432,7 +432,7 @@ class fitman:
 #cost_func='chi2', sub_pixels=1,
 #                    optimization_profile='default', min_method='L-BFGS-B',
 
-    def run_fits(self, *args, pass_results=False, verbose=1):
+    def run_fits(self, *args, pass_results=False, verbose=1, get_errors=False):
         '''
         Run fits for a list of sites.
         :param args: list of patterns for each site. Up to tree sites are possible
@@ -459,8 +459,8 @@ class fitman:
             for p2 in patterns_list[1]:
                 for p3 in patterns_list[2]:
 
-                    # errors and visualization are by default off in run_fits
-                    self._single_fit(p1, p2, p3, verbose=verbose, pass_results=pass_results)
+                    # visualization is by default off in run_fits
+                    self._single_fit(p1, p2, p3, verbose=verbose, pass_results=pass_results, get_errors=get_errors)
 
     def run_single_fit(self, p1, p2=None, p3=None, verbose=1,
                        verbose_graphics=False, get_errors=False):
