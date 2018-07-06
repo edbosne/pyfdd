@@ -1,6 +1,6 @@
 
-from PyFDD import lib2dl, PatternCreator, MedipixMatrix, fitman
-from PyFDD.patterncreator import create_detector_mesh
+from pyfdd import lib2dl, PatternCreator, MedipixMatrix, fitman
+from pyfdd.patterncreator import create_detector_mesh
 
 import numpy as np
 import matplotlib.pyplot as plt

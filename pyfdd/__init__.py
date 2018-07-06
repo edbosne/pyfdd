@@ -1,5 +1,5 @@
 """
-PyFDD package
+pyfdd package
 """
 
 from .fits import fits

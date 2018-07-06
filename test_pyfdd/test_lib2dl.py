@@ -1,7 +1,7 @@
 
 
-from PyFDD import lib2dl
-from PyFDD.lib2dl import read2dl
+from pyfdd import lib2dl
+from pyfdd.lib2dl import read2dl
 
 import matplotlib.pyplot as plt
 

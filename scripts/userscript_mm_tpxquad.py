@@ -8,7 +8,7 @@ __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
 
-from PyFDD import MedipixMatrix
+from pyfdd import MedipixMatrix
 import os
 import matplotlib.pyplot as plt
 

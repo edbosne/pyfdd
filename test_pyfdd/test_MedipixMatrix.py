@@ -1,6 +1,6 @@
 
 
-from PyFDD import MedipixMatrix
+from pyfdd import MedipixMatrix
 import numpy as np
 import matplotlib.pyplot as plt
 

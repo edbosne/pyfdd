@@ -7,7 +7,7 @@ user script for making medipix matrices
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
-from PyFDD import fitman
+from pyfdd import fitman
 
 import os
 import numpy as np

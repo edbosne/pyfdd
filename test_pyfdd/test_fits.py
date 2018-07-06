@@ -1,5 +1,5 @@
-from PyFDD import lib2dl, fits, MedipixMatrix, PatternCreator
-from PyFDD.fits import create_detector_mesh
+from pyfdd import lib2dl, fits, MedipixMatrix, PatternCreator
+from pyfdd.fits import create_detector_mesh
 
 import math
 import numpy as np
