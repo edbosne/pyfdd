@@ -8,18 +8,18 @@
 
 - Only library files of type lib2dl are supported
 
-- Use medipix matrix to prepare the data
+- Use DataPattern class to prepare the data
 
-- Use fit or FitManager for fitting
+- Use FitManager for fitting
 
 
 ## Structure
 
-- The DataPattern class is the data class. It holds the measured patter, angular calibration and the necessary tools for edition.
+- The DataPattern class holds the pattern from the measurement, the angular calibration and has the necessary tools to set up the pattern for fitting.
 
 - The lib2dl class reads 2dl libraries and puts them in the format that is necessary for the fit.
 
-- The Fit class does the Fit. If one need to do one single fit for testing this class can be used but for regular analysis the FitManager class is advised.
+- The Fit class does the fit. If one need to do one single fit for testing this class can be used but for regular analysis the FitManager class is advised.
 
 - The FitManager is the general purpose fit class and the most used in practice. It can fit a pattern over several lattice sites and outputs the results in a .csv file that can be opened with excel.
 

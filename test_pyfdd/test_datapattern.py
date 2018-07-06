@@ -4,7 +4,7 @@ from pyfdd import DataPattern
 import numpy as np
 import matplotlib.pyplot as plt
 
-def test_MedipixMatrix():
+def test_datapattern():
     print('Step by step example of using DataPattern')
 
     # Create DataPattern from array
@@ -122,5 +122,5 @@ def test_compress():
 
 
 if __name__ == '__main__':
-    test_MedipixMatrix()
+    test_datapattern()
     #test_compress()

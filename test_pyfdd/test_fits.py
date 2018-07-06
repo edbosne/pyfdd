@@ -90,7 +90,6 @@ def test_ml_fit(lib, xmesh, ymesh, patt):
     ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1, f_p1=1, f_p2=1)
     ft.set_inicial_values(-1, 0.5, 0, -1, sigma=0.1)
     ft.fix_parameters(False, False, False, False, False, False, False, False)
-    ft.set_optimization_profile('fine')
     # ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, -1, sigma=0.1)
     ft.maximize_likelyhood()
     print(ft.results)
@@ -110,7 +109,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     test_chi2_min = False
-    test_likelihood_max = False
+    test_likelihood_max = True
 
     lib = lib2dl(lib_path)
 
