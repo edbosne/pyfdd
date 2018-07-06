@@ -24,7 +24,7 @@ from scipy.ndimage import gaussian_filter
 
 
 class Fit:
-    def __init__(self,lib):
+    def __init__(self,lib, verbose_graphics=False):
         assert isinstance(lib,lib2dl)
         self.lib = lib
         # self.pattern_1_n = 0
@@ -55,7 +55,7 @@ class Fit:
         self._fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-8, 'maxcor': 100}
         self._minimization_method = 'L-BFGS-B'
 
-        self.verbose_graphics = False
+        self.verbose_graphics = verbose_graphics
         self.verbose_graphics_ax = None
         self.verbose_graphics_fg = None
 

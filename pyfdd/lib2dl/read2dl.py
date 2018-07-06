@@ -55,7 +55,8 @@ class read2dl:
         index = 0
 
         if fileContent[0] == 75:
-            print("2dl file opened")
+            pass
+            #print("2dl file opened")
         else:
             print("this is not a 2dl file")
             return

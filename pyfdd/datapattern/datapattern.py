@@ -130,11 +130,13 @@ class DataPattern:
     - Angular calibration (ang_);
     - Draw (draw_).
     """
-    def __init__(self, file_path=None, pattern_array=None,  **kwargs):
+    def __init__(self, file_path=None, pattern_array=None, verbose = 1,  **kwargs):
         if file_path is None and pattern_array is None:
             raise ValueError('Please input a file path or a pattern array')
         if not file_path is None and not pattern_array is None:
             raise ValueError('Please input a file path or a pattern array')
+
+        self.verbose = verbose
 
         # real size of pixels between chips
         self.real_size = kwargs.get('real_size', 1)
@@ -307,7 +309,7 @@ class DataPattern:
         #matrix = DataPattern.manip_correct_central_pix(self.matrixCurrent, self.nChipsX, self.nChipsY, real_size=real_size)
         matrix = self.matrixCurrent.filled(0)
         (ny, nx) = matrix.shape
-        print(nx,ny)
+        #print(nx,ny)
         with open(filename, mode='wb') as newfile:  # b is important -> binary
             newfile.write(struct.pack("<h", nx))
             newfile.write(struct.pack("<h", ny))
@@ -453,7 +455,7 @@ class DataPattern:
         self.matrixCurrent = temp_matrix
 
     def manip_smooth(self, fwhm, matrix='Current'):
-        print("smoothing" , fwhm)
+        #print("smoothing" , fwhm)
         gauss_smooth = fwhm/2.32
         if matrix == 'Current':
             self.matrixCurrent.data[:,:] = scipy.ndimage.gaussian_filter(self.matrixCurrent.data, gauss_smooth)  #, mode='nearest')
@@ -491,7 +493,7 @@ class DataPattern:
         rm_central_pix = int(rm_central_pix)
         if rm_central_pix is not None:
             self.rm_central_pix = rm_central_pix
-        print('Number of chips - ', self.nChipsX*self.nChipsY)
+        #print('Number of chips - ', self.nChipsX*self.nChipsY)
         (ny, nx) = self.matrixCurrent.shape
         xstep = nx // self.nChipsX
         ystep = nx // self.nChipsY
@@ -558,10 +560,10 @@ class DataPattern:
                 print("warning removed edge pixels increased to ", rm_edge_pix)
 
         rm_edge_pix = int(rm_edge_pix)
-        print('rest - ',rest)
-
         final_size = int((nx - rm_edge_pix*2)/factor)
-        print('final_size',final_size)
+        if self.verbose >= 1:
+            print('rest - ', rest)
+            print('final_size',final_size)
 
         # Reshaping the matrix
         retrnArr = self.matrixCurrent.data[rm_edge_pix:ny-rm_edge_pix,rm_edge_pix:nx-rm_edge_pix]\

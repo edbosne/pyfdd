@@ -43,6 +43,7 @@ class FitManager:
         self.done_param_verbose = False
 
         # Output
+        self.verbose = 1
         self.results = None
 
         # Stored objects
@@ -93,7 +94,7 @@ class FitManager:
             if not os.path.isfile(data_pattern):
                 raise ValueError('data is a str but filepath is not valid')
             else:
-                self.mm_pattern = DataPattern(file_path=data_pattern)
+                self.mm_pattern = DataPattern(file_path=data_pattern, verbose=self.verbose)
         else:
             ValueError('data_pattern input error')
 
@@ -327,8 +328,7 @@ class FitManager:
         :return: Fit object
         '''
 
-        ft = Fit(self.lib)
-        ft.verbose_graphics = verbose_graphics
+        ft = Fit(self.lib, verbose_graphics)
 
         ft.set_sub_pixels(self._sub_pixels)
         ft.set_fit_options(self._fit_options)
