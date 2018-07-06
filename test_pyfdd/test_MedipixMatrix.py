@@ -1,34 +1,34 @@
 
 
-from pyfdd import MedipixMatrix
+from pyfdd import DataPattern
 import numpy as np
 import matplotlib.pyplot as plt
 
 def test_MedipixMatrix():
-    print('Step by step example of using MedipixMatrix')
+    print('Step by step example of using DataPattern')
 
-    # Create MedipixMatrix from array
+    # Create DataPattern from array
     pattern = np.random.poisson(1000,(22,22))
     pattern[0, 0] = 0
     pattern[0, 1] = 0
     pattern[3, 0] = 0
-    mm1 = MedipixMatrix(pattern_array=pattern)
+    mm1 = DataPattern(pattern_array=pattern)
     f1 = plt.figure(1)
     ax1 = plt.subplot('111')
     mm1.draw(ax1)
     f1.show()
     mm1.io_save_json('jsontest.json')
 
-    mm3 = MedipixMatrix(file_path='jsontest.json')
+    mm3 = DataPattern(file_path='jsontest.json')
     print('mm3 shape ', mm3.matrixCurrent.shape)
     f3 = plt.figure(3)
     ax3 = plt.subplot('111')
     mm3.draw(ax3)
     f3.show()
 
-    # Create MedipixMatrix from file
+    # Create DataPattern from file
     filename = 'pattern_d3_Npix0-20.txt'
-    mm2 = MedipixMatrix(file_path=filename,nChipsX=2,nChipsY=2,real_size=3)
+    mm2 = DataPattern(file_path=filename, nChipsX=2, nChipsY=2, real_size=3)
 
     # Manipulation methods
     # -Orient
@@ -90,19 +90,19 @@ def test_compress():
     # 256 %16
     print('\n256 %16')
     pattern = np.random.poisson(1000,(256,256))
-    mm = MedipixMatrix(pattern_array=pattern)
+    mm = DataPattern(pattern_array=pattern)
     mm.manip_compress(factor=16, rm_central_pix=0, rm_edge_pix=0)
 
     # 256 %22
     print('\n256 %22')
     pattern = np.random.poisson(1000, (256, 256))
-    mm = MedipixMatrix(pattern_array=pattern)
+    mm = DataPattern(pattern_array=pattern)
     mm.manip_compress(factor=22, rm_central_pix=0, rm_edge_pix=0)
 
     # 516 %22
     print('\n516 %22')
     pattern = np.random.poisson(1000, (516, 516))
-    mm = MedipixMatrix(pattern_array=pattern)
+    mm = DataPattern(pattern_array=pattern)
     mm.manip_compress(factor=22, rm_central_pix=0, rm_edge_pix=0)
 
     # two chips
@@ -110,13 +110,13 @@ def test_compress():
     # 512 %16
     print('\n512 %16')
     pattern = np.random.poisson(1000, (512, 512))
-    mm = MedipixMatrix(pattern_array=pattern, nChipsX=2, nChipsY=2)
+    mm = DataPattern(pattern_array=pattern, nChipsX=2, nChipsY=2)
     mm.manip_compress(factor=16, rm_central_pix=0, rm_edge_pix=0)
 
     # 512 %22
     print('\n516 %22')
     pattern = np.random.poisson(1000, (512, 512))
-    mm = MedipixMatrix(pattern_array=pattern, nChipsX=2, nChipsY=2)
+    mm = DataPattern(pattern_array=pattern, nChipsX=2, nChipsY=2)
     mm.manip_compress(factor=22, rm_central_pix=0, rm_edge_pix=0)
 
 

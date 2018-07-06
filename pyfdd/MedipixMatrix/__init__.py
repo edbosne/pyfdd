@@ -1,3 +1,0 @@
-
-
-from .MedipixMatrix import MedipixMatrix

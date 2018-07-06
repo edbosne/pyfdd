@@ -203,7 +203,7 @@ class PatternCreator:
             return
         assert self._xstep_original == self._ystep_original, 'Simulations steps are not the same in x and y'
         sigma_pix = sigma / self._xstep_original
-        # Truncating at 4 or at 2 causes that some fits are unstable. Chose 3 as intermidiate value
+        # Truncating at 4 or at 2 causes that some Fit are unstable. Chose 3 as intermidiate value
         self._pattern_current = gaussian_filter(self._pattern_current, sigma_pix, truncate=3)
 
     def _rotate(self, ang=0):

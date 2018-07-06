@@ -9,8 +9,8 @@ __email__ = 'eric.bosne@cern.ch'
 
 from .lib2dl import lib2dl
 #from patterncreator import PatternCreator, create_detector_mesh
-from .MedipixMatrix import MedipixMatrix
-from .fits import fits
+from .datapattern import DataPattern
+from .fit import Fit
 
 import pandas as pd
 import os
@@ -20,15 +20,15 @@ import matplotlib.pyplot as plt
 import warnings
 
 
-class fitman:
+class FitManager:
     '''
-    The class fitman is a helper class for using fits in pyfdd.
-    You should be able to do all standard routine analysis from fitman.
+    The class FitManager is a helper class for using Fit in pyfdd.
+    You should be able to do all standard routine analysis from FitManager.
     It also help in creating graphs, using fit options and saving results.
     '''
     def __init__(self, cost_function='chi2', sub_pixels=1):
         '''
-        fitman is a helper class for using fits in pyfdd.
+        FitManager is a helper class for using Fit in pyfdd.
         :param cost_function: The type of cost function to use. Possible values are 'chi2' for chi-square
         and 'ml' for maximum likelihood.
         :param sub_pixels: The number of subpixels to integrate during fit in x and y.
@@ -67,7 +67,7 @@ class fitman:
                          'sigma': (0.01, None), 'f_p1': (0, 1), 'f_p2': (0, 1), 'f_p3': (0, 1)}
 
         # Fit parameters settings
-        # overwrite defaults from fits
+        # overwrite defaults from Fit
         self.p_initial_values = {}
         self.p_fixed_values = {}
 
@@ -83,17 +83,17 @@ class fitman:
     def set_pattern(self, data_pattern, library):
         '''
         Set the pattern to fit.
-        :param data_pattern: path or MedipixMatrix
+        :param data_pattern: path or DataPattern
         :param library: path or lib2dl
         '''
-        if isinstance(data_pattern, MedipixMatrix):
+        if isinstance(data_pattern, DataPattern):
             # all good
             self.mm_pattern = data_pattern
         elif isinstance(data_pattern,  str):
             if not os.path.isfile(data_pattern):
                 raise ValueError('data is a str but filepath is not valid')
             else:
-                self.mm_pattern = MedipixMatrix(file_path=data_pattern)
+                self.mm_pattern = DataPattern(file_path=data_pattern)
         else:
             ValueError('data_pattern input error')
 
@@ -116,9 +116,9 @@ class fitman:
     def _print_settings(self, ft):
         '''
         prints the settings that are in use during fit
-        :param ft: fits object
+        :param ft: Fit object
         '''
-        assert isinstance(ft, fits)
+        assert isinstance(ft, Fit)
         print('\n')
         print('Fit settings')
         print('Cost function       -', self._cost_function)
@@ -276,7 +276,7 @@ class fitman:
             elif key in self.p_initial_values:
                 p0 += (self.p_initial_values[key],)
                 p_fix += (False,)
-            # Use fitman choice
+            # Use FitManager choice
             else:
                 if key == 'dx':
                     p0 += (p0_last[p0_last_i],) if p0_pass else (self.mm_pattern.center[0],)
@@ -318,16 +318,16 @@ class fitman:
 
     def _build_fits_obj(self, p1=None, p2=None, p3=None, verbose_graphics=False, pass_results=False):
         '''
-        Builds a fits object
+        Builds a Fit object
         :param p1: pattern 1
         :param p2: pattern 2
         :param p3: pattern 3
         :param verbose_graphics: plot pattern as it is being fit
         :param pass_results: argument for _get_initial_values
-        :return: fits object
+        :return: Fit object
         '''
 
-        ft = fits(self.lib)
+        ft = Fit(self.lib)
         ft.verbose_graphics = verbose_graphics
 
         ft.set_sub_pixels(self._sub_pixels)
@@ -370,7 +370,7 @@ class fitman:
 
     def _fill_results_dict(self, ft, get_errors, p1=None, p2=None, p3=None):
 
-        assert isinstance(ft, fits), "ft is not of type PyFDD.fits."
+        assert isinstance(ft, Fit), "ft is not of type PyFDD.Fit."
 
         patt = self.mm_pattern.matrixCurrent.copy()
 
@@ -434,14 +434,14 @@ class fitman:
 
     def run_fits(self, *args, pass_results=False, verbose=1, get_errors=False):
         '''
-        Run fits for a list of sites.
+        Run Fit for a list of sites.
         :param args: list of patterns for each site. Up to tree sites are possible
         :param pass_results: Use the last fit parameter results as input for the next.
         :param verbose: 0 silent, 1 default and 2 max verbose
         :return:
         '''
 
-        assert isinstance(self.mm_pattern, MedipixMatrix)
+        assert isinstance(self.mm_pattern, DataPattern)
 
         self.done_param_verbose = False
 
@@ -474,7 +474,7 @@ class fitman:
     def _single_fit(self, p1, p2=None, p3=None, get_errors=False, pass_results=False,
                     verbose=1, verbose_graphics=False):
 
-        assert isinstance(self.mm_pattern, MedipixMatrix)
+        assert isinstance(self.mm_pattern, DataPattern)
         # each input is a range of patterns to fit
         assert isinstance(verbose_graphics, bool)
         assert isinstance(get_errors, bool)

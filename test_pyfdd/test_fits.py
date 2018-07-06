@@ -1,5 +1,5 @@
-from pyfdd import lib2dl, fits, MedipixMatrix, PatternCreator
-from pyfdd.fits import create_detector_mesh
+from pyfdd import lib2dl, Fit, DataPattern, PatternCreator
+from pyfdd.fit import create_detector_mesh
 
 import math
 import numpy as np
@@ -34,7 +34,7 @@ def make_mc_pattern(lib, sites, size = 'medium'):
 
 def test_chi2_fit(lib, xmesh, ymesh, patt):
 
-    ft = fits(lib)
+    ft = Fit(lib)
     ft.verbose_graphics = True
 
     plt.figure(0)
@@ -77,7 +77,7 @@ def test_chi2_fit(lib, xmesh, ymesh, patt):
 
 def test_ml_fit(lib, xmesh, ymesh, patt):
 
-    ft = fits(lib)
+    ft = Fit(lib)
     ft.verbose_graphics = True
 
     # set a fitting routine
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     # mc
     # patt, xmesh, ymesh = make_mc_pattern(lib)
 
-    mm = MedipixMatrix(file_path=mm_path)
+    mm = DataPattern(file_path=mm_path)
     patt = mm.matrixOriginal
     xmesh = mm.xmesh
     ymesh = mm.ymesh

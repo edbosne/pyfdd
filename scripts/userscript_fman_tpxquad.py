@@ -7,7 +7,7 @@ user script for making medipix matrices
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
-from pyfdd import fitman
+from pyfdd import FitManager
 
 import os
 import numpy as np
@@ -49,7 +49,7 @@ libraries = (
     'FDD_libraries/GaN_24Na/ue567g29.2dl',  # <-1102>
     'FDD_libraries/GaN_24Na/ue725g28.2dl')  # <-2113>13>
 
-# fits
+# Fit
 
 filenames = filenames2x2
 #filenames = filenames16x16
@@ -61,7 +61,7 @@ for i in range(0, len(filenames)):
 
     print('Fitting ', filename, '\nwith ', library)
 
-    fm = fitman()
+    fm = FitManager()
     fm.set_pattern(filename, library)
     P1 = np.array((1,))
     #P2 = np.array((129,))

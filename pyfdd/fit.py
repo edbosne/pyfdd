@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 '''
-The fits object gets access to a lib2dl object and performs fits and statistical tests to data or MC simulation
+The Fit object gets access to a lib2dl object and performs Fit and statistical tests to data or MC simulation
 '''
 
 __author__ = 'E. David-Bosne'
@@ -9,7 +9,7 @@ __email__ = 'eric.bosne@cern.ch'
 
 from .lib2dl import lib2dl
 from .patterncreator import PatternCreator, create_detector_mesh
-from .MedipixMatrix import MedipixMatrix
+from .datapattern import DataPattern
 
 
 import numpy as np
@@ -23,7 +23,7 @@ from scipy.ndimage import gaussian_filter
 
 
 
-class fits:
+class Fit:
     def __init__(self,lib):
         assert isinstance(lib,lib2dl)
         self.lib = lib

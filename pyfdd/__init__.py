@@ -2,8 +2,8 @@
 pyfdd package
 """
 
-from .fits import fits
-from .fitman import fitman
+from .fit import Fit
+from .fitmanager import FitManager
 from .lib2dl import lib2dl
 from .patterncreator import PatternCreator
-from .MedipixMatrix import MedipixMatrix
+from .datapattern import DataPattern

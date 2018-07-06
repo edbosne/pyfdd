@@ -122,7 +122,7 @@ class GonioMeter:
         pass
 
 
-class MedipixMatrix:
+class DataPattern:
     """
     A class to hold a data pattern and methods for
     - Matrix manipulation (manip_);
@@ -199,7 +199,7 @@ class MedipixMatrix:
     def __add__(self, other):
 
         # verify if possible and get values
-        assert isinstance(other, MedipixMatrix),"Add object is not a MedipixMatrix"
+        assert isinstance(other, DataPattern), "Add object is not a DataPattern"
 
         #check if the shape is the same
         if not self.matrixCurrent.shape == other.matrixCurrent.shape:
@@ -211,23 +211,23 @@ class MedipixMatrix:
         #check if the number of chips is the same
         if not (self.nChipsX == other.nChipsX and
                 self.nChipsY == other.nChipsY):
-            raise ValueError("error, the MedipixMatrix have different number of chips")
+            raise ValueError("error, the DataPattern have different number of chips")
 
         # check if the real size of central pixels is the same
         if not (self.real_size == other.real_size):
-            raise ValueError("error, the MedipixMatrix have different real size of central pixels")
+            raise ValueError("error, the DataPattern have different real size of central pixels")
 
         #check if the mesh is the same
         if not (np.allclose(self.xmesh, other.xmesh) and
                 np.allclose(self.ymesh, other.ymesh)):
-            raise ValueError("error, the MedipixMatrix have different angular mesh")
+            raise ValueError("error, the DataPattern have different angular mesh")
 
         new_xmesh = self.xmesh
         new_ymesh = self.ymesh
 
         # Create new MM
-        new_mm = MedipixMatrix(pattern_array=new_pattern,
-                               nChipsX=self.nChipsX, nChipsY=self.nChipsY, real_size=self.real_size)
+        new_mm = DataPattern(pattern_array=new_pattern,
+                             nChipsX=self.nChipsX, nChipsY=self.nChipsY, real_size=self.real_size)
         new_mm.xmesh = new_xmesh
         new_mm.ymesh = new_ymesh
         new_mm.matrixOriginal.mask = new_pattern_mask
@@ -304,7 +304,7 @@ class MedipixMatrix:
         :param filename: is the name or full path to the file
         :return:
         """
-        #matrix = MedipixMatrix.manip_correct_central_pix(self.matrixCurrent, self.nChipsX, self.nChipsY, real_size=real_size)
+        #matrix = DataPattern.manip_correct_central_pix(self.matrixCurrent, self.nChipsX, self.nChipsY, real_size=real_size)
         matrix = self.matrixCurrent.filled(0)
         (ny, nx) = matrix.shape
         print(nx,ny)

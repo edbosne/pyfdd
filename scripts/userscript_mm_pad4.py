@@ -8,12 +8,12 @@ __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
 
-from pyfdd import MedipixMatrix
+from pyfdd import DataPattern
 import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Create MedipixMatrix from file
+# Create DataPattern from file
 filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/PAD/RT/-1101/vat2857a.2db'
 filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/PAD/RT/-1102/vat2859a.2db'
 filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/PAD/RT/-2113/vat2861a.2db'
@@ -21,7 +21,7 @@ filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/PAD/800C/-1101/
 filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/PAD/800C/-1102/vat2864a.2db'
 filename = '/home/eric/cernbox/Channeling_analysis/2015_GaN_24Na/PAD/800C/-2113/vat2863a.2db'
 basename, extention = os.path.splitext(filename)
-mm2 = MedipixMatrix(file_path=filename)
+mm2 = DataPattern(file_path=filename)
 
 # Manipulation methods
 # -Orient

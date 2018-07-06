@@ -1,5 +1,5 @@
 
-from pyfdd import lib2dl, PatternCreator, MedipixMatrix, fitman
+from pyfdd import lib2dl, PatternCreator, DataPattern, FitManager
 from pyfdd.patterncreator import create_detector_mesh
 
 import numpy as np
@@ -19,7 +19,7 @@ def make_tpx_pattern(lib, patterns=(1,), name = 'temp_tpx.json'):
     print(pattern.sum())
 
     # create medipix matrix
-    mm = MedipixMatrix(pattern_array=pattern)
+    mm = DataPattern(pattern_array=pattern)
     mm.manip_create_mesh(pixel_size=0.055, distance=300)
 
     return mm
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     lib = lib2dl("/home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl")
     mm = make_tpx_pattern(lib)
 
-    fm = fitman(cost_function='chi2', sub_pixels=1)
+    fm = FitManager(cost_function='chi2', sub_pixels=1)
     fm.set_pattern(mm, lib)
     fm.set_fixed_values(dx=0, dy=0, sigma=0.1)  # pad=0.094, tpx=0.064
     fm.set_bounds(phi=(-20,20))
