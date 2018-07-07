@@ -427,8 +427,8 @@ class DataPattern:
         hist = MpxHist(self.matrixCurrent)
         condition = ((self.matrixCurrent <= hist.mean - std * hist.std) | \
                      (self.matrixCurrent >= hist.mean + std * hist.std))
-        mask = ma.masked_where( condition, self.matrixCurrent)
-        self.matrixCurrent = self._espand_mask(mask, expand_by)
+        mask = self._espand_mask(condition, expand_by)
+        self.matrixCurrent = ma.masked_where(mask==1, self.matrixCurrent)
 
     # ===== - Matrix Manipulation Methods - =====
 
