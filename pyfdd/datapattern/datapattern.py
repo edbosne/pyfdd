@@ -401,12 +401,13 @@ class DataPattern:
 
         kernel = np.ones((expand_by * 2 + 1))
         nr, nc = mask.shape
+        new_mask = mask.copy()
         for r in range(nr):
-            mask[r, :] = np.convolve(mask[r, :], kernel, 'same')
+            new_mask[r, :] = np.convolve(new_mask[r, :], kernel, 'same')
 
         for c in range(nc):
-            mask[:, c] = np.convolve(mask[:, c], kernel, 'same')
-        return mask
+            new_mask[:, c] = np.convolve(new_mask[:, c], kernel, 'same')
+        return new_mask
 
     def mask_limits(self,limits=None):
         assert isinstance(self.matrixCurrent, ma.MaskedArray)
@@ -422,11 +423,12 @@ class DataPattern:
 
         self.matrixCurrent = ma.masked_where(condition, self.matrixCurrent)
 
-    def mask_std(self, std=6):
+    def mask_std(self, std=6, expand_by=0):
         hist = MpxHist(self.matrixCurrent)
         condition = ((self.matrixCurrent <= hist.mean - std * hist.std) | \
                      (self.matrixCurrent >= hist.mean + std * hist.std))
-        self.matrixCurrent = ma.masked_where( condition, self.matrixCurrent)
+        mask = ma.masked_where( condition, self.matrixCurrent)
+        self.matrixCurrent = self._espand_mask(mask, expand_by)
 
     # ===== - Matrix Manipulation Methods - =====
 
