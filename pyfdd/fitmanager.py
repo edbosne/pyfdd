@@ -78,7 +78,8 @@ class FitManager:
              'counts', 'counts_err', 'sigma', 'sigma_err',
              'site1 n', 'p1', 'site1 description', 'site1 factor', 'site1 u2', 'site1 fraction', 'fraction1_err',
              'site2 n', 'p2', 'site2 description', 'site2 factor', 'site2 u2', 'site2 fraction', 'fraction2_err',
-             'site3 n', 'p3', 'site3 description', 'site3 factor', 'site3 u2', 'site3 fraction', 'fraction3_err']
+             'site3 n', 'p3', 'site3 description', 'site3 factor', 'site3 u2', 'site3 fraction', 'fraction3_err',
+             'success']
         self.df = pd.DataFrame(data=None, columns=self.columns)
 
     def set_pattern(self, data_pattern, library):
@@ -379,6 +380,7 @@ class FitManager:
         parameter_dict = ft.parameters_dict.copy()
         append_dic = {}
         append_dic['value'] = ft.results['fun']
+        append_dic['success'] = ft.results['success']
         append_dic['D.O.F.'] = np.sum(~patt.mask)
         append_dic['x'] = parameter_dict['dx']['value']
         append_dic['y'] = parameter_dict['dy']['value']
@@ -421,6 +423,7 @@ class FitManager:
             append_dic['fraction3_err'] = parameter_dict['f_p3']['std'] if p3 is not None and \
                                                                                 not (p3 == p1 or p3 == p2) \
                                                                                 else np.nan
+
 
         # print('append_dic ', append_dic)
         self.df = self.df.append(append_dic, ignore_index=True)

@@ -38,6 +38,6 @@ if __name__ == '__main__':
     fm.set_minimization_settings(profile='fine')
 
     # last 248 set to 249
-    P1 = np.arange(1, 249)
+    P1 = np.arange(1, 5)#249)
     fm.run_fits(P1, pass_results=False, verbose=1)
     fm.save_output('tpx_1site_fixed-orientation_test.csv', save_figure=False)
