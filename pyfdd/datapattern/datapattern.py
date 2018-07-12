@@ -416,17 +416,25 @@ class DataPattern:
             new_mask[:, c] = np.convolve(new_mask[:, c], kernel, 'same')
         return new_mask
 
-    def mask_limits(self,limits=None):
-        assert isinstance(self.matrixCurrent, ma.MaskedArray)
-        if limits is None:
-            if self.rectangle_limits is not None:
-                limits = self.rectangle_limits
-            else:
-                raise ValueError('Limits not set')
-        if len(limits) != 4:
-            raise ValueError('limits need length 4')
-        condition = ((limits[0] >= self.xmesh) | (self.xmesh >= limits[1]) |
-                     (limits[2] >= self.ymesh) | (self.ymesh >= limits[3]))
+    def set_fit_region(self, distance=2.9, center=None, angle=None):
+        if center is None:
+            center = self.center
+        if angle is None:
+            angle = self.angle
+
+        if len(center) != 2:
+            raise ValueError('center must be of length 2.')
+
+        angle = angle * np.pi / 180
+        v1 = np.array([np.cos(angle), np.sin(angle)])
+        v2 = np.array([np.sin(angle), -np.cos(angle)])
+
+        xy = np.stack([self.xmesh - center[0], self.ymesh - center[1]], axis=-1)
+
+        distance1 = np.dot(xy, v1)
+        distance2 = np.dot(xy, v2)
+
+        condition = ((distance1 > distance) | (distance2 > distance))
 
         self.matrixCurrent = ma.masked_where(condition, self.matrixCurrent)
 

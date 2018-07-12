@@ -76,14 +76,15 @@ def test_datapattern():
     print('angle widget, center ', mm2.center, ', angle ', mm2.angle)
 
     # mask array
-    mm2.mask_limits(limits=(mm2.center[0]-2.8, mm2.center[0]+2.8, mm2.center[1]-2.8, mm2.center[1]+2.8))
+    #mm2.mask_limits(limits=(mm2.center[0]-2.8, mm2.center[0]+2.8, mm2.center[1]-2.8, mm2.center[1]+2.8))
+    mm2.set_fit_region(distance=2.5)
 
     f2 = plt.figure(2)
     ax2 = plt.subplot('111')
     mm2.draw(ax2, percentiles=(0.1, 0.95))
     plt.show()
     #mm2.io_save_json('/home/eric/Desktop/jsontest.json')
-    mm2.io_save_ascii('asciitest.txt', ignore_mask=True)
+    #mm2.io_save_ascii('asciitest.txt', ignore_mask=True)
 
 def test_compress():
     # one chip
