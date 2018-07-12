@@ -44,14 +44,14 @@ def test_datapattern():
     # Add extra pixels to account for bigger central pixels
     mm2.manip_correct_central_pix()
 
+    # -Mask pixels
+    mm2.mask_std(4, 0)
+
     # -Sum pixels, zero central pixels and remove edge pixels all in one
     mm2.manip_compress(factor=2, rm_central_pix=2, rm_edge_pix=4)
 
     # Smooth
     #mm2.manip_smooth(2.0)
-
-    # -Mask pixels
-    mm2.mask_std(6)
 
     # Save
     mm2.io_save_ascii('/home/eric/Desktop/test.txt')
@@ -59,7 +59,7 @@ def test_datapattern():
     # Plotting
     f2 = plt.figure(2)
     ax2 = plt.subplot('111')
-    mm2.draw(ax2, percentiles=(0.03, 0.99))
+    mm2.draw(ax2, percentiles=(0.03, 0.99), blank_masked=True)
 
     # get rectangle
     #mm2.get_rectangle_tool()

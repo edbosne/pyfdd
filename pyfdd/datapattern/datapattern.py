@@ -614,14 +614,17 @@ class DataPattern:
         return 2 * math.degrees(math.atan(side / (2 * distance)))
 
     # ===== - Draw Methods - =====
-    def draw(self, axes, **kwargs):
+    def draw(self, axes, percentiles=(0.01, 0.99), blank_masked=True, **kwargs):
+
+        if len(percentiles) != 2:
+            raise ValueError("percentiles must be of length 2, for example (0.01, 0.99)")
+
         assert isinstance(axes, plt.Axes)
         self.ax = axes
 
         colormap = kwargs.get('colormap', 'jet')  # PiYG #coolwarm #spectral
         n_color_bins = kwargs.get('n_color_bins', 10)
         smooth_fwhm = kwargs.get('smooth_fwhm', 0)
-        percentiles = kwargs.get('percentiles', (0.01, 0.99))
         plot_type = kwargs.get('plot_type', 'pixels') #pixels or contour
 
         if not self.matrixCurrent.shape == self.xmesh.shape or not self.matrixCurrent.shape == self.ymesh.shape:
@@ -634,6 +637,15 @@ class DataPattern:
         if not smooth_fwhm <= 0:
             self.manip_smooth(smooth_fwhm, matrix='Drawable')
 
+        if blank_masked is False:
+            self.matrixDrawable.mask = 0
+            if self.nChipsX > 1 and self.real_size > 1:
+                half = (np.array(self.matrixDrawable.shape)/2).astype(np.int)
+                print([half[0]-(self.real_size-1),half[0]-(self.real_size-1)])
+                self.matrixDrawable.mask[half[0] - (self.real_size-1):half[0] + (self.real_size-1), :] = True
+                self.matrixDrawable.mask[:, half[1] - (self.real_size - 1):half[1] + (self.real_size - 1)] = True
+
+        print(self.matrixDrawable.mask.sum())
         imgCmap = ml.cm.get_cmap(colormap)
 
         self.hist = MpxHist(self.matrixDrawable)
