@@ -18,6 +18,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import warnings
+import collections
 
 
 class FitManager:
@@ -468,6 +469,13 @@ class FitManager:
     def run_single_fit(self, p1, p2=None, p3=None, verbose=1,
                        verbose_graphics=False, get_errors=False):
 
+        if isinstance(p1, (np.ndarray, collections.Sequence)) and len(p1) == 1:
+            p1 = p1[0]
+        if isinstance(p2, (np.ndarray, collections.Sequence)) and len(p2) == 1:
+            p2 = p2[0]
+        if isinstance(p2, (np.ndarray, collections.Sequence)) and len(p3) == 1:
+            p3 = p3[0]
+
         self.done_param_verbose = False
 
         self._single_fit(p1, p2, p3, get_errors=get_errors, pass_results=False,
@@ -476,11 +484,18 @@ class FitManager:
 
     def _single_fit(self, p1, p2=None, p3=None, get_errors=False, pass_results=False,
                     verbose=1, verbose_graphics=False):
+        if not isinstance(p1, (int, np.integer)):
+            raise ValueError('p1 needs to be an int')
+        if p2 is not None and not isinstance(p2, (int, np.integer)):
+            raise ValueError('p2 needs to be an int')
+        if p3 is not None and not isinstance(p3, (int, np.integer)):
+            raise ValueError('p3 needs to be an int')
 
-        assert isinstance(self.mm_pattern, DataPattern)
+
         # each input is a range of patterns to fit
         assert isinstance(verbose_graphics, bool)
         assert isinstance(get_errors, bool)
+        assert isinstance(self.mm_pattern, DataPattern)
 
         ft = self._build_fits_obj(p1, p2, p3, verbose_graphics, pass_results=pass_results)
 

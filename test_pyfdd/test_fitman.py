@@ -40,4 +40,6 @@ if __name__ == '__main__':
     # last 248 set to 249
     P1 = np.arange(1, 5)#249)
     fm.run_fits(P1, pass_results=False, verbose=1)
-    fm.save_output('tpx_1site_fixed-orientation_test.csv', save_figure=False)
+    p1 = np.array([2])
+    fm.run_single_fit(p1)
+    #fm.save_output('tpx_1site_fixed-orientation_test.csv', save_figure=False)
