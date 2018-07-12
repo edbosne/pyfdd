@@ -39,6 +39,7 @@ def create_detector_mesh(n_h_pixels, n_v_pixels, pixel_size, distance):
     xmesh, ymesh = np.meshgrid(x,y)
     return xmesh, ymesh
 
+
 class MpxHist:
     """
     Class to hold some useful methods for dealing with histograms in Medipix program
