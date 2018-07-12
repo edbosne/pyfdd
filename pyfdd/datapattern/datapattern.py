@@ -266,9 +266,6 @@ class DataPattern:
         else:
             raise ValueError('Unknown requested file type extension')
 
-    def io_save(self, filename):
-        pass
-
     def __io_load_ascii(self):
         """
         loads an ascii file containing a matrix
@@ -276,13 +273,18 @@ class DataPattern:
         self.matrixOriginal = ma.array(data=np.loadtxt(os.path.join(self.path_in, self.filename_in)), mask=False)
         (self.ny, self.nx) = self.matrixOriginal.shape
 
-    def io_save_ascii(self, filename):
+    def io_save_ascii(self, filename, ignore_mask=False):
         """
         saves the current matrix to an ascii file
         :param filename: is the name or full path to the file
+        :param ignore_mask: if True data values are saved instead of a zero where the mask is on
         :return:
         """
-        np.savetxt(filename, self.matrixCurrent.filled(0), "%d")
+        if ignore_mask:
+            matrix = self.matrixCurrent.data
+        else:
+            matrix = self.matrixCurrent.filled(0)
+        np.savetxt(filename, matrix, "%d")
 
     def __io_load_origin(self):
         """
@@ -300,14 +302,19 @@ class DataPattern:
         temp = struct.unpack(self.ny*self.nx*"f", self.fileContent[5:5+self.ny*self.nx*float_sz])
         self.matrixOriginal = ma.array(data=np.array(temp).reshape((self.ny,self.nx)), mask=False)
 
-    def io_save_origin(self, filename):
+    def io_save_origin(self, filename, ignore_mask=False):
         """
         saves the current matrix to an 2db file
         :param filename: is the name or full path to the file
+        :param ignore_mask: if True data values are saved instead of a zero where the mask is on
         :return:
         """
         #matrix = DataPattern.manip_correct_central_pix(self.matrixCurrent, self.nChipsX, self.nChipsY, real_size=real_size)
-        matrix = self.matrixCurrent.filled(0)
+        if ignore_mask:
+            matrix = self.matrixCurrent.data
+        else:
+            matrix = self.matrixCurrent.filled(0)
+
         (ny, nx) = matrix.shape
         #print(nx,ny)
         with open(filename, mode='wb') as newfile:  # b is important -> binary

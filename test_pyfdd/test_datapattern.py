@@ -83,6 +83,7 @@ def test_datapattern():
     mm2.draw(ax2, percentiles=(0.1, 0.95))
     plt.show()
     #mm2.io_save_json('/home/eric/Desktop/jsontest.json')
+    mm2.io_save_ascii('asciitest.txt', ignore_mask=True)
 
 def test_compress():
     # one chip
