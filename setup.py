@@ -2,8 +2,8 @@ from distutils.core import setup
 
 setup(
     name='pyfdd',
-    version='0.01',
-    packages=['pyfdd', 'pyfdd.lib2dl', 'pyfdd.datapattern', 'pyfdd.datapattern.CustomWidgets', 'scripts', 'my_scripts',
+    version='0.1',
+    packages=['pyfdd', 'pyfdd.lib2dl', 'pyfdd.datapattern', 'pyfdd.datapattern.CustomWidgets', 'scripts',
               'test_pyfdd', 'ecsli_tools'],
     install_requires=[
           'numpy', 'matplotlib', 'scipy', 'numdifftools', 'pandas'],
