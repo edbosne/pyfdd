@@ -4,13 +4,25 @@
 ## General usage notes
 ===========================
 
-- PyFDD is a software for fitting channeling data for lattice location
+- PyFDD is a software for fitting channeling data for lattice location;
 
-- Only library files of type lib2dl are supported
+- Only library files of type lib2dl are supported;
 
-- Use DataPattern class to prepare the data
+- Use DataPattern class to prepare the data;
 
-- Use FitManager for fitting
+- Use FitManager for fitting;
+
+- Use the explamples from ./scripts to start building applications.
+
+
+## Instalation
+
+Tu use PyFDD you must first have python3 and pip installed. If you download python from python.org and use a version 
+\>=3.4 it will come with pip.
+
+To install PyFDD run,
+
+> $ pip3 install git+https://github.com/eric-presbitero/pyfdd.git#egg=pyfdd
 
 
 ## Structure
