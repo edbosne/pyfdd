@@ -25,7 +25,7 @@ mm2 = DataPattern(file_path=filename)
 
 # Manipulation methods
 # -Orient
-mm2.manip_orient('rr')  # PAD4 orientation
+mm2.manip_orient('rr')  # PAD6 orientation
 
 # -Mask pixels
 mask = np.zeros(mm2.matrixOriginal.shape)
