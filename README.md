@@ -12,12 +12,12 @@
 
 - Use FitManager for fitting;
 
-- Use the explamples from ./scripts to start building applications.
+- Use the examples from ./examples to start building applications.
 
 
 ## Instalation
 
-Tu use PyFDD you must first have python3 and pip installed. If you download python from python.org and use a version 
+To use PyFDD you must first have python3 and pip installed. If you download python from python.org and use a version
 \>=3.4 it will come with pip.
 
 To install PyFDD run,
@@ -47,4 +47,4 @@ email.: eric.bosne@cern.ch
 
 
 ## Licence
-PyFDD is open source under a GPL3 licence. Please look at the LICENCE.txt file for more info.
+PyFDD is open source under a GPL3 license. Please look at the LICENCE.txt file for more info.
