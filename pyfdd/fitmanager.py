@@ -64,8 +64,8 @@ class FitManager:
         self.set_minimization_settings()
         self._sub_pixels = sub_pixels
         # total_cts is overwriten with values from the data pattern
-        self._scale = {'dx':1, 'dy':1, 'phi':1, 'total_cts':1,
-                       'sigma':1, 'f_p1':1, 'f_p2':1, 'f_p3':1}
+        self._scale = {'dx':.01, 'dy':.01, 'phi':0.10, 'total_cts':0.01,
+                       'sigma':.001, 'f_p1':.01, 'f_p2':.01, 'f_p3':.01}
         self._bounds = {'dx': (-3, +3), 'dy': (-3, +3), 'phi': (None, None), 'total_cts': (1, None),
                          'sigma': (0.01, None), 'f_p1': (0, 1), 'f_p2': (0, 1), 'f_p3': (0, 1)}
 
