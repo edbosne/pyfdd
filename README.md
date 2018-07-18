@@ -24,6 +24,9 @@ To install PyFDD run,
 
 > $ pip3 install git+https://github.com/eric-presbitero/pyfdd.git#egg=pyfdd
 
+If you will be using it in jupyter, and you should, you can install it with
+> $ pip3 install jupyter
+
 
 ## Structure
 
