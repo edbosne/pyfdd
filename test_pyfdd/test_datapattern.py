@@ -50,6 +50,9 @@ def test_datapattern():
     # -Sum pixels, zero central pixels and remove edge pixels all in one
     mm2.manip_compress(factor=2, rm_central_pix=2, rm_edge_pix=4)
 
+    # Load previously set mask
+    #mm2.load_mask('test_masksave.txt')
+
     # Smooth
     #mm2.manip_smooth(2.0)
 
@@ -82,7 +85,15 @@ def test_datapattern():
     f2 = plt.figure(2)
     ax2 = plt.subplot('111')
     mm2.draw(ax2, percentiles=(0.1, 0.95))
+    mm2.get_rectangle_mask_tool()
     plt.show()
+
+    f2 = plt.figure(2)
+    ax2 = plt.subplot('111')
+    mm2.draw(ax2, percentiles=(0.1, 0.95))
+    plt.show()
+    mm2.save_mask('test_masksave.txt')
+
     #mm2.io_save_json('/home/eric/Desktop/jsontest.json')
     #mm2.io_save_ascii('asciitest.txt', ignore_mask=True)
 

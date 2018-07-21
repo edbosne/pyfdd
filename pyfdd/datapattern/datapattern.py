@@ -323,13 +323,21 @@ class DataPattern:
 
     def load_mask(self, filename, expand_by=0):
         mask = np.loadtxt(filename)
-        self._espand_mask(mask, expand_by)
+        if mask.shape != self.matrixCurrent.shape:
+            raise ValueError('Shape of mask in file does not match the shape of DataPattern')
+        print(mask.shape, self.matrixCurrent.shape, mask)
+        #self._espand_mask(mask, expand_by)
         self.matrixCurrent.mask = (mask == 1)
 
     def set_mask(self, mask, expand_by=0):
         mask = np.array(mask)
+        if mask.shape != self.matrixCurrent.shape:
+            raise ValueError('Shape of mask does not match the shape of DataPattern')
         self._espand_mask(mask, expand_by)
         self.matrixCurrent.mask = mask
+
+    def save_mask(self, filename):
+        np.savetxt(filename, self.matrixCurrent.mask == 0, fmt='%i')
 
     def _espand_mask(self, mask, expand_by=0):
         '''
@@ -636,12 +644,19 @@ class DataPattern:
 
     def onselect_RS(self, eclick, erelease):
         'eclick and erelease are matplotlib events at press and release'
-        self.rectangle_limits = (eclick.xdata, erelease.xdata, eclick.ydata, erelease.ydata)
+        self.rectangle_limits = np.array([eclick.xdata, erelease.xdata, eclick.ydata, erelease.ydata])
         self.RS = None
+        print('rectangle -',self.rectangle_limits)
+        condition = ((self.xmesh <= self.rectangle_limits[1]) &
+                     (self.xmesh >= self.rectangle_limits[0]) &
+                     (self.ymesh <= self.rectangle_limits[3]) &
+                     (self.ymesh >= self.rectangle_limits[2]))
+        self.matrixCurrent = ma.masked_where(condition, self.matrixCurrent)
 
-    def get_rectangle_tool(self):
+    def get_rectangle_mask_tool(self):
         if self.ax is None:
             raise ValueError('No axes are defined')
         self.rectangle_limits = None
         self.RS = RectangleSelector(self.ax, self.onselect_RS, drawtype='box')
+
 
