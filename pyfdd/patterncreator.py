@@ -304,7 +304,8 @@ class PatternCreator:
             # sum over extra pixels, normalization here is redundant
             temp_pattern = temp_pattern.reshape([y_final_size, factor, x_final_size, factor]).sum(3).sum(1)
         temp_pattern = ma.array(data=temp_pattern, mask=self.mask)
-        temp_pattern = temp_pattern / temp_pattern.sum() * total_events # number of events
+        temp_pattern = temp_pattern.data / temp_pattern.sum() * total_events # number of events
+        temp_pattern = ma.array(data=temp_pattern, mask=self.mask)
         if self.mask_out_of_range:
             self._pattern_current = ma.masked_equal(temp_pattern, 0)
         else:

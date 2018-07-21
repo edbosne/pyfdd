@@ -561,7 +561,7 @@ class FitManager:
     def get_pattern_from_last_fit(self):
         fit_obj = self.last_fit
         assert isinstance(fit_obj, Fit)
-        print(fit_obj.sim_pattern.data)
+        #print(fit_obj.sim_pattern.data)
         dp = DataPattern(pattern_array=fit_obj.sim_pattern.data)
         dp.xmesh = fit_obj.XXmesh
         dp.ymesh = fit_obj.YYmesh
@@ -571,13 +571,13 @@ class FitManager:
     def get_pattern_from_best_fit(self):
         fit_obj = self.best_fit
         assert isinstance(fit_obj, Fit)
-        print(fit_obj.sim_pattern.data)
+        #print(fit_obj.sim_pattern.data)
         dp = DataPattern(pattern_array=fit_obj.sim_pattern.data)
         dp.xmesh = fit_obj.XXmesh
         dp.ymesh = fit_obj.YYmesh
         dp.set_mask(fit_obj.sim_pattern.mask)
         return dp
 
-    def get_data_pattern(self):
+    def get_datapattern(self):
         return copy.copy(self.mm_pattern)
 

@@ -53,8 +53,10 @@ class MpxHist:
     def get_percentiles_bins(self, percentiles):
         lowbin = bis.bisect(self.normalized_integral, percentiles[0], lo=1, hi=len(self.normalized_integral))-1
         highbin = bis.bisect(self.normalized_integral, percentiles[1])
-        lowtick = np.floor(self.bin_edges[lowbin]*10)/10.0
-        hightick = np.ceil(self.bin_edges[highbin]*10)/10.0
+        p10_low = 10**(1 - int(math.floor(math.log10(abs(self.bin_edges[lowbin])))))
+        p10_high = 10**(1 - int(math.floor(math.log10(abs(self.bin_edges[highbin])))))
+        lowtick = np.floor(self.bin_edges[lowbin]*p10_low)/p10_low
+        hightick = np.ceil(self.bin_edges[highbin]*p10_high)/p10_high
         return lowtick, hightick
 
 
@@ -600,7 +602,7 @@ class DataPattern:
             self.matrixDrawable.mask = 0
             if self.nChipsX > 1 and self.real_size > 1:
                 half = (np.array(self.matrixDrawable.shape)/2).astype(np.int)
-                print([half[0]-(self.real_size-1),half[0]-(self.real_size-1)])
+                #print([half[0]-(self.real_size-1),half[0]-(self.real_size-1)])
                 self.matrixDrawable.mask[half[0] - (self.real_size-1):half[0] + (self.real_size-1), :] = True
                 self.matrixDrawable.mask[:, half[1] - (self.real_size - 1):half[1] + (self.real_size - 1)] = True
 
@@ -609,6 +611,7 @@ class DataPattern:
 
         self.hist = MpxHist(self.matrixDrawable)
         lowtick, hightick = self.hist.get_percentiles_bins(percentiles)
+        print('lowtick, hightick', lowtick, hightick)
 
         if plot_type == 'contour':
             levels = ml.ticker.MaxNLocator(nbins=n_color_bins).tick_values(lowtick, hightick)

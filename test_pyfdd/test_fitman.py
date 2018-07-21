@@ -51,6 +51,6 @@ if __name__ == '__main__':
     print(fm.df)
     plt.figure()
     ax = plt.subplot(111)
-    fm.get_data_pattern().draw(ax)
+    fm.get_datapattern().draw(ax)
     #fm.save_output('tpx_1site_fixed-orientation_test.csv', save_figure=False)
     plt.show(block=True)
