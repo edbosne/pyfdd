@@ -452,7 +452,7 @@ class FitManager:
 
         patterns_list = ()
         for ar in args:
-            patterns_list += (np.array(ar),)
+            patterns_list += (np.atleast_1d(np.array(ar)),)
         assert len(patterns_list) >= 1
 
         if len(patterns_list) == 1:
