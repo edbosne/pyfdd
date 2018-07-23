@@ -138,7 +138,6 @@ class DataPattern:
         self.rectangle_limits = None
         self.RS = None
 
-
     def __add__(self, other):
 
         # verify if possible and get values
@@ -164,6 +163,27 @@ class DataPattern:
         if not (np.allclose(self.xmesh, other.xmesh) and
                 np.allclose(self.ymesh, other.ymesh)):
             raise ValueError("error, the DataPattern have different angular mesh")
+
+        new_xmesh = self.xmesh
+        new_ymesh = self.ymesh
+
+        # Create new MM
+        new_mm = DataPattern(pattern_array=new_pattern,
+                             nChipsX=self.nChipsX, nChipsY=self.nChipsY, real_size=self.real_size)
+        new_mm.xmesh = new_xmesh
+        new_mm.ymesh = new_ymesh
+        new_mm.matrixOriginal.mask = new_pattern_mask
+        new_mm.matrixCurrent.mask = new_pattern_mask
+
+        return new_mm
+
+    def __mul__(self, other):
+
+        # other needs to be a float
+        other = np.float(other)
+
+        new_pattern = self.matrixCurrent.data * other
+        new_pattern_mask = self.matrixCurrent.mask.copy()
 
         new_xmesh = self.xmesh
         new_ymesh = self.ymesh
@@ -578,13 +598,21 @@ class DataPattern:
         return 2 * math.degrees(math.atan(side / (2 * distance)))
 
     # ===== - Draw Methods - =====
-    def draw(self, axes, percentiles=(0.01, 0.99), blank_masked=True, **kwargs):
-
-        if len(percentiles) != 2:
-            raise ValueError("percentiles must be of length 2, for example (0.01, 0.99)")
+    def draw(self, axes, blank_masked=True, **kwargs):
 
         assert isinstance(axes, plt.Axes)
         self.ax = axes
+
+        ticks = None
+        percentiles = None
+        if 'ticks' in kwargs.keys():
+            ticks = kwargs.get('ticks')
+            if len(ticks) != 2:
+                raise ValueError("ticks must be of length 2 with the colormap limits, for example [0.8, 2]")
+        else:
+            percentiles = kwargs.get('percentiles', [0.01, 0.99])
+            if len(percentiles) != 2:
+                raise ValueError("percentiles must be of length 2, for example [0.01, 0.99]")
 
         colormap = kwargs.get('colormap', 'jet')  # PiYG #coolwarm #spectral
         n_color_bins = kwargs.get('n_color_bins', 10)
@@ -611,10 +639,10 @@ class DataPattern:
 
         print(self.matrixDrawable.mask.sum())
         imgCmap = ml.cm.get_cmap(colormap)
-
-        self.hist = MpxHist(self.matrixDrawable)
-        lowtick, hightick = self.hist.get_percentiles_bins(percentiles)
-        #print('lowtick, hightick', lowtick, hightick)
+        if ticks is not None:
+            lowtick, hightick = ticks
+        else:
+            lowtick, hightick = self.get_ticks(percentiles)
 
         if plot_type == 'contour':
             levels = ml.ticker.MaxNLocator(nbins=n_color_bins).tick_values(lowtick, hightick)
@@ -665,4 +693,9 @@ class DataPattern:
         self.rectangle_limits = None
         self.RS = RectangleSelector(self.ax, self.onselect_RS, drawtype='box')
 
-
+    def get_ticks(self, percentiles):
+        if len(percentiles) != 2:
+            raise ValueError("percentiles must be of length 2, for example [0.01, 0.99]")
+        self.hist = MpxHist(self.matrixCurrent)
+        lowtick, hightick = self.hist.get_percentiles_bins(percentiles)
+        return lowtick, hightick

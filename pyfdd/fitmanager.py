@@ -558,26 +558,60 @@ class FitManager:
             fig.savefig(base_name + '_sim-data.png')
             plt.close(fig)
 
-    def get_pattern_from_last_fit(self):
+    def _get_sim_normalization_factor(self, normalization, pattern_type):
+        total_counts = np.sum(self.mm_pattern.matrixCurrent)
+        num_pix = np.sum(~self.mm_pattern.matrixCurrent.mask)
+        norm_factor = None
+        if normalization is None:
+            norm_factor = 1
+        elif normalization == 'counts':
+            if pattern_type == 'chi2' or pattern_type == 'data':
+                norm_factor = 1
+            elif pattern_type == 'ml':
+                norm_factor = total_counts
+        elif normalization == 'yield':
+            if pattern_type == 'chi2' or pattern_type == 'data':
+                norm_factor = num_pix / total_counts
+            elif pattern_type == 'ml':
+                norm_factor = num_pix
+        elif normalization == 'probability':
+            if  pattern_type == 'chi2' or pattern_type == 'data':
+                norm_factor = 1 / total_counts
+            elif pattern_type == 'ml':
+                norm_factor = 1
+        else:
+            raise ValueError('normalization needs to be, None, \'counts\', \'yield\' or \'probability\'')
+        return norm_factor
+
+    def get_pattern_from_last_fit(self, normalization=None):
         fit_obj = self.last_fit
         assert isinstance(fit_obj, Fit)
         #print(fit_obj.sim_pattern.data)
+
+        norm_factor = self._get_sim_normalization_factor(normalization, pattern_type=self._cost_function)
+
         dp = DataPattern(pattern_array=fit_obj.sim_pattern.data)
         dp.xmesh = fit_obj.XXmesh
         dp.ymesh = fit_obj.YYmesh
         dp.set_mask(fit_obj.sim_pattern.mask)
-        return dp
+        return dp * norm_factor
 
-    def get_pattern_from_best_fit(self):
+    def get_pattern_from_best_fit(self, normalization=None):
         fit_obj = self.best_fit
         assert isinstance(fit_obj, Fit)
         #print(fit_obj.sim_pattern.data)
+
+        norm_factor = self._get_sim_normalization_factor(normalization, pattern_type=self._cost_function)
+
         dp = DataPattern(pattern_array=fit_obj.sim_pattern.data)
         dp.xmesh = fit_obj.XXmesh
         dp.ymesh = fit_obj.YYmesh
         dp.set_mask(fit_obj.sim_pattern.mask)
-        return dp
+        return dp * norm_factor
 
-    def get_datapattern(self):
-        return copy.copy(self.mm_pattern)
+    def get_datapattern(self, normalization=None):
+
+        norm_factor = self._get_sim_normalization_factor(normalization, pattern_type='data')
+
+        return self.mm_pattern * norm_factor
 
