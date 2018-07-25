@@ -591,8 +591,7 @@ class FitManager:
         norm_factor = self._get_sim_normalization_factor(normalization, pattern_type=self._cost_function)
 
         dp = DataPattern(pattern_array=fit_obj.sim_pattern.data)
-        dp.xmesh = fit_obj.XXmesh
-        dp.ymesh = fit_obj.YYmesh
+        dp._set_xymesh(fit_obj.XXmesh, fit_obj.YYmesh)
         dp.set_mask(fit_obj.sim_pattern.mask)
         return dp * norm_factor
 
@@ -604,8 +603,7 @@ class FitManager:
         norm_factor = self._get_sim_normalization_factor(normalization, pattern_type=self._cost_function)
 
         dp = DataPattern(pattern_array=fit_obj.sim_pattern.data)
-        dp.xmesh = fit_obj.XXmesh
-        dp.ymesh = fit_obj.YYmesh
+        dp._set_xymesh(fit_obj.XXmesh, fit_obj.YYmesh)
         dp.set_mask(fit_obj.sim_pattern.mask)
         return dp * norm_factor
 

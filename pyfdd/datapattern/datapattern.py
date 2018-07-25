@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 import struct
 import warnings
 import json, io
+import copy
+
 
 def create_detector_mesh(n_h_pixels, n_v_pixels, pixel_size, distance):
     #same as in PyFDD/patterncrator
@@ -118,7 +120,7 @@ class DataPattern:
             (self.ny, self.nx) = self.matrixOriginal.shape
         elif not file_path is None:
             if os.path.isfile(file_path):
-                self.__io_load(file_path)
+                self._io_load(file_path)
             else:
                 raise IOError('File does not exist: %s' % file_path)
         self.matrixCurrent = self.matrixOriginal.copy()
@@ -138,42 +140,45 @@ class DataPattern:
         self.rectangle_limits = None
         self.RS = None
 
-    def __add__(self, other):
+    def __have_same_atributes(self,other):
 
         # verify if possible and get values
         assert isinstance(other, DataPattern), "Add object is not a DataPattern"
 
-        #check if the shape is the same
+        # check if the shape is the same
         if not self.matrixCurrent.shape == other.matrixCurrent.shape:
             raise ValueError("error the medipix matrices have different shape")
 
-        new_pattern = self.matrixCurrent.data + other.matrixCurrent.data
-        new_pattern_mask = self.matrixCurrent.mask + other.matrixCurrent.mask
-
-        #check if the number of chips is the same
+        # check if the number of chips is the same
         if not (self.nChipsX == other.nChipsX and
-                self.nChipsY == other.nChipsY):
+                        self.nChipsY == other.nChipsY):
             raise ValueError("error, the DataPattern have different number of chips")
 
         # check if the real size of central pixels is the same
         if not (self.real_size == other.real_size):
             raise ValueError("error, the DataPattern have different real size of central pixels")
 
-        #check if the mesh is the same
-        if not (np.allclose(self.xmesh, other.xmesh) and
-                np.allclose(self.ymesh, other.ymesh)):
-            raise ValueError("error, the DataPattern have different angular mesh")
+        # check if the mesh is the same
+        if self.is_mesh_defined is True and other.is_mesh_defined is True:
+            if not (np.allclose(self.xmesh, other.xmesh) and
+                    np.allclose(self.ymesh, other.ymesh)):
+                raise ValueError("error, the DataPattern have different angular mesh")
 
-        new_xmesh = self.xmesh
-        new_ymesh = self.ymesh
 
-        # Create new MM
-        new_mm = DataPattern(pattern_array=new_pattern,
-                             nChipsX=self.nChipsX, nChipsY=self.nChipsY, real_size=self.real_size)
-        new_mm.xmesh = new_xmesh
-        new_mm.ymesh = new_ymesh
-        new_mm.matrixOriginal.mask = new_pattern_mask
-        new_mm.matrixCurrent.mask = new_pattern_mask
+    def __add__(self, other):
+
+        self.__have_same_atributes(other)
+
+        new_pattern = self.matrixCurrent.data + other.matrixCurrent.data
+        new_pattern_mask = self.matrixCurrent.mask + other.matrixCurrent.mask
+
+        new_mm = copy.deepcopy(self)
+
+        new_mm.matrixOriginal = copy.deepcopy(new_pattern)
+        new_mm.matrixCurrent = copy.deepcopy(new_pattern)
+
+        new_mm.matrixOriginal.mask = copy.deepcopy(new_pattern_mask)
+        new_mm.matrixCurrent.mask = copy.deepcopy(new_pattern_mask)
 
         return new_mm
 
@@ -182,19 +187,13 @@ class DataPattern:
         # other needs to be a float
         other = np.float(other)
 
-        new_pattern = self.matrixCurrent.data * other
-        new_pattern_mask = self.matrixCurrent.mask.copy()
-
-        new_xmesh = self.xmesh
-        new_ymesh = self.ymesh
+        new_pattern = ma.masked_array(data=self.matrixCurrent.data * other, mask=self.matrixCurrent.mask)
 
         # Create new MM
-        new_mm = DataPattern(pattern_array=new_pattern,
-                             nChipsX=self.nChipsX, nChipsY=self.nChipsY, real_size=self.real_size)
-        new_mm.xmesh = new_xmesh
-        new_mm.ymesh = new_ymesh
-        new_mm.matrixOriginal.mask = new_pattern_mask
-        new_mm.matrixCurrent.mask = new_pattern_mask
+        new_mm = copy.deepcopy(self)
+
+        new_mm.matrixOriginal = copy.deepcopy(new_pattern)
+        new_mm.matrixCurrent = copy.deepcopy(new_pattern)
 
         return new_mm
 
@@ -204,8 +203,18 @@ class DataPattern:
     def get_xymesh(self):
         return self.xmesh.copy(), self.ymesh.copy()
 
+    def _set_xymesh(self, xmesh, ymesh):
+
+        if (xmesh.shape != (self.ny, self.nx) or
+            ymesh.shape != (self.ny, self.nx)):
+            raise ValueError('mesh needs to be of shape (ny,nx)')
+
+        self.is_mesh_defined = True
+        self.xmesh = np.array(xmesh)
+        self.ymesh = np.array(ymesh)
+
     # ===== - IO Methods - =====
-    def __io_load(self, filename):
+    def _io_load(self, filename):
         """
         understand what is the filetype and saves the file in given format
 
@@ -219,15 +228,15 @@ class DataPattern:
         (name, self.filetype_in) = os.path.splitext(self.filename_in)
 
         if self.filetype_in == '.txt':
-            self.__io_load_ascii()
+            self._io_load_ascii()
         elif self.filetype_in == '.2db':
-            self.__io_load_origin()
+            self._io_load_origin()
         elif self.filetype_in == '.json':
             self.io_load_json()
         else:
             raise ValueError('Unknown requested file type extension')
 
-    def __io_load_ascii(self):
+    def _io_load_ascii(self):
         """
         loads an ascii file containing a matrix
         """
@@ -247,7 +256,7 @@ class DataPattern:
             matrix = self.matrixCurrent.filled(0)
         np.savetxt(filename, matrix, "%d")
 
-    def __io_load_origin(self):
+    def _io_load_origin(self):
         """
         loads a 2db file containing a matrix
         """
@@ -513,7 +522,8 @@ class DataPattern:
         '''
         if rm_central_pix is not None:
             self.rm_central_pix = rm_central_pix
-        if self.real_size <= 1:
+        if ((self.nChipsX > 1 or self.nChipsY > 1) and
+             self.real_size <= 1):
             warnings.warn('The value for the central pixel real size is set to ' + str(self.real_size))
 
         assert isinstance(factor,int), 'factor should be int'
@@ -558,8 +568,12 @@ class DataPattern:
                         .reshape([final_size, factor, final_size, factor]).sum(3).sum(1)
         self.matrixCurrent = ma.array(data=retrnArr, mask=(retrnMa>=1))
         # Update mesh
+        self.xmesh = self.xmesh[rm_edge_pix:ny - rm_edge_pix, rm_edge_pix:nx - rm_edge_pix] \
+                        .reshape([final_size, factor, final_size, factor]).mean(3).mean(1)
+        self.ymesh = self.ymesh[rm_edge_pix:ny - rm_edge_pix, rm_edge_pix:nx - rm_edge_pix] \
+            .reshape([final_size, factor, final_size, factor]).mean(3).mean(1)
         self.pixel_size_mm *= factor
-        self.manip_create_mesh()
+        #self.manip_create_mesh()
 
     def manip_create_mesh(self, pixel_size=None, distance=None, reverse_x=None):
         if pixel_size is not None:
@@ -618,6 +632,11 @@ class DataPattern:
         n_color_bins = kwargs.get('n_color_bins', 10)
         smooth_fwhm = kwargs.get('smooth_fwhm', 0)
         plot_type = kwargs.get('plot_type', 'pixels') #pixels or contour
+        xlabel = kwargs.get('xlabel', r'$\theta$')
+        ylabel = kwargs.get('ylabel', r'$\omega$')
+        zlabel = kwargs.get('zlabel', 'Counts')
+        title = kwargs.get('title', '2D pattern - ' + str(self.matrixCurrent.shape[0]) +
+                           'x' + str(self.matrixCurrent.shape[1]))
 
         if not self.matrixCurrent.shape == self.xmesh.shape or not self.matrixCurrent.shape == self.ymesh.shape:
             print(self.matrixCurrent.shape, self.ymesh.shape)
@@ -658,10 +677,11 @@ class DataPattern:
             raise ValueError('plot_type not recognized, use contour or pixels')
 
         cb = plt.colorbar(ret, ax=axes)
-        cb.set_label('Counts')
-        axes.set_title('2D pattern - ' + str(self.matrixDrawable.shape[0]) + 'x' +str(self.matrixDrawable.shape[1]))
-        axes.set_xlabel(r'$\theta$')
-        axes.set_ylabel(r'$\omega$')
+
+        cb.set_label(zlabel)
+        axes.set_title(title)
+        axes.set_xlabel(xlabel)
+        axes.set_ylabel(ylabel)
         axes.axis('image')
 
     def callonangle(self, center, angle):
