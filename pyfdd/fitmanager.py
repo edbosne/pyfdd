@@ -7,7 +7,7 @@ Fit manager is the kernel class for fitting.
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
-from .lib2dl import lib2dl
+from .lib2dl import Lib2dl
 #from patterncreator import PatternCreator, create_detector_mesh
 from .datapattern import DataPattern
 from .fit import Fit
@@ -88,7 +88,7 @@ class FitManager:
         '''
         Set the pattern to fit.
         :param data_pattern: path or DataPattern
-        :param library: path or lib2dl
+        :param library: path or Lib2dl
         '''
         if isinstance(data_pattern, DataPattern):
             # all good
@@ -101,14 +101,14 @@ class FitManager:
         else:
             ValueError('data_pattern input error')
 
-        if isinstance(library, lib2dl):
+        if isinstance(library, Lib2dl):
             # all good
             self.lib = library
         elif isinstance(library, str):
             if not os.path.isfile(library):
                 raise ValueError('data is a str but filepath is not valid')
             else:
-                self.lib = lib2dl(library)
+                self.lib = Lib2dl(library)
         else:
             ValueError('data_pattern input error')
 

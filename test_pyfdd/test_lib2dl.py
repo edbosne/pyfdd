@@ -1,13 +1,13 @@
 
 
-from pyfdd import lib2dl
+from pyfdd import Lib2dl
 from pyfdd.lib2dl import read2dl
 
 import matplotlib.pyplot as plt
 
 
 def test_lib2dl(path):
-    lib = lib2dl(path)
+    lib = Lib2dl(path)
     plt.figure()
     imgmat = lib.get_simulation_patt(1)
     plt.contourf(imgmat)

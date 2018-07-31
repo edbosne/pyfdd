@@ -6,7 +6,7 @@
 
 - PyFDD is a software for fitting channeling data for lattice location;
 
-- Only library files of type lib2dl are supported;
+- Only library files of type Lib2dl are supported;
 
 - Use DataPattern class to prepare the data;
 
@@ -32,7 +32,7 @@ If you will be using it in jupyter, and you should, you can install it with
 
 - The DataPattern class holds the pattern from the measurement, the angular calibration and has the necessary tools to set up the pattern for fitting.
 
-- The lib2dl class reads 2dl libraries and puts them in the format that is necessary for the fit.
+- The Lib2dl class reads 2dl libraries and puts them in the format that is necessary for the fit.
 
 - The Fit class does the fit. If one need to do one single fit for testing this class can be used but for regular analysis the FitManager class is advised.
 

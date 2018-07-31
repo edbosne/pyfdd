@@ -15,14 +15,14 @@ from scipy.interpolate import griddata, interpn
 from .read2dl import read2dl
 
 
-class lib2dl:
+class Lib2dl:
     '''
-    The lib2dl object holds the 2dl library and is used to produce patterns from the manybeam simulations to be then fitted with experimental data.
+    The Lib2dl object holds the 2dl library and is used to produce patterns from the manybeam simulations to be then fitted with experimental data.
     '''
 
     def __init__(self,filename):
         '''
-        init method for lib2dl
+        init method for Lib2dl
         :param filename: string, name of file
         '''
         # TODO verify filename

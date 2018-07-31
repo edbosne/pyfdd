@@ -4,7 +4,7 @@ __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
 
-from .lib2dl import lib2dl
+from .lib2dl import Lib2dl
 
 import numpy as np
 import numpy.ma as ma
@@ -44,7 +44,7 @@ class PatternCreator:
         """
         __init__ method for PatternCreator. Simulation and mesh are to be stated here.
         mask_out_of_range false means that points that are out of the range of simulations are not masked,
-        :type lib: lib2dl
+        :type lib: Lib2dl
         :param lib: A lib2dl type object that points to the desired library
         :param xmesh: The horizontal mesh of the detector
         :param ymesh: The vertical mesh of the detector
@@ -53,7 +53,7 @@ class PatternCreator:
         simulations = np.array(simulations)
         if len(simulations.shape) == 0: # ensures that dimention is 1
             simulations = simulations[np.newaxis]
-        assert isinstance(lib, lib2dl)
+        assert isinstance(lib, Lib2dl)
 
         self.mask_out_of_range = mask_out_of_range
 
@@ -313,7 +313,7 @@ class PatternCreator:
 
 
 if __name__ == "__main__":
-    lib = lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl")
+    lib = Lib2dl("/home/eric/cernbox/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl")
     #xmesh, ymesh = create_detector_mesh(22, 22, 1.4, 300)
     #xmesh, ymesh = create_detector_mesh(40, 40, 0.5, 300)
     xmesh, ymesh = create_detector_mesh(100, 100, 0.2, 300)

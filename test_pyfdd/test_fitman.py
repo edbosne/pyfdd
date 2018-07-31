@@ -1,5 +1,5 @@
 
-from pyfdd import lib2dl, PatternCreator, DataPattern, FitManager
+from pyfdd import Lib2dl, PatternCreator, DataPattern, FitManager
 from pyfdd.patterncreator import create_detector_mesh
 
 import numpy as np
@@ -26,7 +26,7 @@ def make_tpx_pattern(lib, patterns=(1,), name = 'temp_tpx.json'):
 
 
 if __name__ == '__main__':
-    lib = lib2dl("/home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl")
+    lib = Lib2dl("/home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl")
     mm = make_tpx_pattern(lib)
     mm.set_fit_region(distance=2, angle=45)
 

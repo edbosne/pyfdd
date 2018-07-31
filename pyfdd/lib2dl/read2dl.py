@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Source for the lib2dl class. It allows to read .2dl files into a python dictionary or .json file.
+Source for the Lib2dl class. It allows to read .2dl files into a python dictionary or .json file.
 
 The __main__ routine plots the first patterns
 """

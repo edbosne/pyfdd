@@ -17,7 +17,7 @@ from ipywidgets import widgets, Label
 
 import sys, os
 sys.path.append("/home/eric/PycharmProjects/PyFDD")
-from pyfdd import lib2dl
+from pyfdd import Lib2dl
 
 
 # ## Import library
@@ -27,7 +27,7 @@ from pyfdd import lib2dl
 
 analysis_path = "/home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/"
 lib_path = os.path.join(analysis_path, "FDD_libraries/GaN_89Sr/ue567g54.2dl")
-lib = lib2dl(lib_path)
+lib = Lib2dl(lib_path)
 df = pd.DataFrame(data=lib.sim_list,
                   columns=["Spectrum number",
                            "Spectrum_description",

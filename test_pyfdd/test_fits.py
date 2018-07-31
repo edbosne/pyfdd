@@ -1,4 +1,4 @@
-from pyfdd import lib2dl, Fit, DataPattern, PatternCreator
+from pyfdd import Lib2dl, Fit, DataPattern, PatternCreator
 from pyfdd.fit import create_detector_mesh
 
 import math
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     test_chi2_min = False
     test_likelihood_max = True
 
-    lib = lib2dl(lib_path)
+    lib = Lib2dl(lib_path)
 
     # set a pattern to fit
     # mc
