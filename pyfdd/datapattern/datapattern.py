@@ -409,8 +409,8 @@ class DataPattern:
 
         xy = np.stack([self.xmesh - center[0], self.ymesh - center[1]], axis=-1)
 
-        distance1 = np.dot(xy, v1)
-        distance2 = np.dot(xy, v2)
+        distance1 = np.abs(np.dot(xy, v1))
+        distance2 = np.abs(np.dot(xy, v2))
 
         condition = ((distance1 > distance) | (distance2 > distance))
 
