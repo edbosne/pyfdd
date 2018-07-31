@@ -412,7 +412,10 @@ class DataPattern:
         distance1 = np.abs(np.dot(xy, v1))
         distance2 = np.abs(np.dot(xy, v2))
 
-        condition = ((distance1 > distance) | (distance2 > distance))
+        if distance > 0:
+            condition = ((distance1 > distance) | (distance2 > distance))
+        elif distance < 0:
+            condition = ~((distance1 > -distance) | (distance2 > -distance))
 
         self.matrixCurrent = ma.masked_where(condition, self.matrixCurrent)
 
