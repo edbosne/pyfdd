@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='pyfdd',
-    version='0.2',
+    version='0.3',
     packages=['pyfdd', 'pyfdd.Lib2dl', 'pyfdd.datapattern', 'pyfdd.datapattern.CustomWidgets', 'examples',
              'ecsli_tools'],
     install_requires=[
