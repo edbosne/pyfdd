@@ -105,7 +105,7 @@ class read2dl:
             # rounding for numerical accuracy
             dict_spec["factor"] = round(struct.unpack("<f",record[rec_index:rec_index+self.float_sz])[0],6)
             rec_index += self.float_sz
-            dict_spec["u2"] = round(struct.unpack("<f",record[rec_index:rec_index+self.float_sz])[0],6)
+            dict_spec["u1"] = round(struct.unpack("<f",record[rec_index:rec_index+self.float_sz])[0],6)
             rec_index += self.float_sz
             dict_spec["sigma"] = round(struct.unpack("<f",record[rec_index:rec_index+self.float_sz])[0],6)
             rec_index += self.float_sz
@@ -162,7 +162,7 @@ class read2dl:
             l = np.array([spectrum["Spectrum number"],\
                  spectrum["Spectrum_description"],\
                  spectrum["factor"], \
-                 spectrum["u2"], \
+                 spectrum["u1"], \
                  spectrum["sigma"]])
             ll = np.concatenate((ll, l[np.newaxis]), axis=0) if ll.size else l[np.newaxis]
         return ll.tolist()

@@ -78,9 +78,9 @@ class FitManager:
         self.columns = \
             ['value', 'D.O.F.', 'x', 'x_err', 'y', 'y_err', 'phi', 'phi_err',
              'counts', 'counts_err', 'sigma', 'sigma_err',
-             'site1 n', 'p1', 'site1 description', 'site1 factor', 'site1 u2', 'site1 fraction', 'fraction1_err',
-             'site2 n', 'p2', 'site2 description', 'site2 factor', 'site2 u2', 'site2 fraction', 'fraction2_err',
-             'site3 n', 'p3', 'site3 description', 'site3 factor', 'site3 u2', 'site3 fraction', 'fraction3_err',
+             'site1 n', 'p1', 'site1 description', 'site1 factor', 'site1 u1', 'site1 fraction', 'fraction1_err',
+             'site2 n', 'p2', 'site2 description', 'site2 factor', 'site2 u1', 'site2 fraction', 'fraction2_err',
+             'site3 n', 'p3', 'site3 description', 'site3 factor', 'site3 u1', 'site3 fraction', 'fraction3_err',
              'success']
         self.df = pd.DataFrame(data=None, columns=self.columns)
 
@@ -394,14 +394,14 @@ class FitManager:
             append_dic['p1'] = p1
             append_dic['site1 description'] = self.lib.ECdict["Spectrums"][p1 - 1]["Spectrum_description"]
             append_dic['site1 factor'] = self.lib.ECdict["Spectrums"][p1 - 1]["factor"]
-            append_dic['site1 u2'] = self.lib.ECdict["Spectrums"][p1 - 1]["u2"]
+            append_dic['site1 u1'] = self.lib.ECdict["Spectrums"][p1 - 1]["u2"]
             append_dic['site1 fraction'] = parameter_dict['f_p1']['value']
         if p2 is not None:
             append_dic['site2 n'] = self.lib.ECdict["Spectrums"][p2 - 1]["Spectrum number"]
             append_dic['p2'] = p2
             append_dic['site2 description'] = self.lib.ECdict["Spectrums"][p2 - 1]["Spectrum_description"]
             append_dic['site2 factor'] = self.lib.ECdict["Spectrums"][p2 - 1]["factor"]
-            append_dic['site2 u2'] = self.lib.ECdict["Spectrums"][p2 - 1]["u2"]
+            append_dic['site2 u1'] = self.lib.ECdict["Spectrums"][p2 - 1]["u2"]
             if not p2 == p1:
                 append_dic['site2 fraction'] = parameter_dict['f_p2']['value']
         if p3 is not None:
@@ -409,7 +409,7 @@ class FitManager:
             append_dic['p3'] = p3
             append_dic['site3 description'] = self.lib.ECdict["Spectrums"][p3 - 1]["Spectrum_description"]
             append_dic['site3 factor'] = self.lib.ECdict["Spectrums"][p3 - 1]["factor"]
-            append_dic['site3 u2'] = self.lib.ECdict["Spectrums"][p3 - 1]["u2"]
+            append_dic['site3 u1'] = self.lib.ECdict["Spectrums"][p3 - 1]["u2"]
             if not (p3 == p1 or p3 == p2):
                 append_dic['site3 fraction'] = parameter_dict['f_p3']['value']
         if get_errors:
