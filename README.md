@@ -20,12 +20,31 @@
 To use PyFDD you must first have python3 and pip installed. If you download python from python.org and use a version
 \>=3.4 it will come with pip.
 
-To install PyFDD run,
+To install PyFDD on linux run,
 
 > $ pip3 install git+https://github.com/eric-presbitero/pyfdd.git#egg=pyfdd
 
 If you will be using it in jupyter, and you should, you can install it with
+
 > $ pip3 install jupyter
+
+To launch a notebook use the command,
+
+> jupyter notebook
+
+To install PyFDD on windows run,
+
+> $ py -m pip install git+https://github.com/eric-presbitero/pyfdd.git#egg=pyfdd
+
+If you will be using it in jupyter, and you should, you can install it with
+
+> $ py -m pip install jupyter
+
+To launch a notebook use the command,
+
+> py -m notebook
+
+
 
 
 ## Structure
