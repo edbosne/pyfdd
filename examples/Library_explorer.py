@@ -23,11 +23,11 @@ from pyfdd import Lib2dl
 # ## Import library
 # 
 
-# In[10]:
+# In[2]:
 
 analysis_path = "/home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/"
 lib_path = os.path.join(analysis_path, "FDD_libraries/GaN_89Sr/ue567g54.2dl")
-lib = lib2dl(lib_path)
+lib = Lib2dl(lib_path)
 df = pd.DataFrame(data=lib.sim_list,
                   columns=["Spectrum number",
                            "Spectrum_description",
@@ -37,7 +37,7 @@ df = pd.DataFrame(data=lib.sim_list,
 #for entry in lib.sim_list:
 
 
-# In[11]:
+# In[3]:
 
 pd.set_option('display.max_rows', 10000)
 pd.set_option('display.max_columns', 500)
@@ -49,14 +49,21 @@ df
 # 
 # use the pattern number
 
-# In[8]:
+# In[4]:
 
 patt_number = 1
 
 
-# In[9]:
+# In[5]:
 
 get_ipython().magic('matplotlib inline')
 imgmat = lib.get_simulation_patt(patt_number)
+plt.figure(dpi=150)
 plt.contourf(imgmat)
+plt.gca().set_aspect('equal')
+
+
+# In[ ]:
+
+
 
