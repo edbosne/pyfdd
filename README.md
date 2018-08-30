@@ -24,6 +24,10 @@ To install PyFDD on linux run,
 
 > $ pip3 install git+https://github.com/eric-presbitero/pyfdd.git#egg=pyfdd
 
+To upgrade,
+
+> pip3 install --upgrade git+https://github.com/eric-presbitero/pyfdd.git#egg=pyfdd
+
 If you will be using it in jupyter, and you should, you can install it with
 
 > $ pip3 install jupyter
@@ -34,7 +38,11 @@ To launch a notebook use the command,
 
 To install PyFDD on windows run,
 
-> $ py -m pip install git+https://github.com/eric-presbitero/pyfdd.git#egg=pyfdd
+> $ py -m pip install https://github.com/eric-presbitero/pyfdd/archive/master.zip
+
+To upgrade an installed version use,
+
+> pip install --upgrade https://github.com/eric-presbitero/pyfdd/archive/master.zip
 
 If you will be using it in jupyter, and you should, you can install it with
 
@@ -43,7 +51,6 @@ If you will be using it in jupyter, and you should, you can install it with
 To launch a notebook use the command,
 
 > py -m notebook
-
 
 
 

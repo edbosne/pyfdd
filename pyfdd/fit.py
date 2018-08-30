@@ -335,6 +335,7 @@ class Fit:
             self.verbose_graphics_ax.clear()
             plt.ion()
             plt.contourf(self.XXmesh, self.YYmesh, sim_pattern) #(data_pattern-sim_pattern))
+            self.verbose_graphics_ax.set_aspect('equal')
             self.verbose_graphics_fg.canvas.draw()
         # =====
         return chi2
@@ -406,6 +407,7 @@ class Fit:
             plt.sca(self.verbose_graphics_ax)
             plt.ion()
             plt.contourf(self.XXmesh, self.YYmesh, sim_pattern)  # (data_pattern-sim_pattern))
+            self.verbose_graphics_ax.set_aspect('equal')
             self.verbose_graphics_fg.canvas.draw()
         # =====
         return -ll
