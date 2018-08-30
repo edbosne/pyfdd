@@ -586,4 +586,25 @@ class Fit:
             print('crossings - ', crossings_temp)
         return crossings, crossings_idx
 
+    def get_dof(self):
+        """
+        Returns the number of degrees of freedom
+        :return: number of degrees of freedom
+        """
+
+        # getting the number of data points
+        if isinstance(self.data_pattern, np.ma.MaskedArray):
+            n_pixels = (~self.data_pattern.mask).sum()
+        elif isinstance(self.data_pattern, np.Array):
+            n_pixels = self.data_pattern.size
+        else:
+            raise ValueError('The data pattern is not correctly set')
+
+        # getting the number of fit parameters
+        n_param = 0
+        for key in self._parameters_order:
+            if self.parameters_dict[key]['use']:
+                n_param += 1
+
+        return n_pixels - n_param
 

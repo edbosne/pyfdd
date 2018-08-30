@@ -383,7 +383,7 @@ class FitManager:
         append_dic = {}
         append_dic['value'] = ft.results['fun']
         append_dic['success'] = ft.results['success']
-        append_dic['D.O.F.'] = np.sum(~patt.mask)
+        append_dic['D.O.F.'] = ft.get_dof()
         append_dic['x'] = parameter_dict['dx']['value']
         append_dic['y'] = parameter_dict['dy']['value']
         append_dic['phi'] = parameter_dict['phi']['value']
