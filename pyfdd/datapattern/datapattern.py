@@ -182,12 +182,45 @@ class DataPattern:
 
         return new_mm
 
+    def __sub__(self, other):
+        self.__have_same_atributes(other)
+
+        new_pattern = self.matrixCurrent.data - other.matrixCurrent.data
+        new_pattern_mask = self.matrixCurrent.mask + other.matrixCurrent.mask
+
+        new_mm = copy.deepcopy(self)
+
+        new_mm.matrixOriginal = copy.deepcopy(new_pattern)
+        new_mm.matrixCurrent = copy.deepcopy(new_pattern)
+
+        new_mm.matrixOriginal.mask = copy.deepcopy(new_pattern_mask)
+        new_mm.matrixCurrent.mask = copy.deepcopy(new_pattern_mask)
+
+        return new_mm
+
     def __mul__(self, other):
 
         # other needs to be a float
         other = np.float(other)
 
         new_pattern = ma.masked_array(data=self.matrixCurrent.data * other, mask=self.matrixCurrent.mask)
+
+        # Create new MM
+        new_mm = copy.deepcopy(self)
+
+        new_mm.matrixOriginal = copy.deepcopy(new_pattern)
+        new_mm.matrixCurrent = copy.deepcopy(new_pattern)
+
+        return new_mm
+
+    def __rdiv__(self, other):
+        # other needs to be a float
+        other = np.float(other)
+
+        if other == 0:
+            raise ValueError('Dividing by zero.')
+
+        new_pattern = ma.masked_array(data=self.matrixCurrent.data / other, mask=self.matrixCurrent.mask)
 
         # Create new MM
         new_mm = copy.deepcopy(self)
