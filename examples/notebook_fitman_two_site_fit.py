@@ -8,11 +8,18 @@
 
 # In[ ]:
 
-from pyfdd import fitman
+#import sys
+#sys.path.append("/home/eric/PycharmProjects/PyFDD")
+from pyfdd import FitManager
 
 import matplotlib.pyplot as plt
-import os
 import numpy as np
+import pandas as pd
+import os
+
+pd.set_option('display.max_rows', 10000)
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.max_colwidth', -1)
 
 
 # In[ ]:
@@ -56,7 +63,30 @@ get_ipython().run_cell_magic('time', '', 'for i in range(0, len(axis_names)):\n 
 #     fm.run_single_fit(P1, P2, verbose=1, verbose_graphics=True, get_errors=True)
 # 
 
+# ## Visualizing results
+# 
+# The results table is accessible in `FitManager.df`.
+# 
+# The results pattern can be accessed with 
+# ```
+# FitManager.get_pattern_from_last_fit(normalization=None):
+# # or
+# FitManager.get_pattern_from_best_fit(normalization=None):
+# ```
+# 
+# The normalization can be `counts, yield or probability`
+# 
+
 # In[ ]:
 
+fm.df
 
+
+# In[ ]:
+
+sim_patt = fm.get_pattern_from_last_fit(normalization='yield')
+
+fg = plt.figure()
+ax = fg.add_subplot('111')
+sim_patt.draw(ax, percentiles=(0.01, 0.99), plot_type='contour')
 

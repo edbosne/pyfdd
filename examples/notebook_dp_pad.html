@@ -11784,10 +11784,18 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[4]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span class="kn">from</span> <span class="nn">pyfdd</span> <span class="k">import</span> <span class="n">DataPattern</span>
+<div class=" highlight hl-ipython3"><pre><span class="c1">#import sys</span>
+<span class="c1">#sys.path.append(&quot;/home/eric/PycharmProjects/PyFDD&quot;)</span>
+<span class="kn">from</span> <span class="nn">pyfdd</span> <span class="k">import</span> <span class="n">DataPattern</span>
 
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s1">&#39;display.max_rows&#39;</span><span class="p">,</span> <span class="mi">10000</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s1">&#39;display.max_columns&#39;</span><span class="p">,</span> <span class="mi">500</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s1">&#39;display.max_colwidth&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -11912,10 +11920,10 @@ div#notebook {
 
 
 
-<div id="c5070bf8-9915-4a88-a65c-53181ffdef26"></div>
+<div id="abb0dabd-e4fb-4ce5-b8a5-bbbe2ac1c36a"></div>
 <div class="output_subarea output_javascript ">
 <script type="text/javascript">
-var element = $('#c5070bf8-9915-4a88-a65c-53181ffdef26');
+var element = $('#abb0dabd-e4fb-4ce5-b8a5-bbbe2ac1c36a');
 /* Put everything inside the global mpl namespace */
 window.mpl = {};
 

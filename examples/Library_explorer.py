@@ -10,14 +10,18 @@
 
 get_ipython().magic('matplotlib inline')
 
-import matplotlib.pyplot as plt
-import pandas as pd
-from ipywidgets import widgets, Label
-
-
-import sys, os
-sys.path.append("/home/eric/PycharmProjects/PyFDD")
+#import sys
+#sys.path.append("/home/eric/PycharmProjects/PyFDD")
 from pyfdd import Lib2dl
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import os
+
+pd.set_option('display.max_rows', 10000)
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.max_colwidth', -1)
 
 
 # ## Import library
@@ -39,9 +43,6 @@ df = pd.DataFrame(data=lib.sim_list,
 
 # In[3]:
 
-pd.set_option('display.max_rows', 10000)
-pd.set_option('display.max_columns', 500)
-pd.set_option('display.max_colwidth', -1)
 df
 
 

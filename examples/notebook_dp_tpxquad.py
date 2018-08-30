@@ -9,14 +9,22 @@
 
 # In[1]:
 
-
-import matplotlib.pyplot as plt
+#import sys
+#sys.path.append("/home/eric/PycharmProjects/PyFDD")
 from pyfdd import DataPattern
 from ecsli_tools import *
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import os
+
+pd.set_option('display.max_rows', 10000)
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.max_colwidth', -1)
+
 
 # In[2]:
-
 
 filename1 = "/home/user/path/to/pattern_1.txt"
 filename2 = "/home/user/path/to/pattern_2.txt"
@@ -31,7 +39,6 @@ filename = "/home/eric/cernbox/Betapix_CERN/2016/2016-04_Mg/raw002/pattern_d3_Np
 
 # In[3]:
 
-
 dp1 = DataPattern(file_path=filename1, nChipsX=2, nChipsY=2, real_size=3)
 dp2 = DataPattern(file_path=filename2, nChipsX=2, nChipsY=2, real_size=3)
 dp = dp1 + dp2
@@ -40,7 +47,6 @@ dp = dp1 + dp2
 # ## Manipulation of the data pattern
 
 # In[4]:
-
 
 # Manipulation methods
 
@@ -74,8 +80,7 @@ dp.manip_compress(factor=8, rm_central_pix=2, rm_edge_pix=4)
 
 # In[6]:
 
-
-get_ipython().run_line_magic('matplotlib', 'notebook')
+get_ipython().magic('matplotlib notebook')
 fg = plt.figure()
 ax = fg.add_subplot('111')
 dp.draw(ax, percentiles=(0.04, 0.99))
@@ -83,7 +88,6 @@ dp.get_angle_tool()
 
 
 # In[7]:
-
 
 print('angle widget, center ', dp.center, ', angle ', dp.angle)
 # set_fit_region uses the angular values from the orientation 
@@ -94,7 +98,6 @@ dp.set_fit_region(distance=2.8)
 # ## Save as json file
 
 # In[8]:
-
 
 dp.io_save_json('/home/user/quad_datapattern.json')
 
