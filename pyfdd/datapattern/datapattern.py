@@ -47,6 +47,8 @@ class MpxHist:
     Class to hold some useful methods for dealing with histograms in Medipix program
     """
     def __init__(self, values):
+        if isinstance(values, ma.MaskedArray):
+            values = values[~values.mask]
         self.hist, self.bin_edges = np.histogram(values.reshape((1, values.size)), bins=1000)
         self.normalized_integral = self.hist.cumsum()/float(self.hist.sum())
         self.mean = np.mean(values.reshape((1, values.size)))
@@ -54,14 +56,18 @@ class MpxHist:
 
     def get_percentiles_bins(self, percentiles):
         lowbin = bis.bisect(self.normalized_integral, percentiles[0], lo=1, hi=len(self.normalized_integral))-1
+            # having lo=1 ensures lowbin is never -1
         highbin = bis.bisect(self.normalized_integral, percentiles[1])
-        if self.bin_edges[lowbin] != 0:
+        if self.bin_edges[lowbin] != 0.:
+            # low bin precision defined as 1 - order of mag
             p10_low = 10**(1 - int(math.floor(math.log10(abs(self.bin_edges[lowbin])))))
+            # floor in precision point
             lowtick = np.floor(self.bin_edges[lowbin] * p10_low) / p10_low
         else:
             lowtick = 0
+        # high bin precision defined as 1 - order of mag
         p10_high = 10**(1 - int(math.floor(math.log10(abs(self.bin_edges[highbin])))))
-        hightick = np.ceil(self.bin_edges[highbin]*p10_high)/p10_high
+        hightick = np.ceil(self.bin_edges[highbin] * p10_high) / p10_high
         return lowtick, hightick
 
 
@@ -692,7 +698,6 @@ class DataPattern:
                 self.matrixDrawable.mask[half[0] - (self.real_size-1):half[0] + (self.real_size-1), :] = True
                 self.matrixDrawable.mask[:, half[1] - (self.real_size - 1):half[1] + (self.real_size - 1)] = True
 
-        print(self.matrixDrawable.mask.sum())
         imgCmap = ml.cm.get_cmap(colormap)
         if ticks is not None:
             lowtick, hightick = ticks
@@ -749,9 +754,9 @@ class DataPattern:
         self.rectangle_limits = None
         self.RS = RectangleSelector(self.ax, self.onselect_RS, drawtype='box')
 
-    def get_ticks(self, percentiles):
+    def get_ticks(self, percentiles, ):
         if len(percentiles) != 2:
             raise ValueError("percentiles must be of length 2, for example [0.01, 0.99]")
         self.hist = MpxHist(self.matrixCurrent)
         lowtick, hightick = self.hist.get_percentiles_bins(percentiles)
-        return lowtick, hightick
+        return [lowtick, hightick]
