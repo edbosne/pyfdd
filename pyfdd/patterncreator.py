@@ -148,15 +148,23 @@ class PatternCreator:
         self._xlast = self._xlast_original
         self._ylast = self._ylast_original
         self._update_coordinates_mesh()
+
+        if self._sub_pixels > 1:
+            self._detector_xmesh_temp = self._detector_xmesh_expanded.copy()
+            self._detector_ymesh_temp = self._detector_ymesh_expanded.copy()
+        else:
+            self._detector_xmesh_temp = self._detector_xmesh.copy()
+            self._detector_ymesh_temp = self._detector_ymesh.copy()
+
         # don't change the order to the function calls
         # apply fractions
-        random_fraction = 1 - fractions_per_site.sum()
-        fractions = np.stack((random_fraction,fractions_per_site))
+        random_fraction = np.array([1 - fractions_per_site.sum()])
+        fractions = np.concatenate((random_fraction,fractions_per_site))
         self._apply_fractions(fractions)
         # gaussian convolution
         self._gaussian_conv(sigma)
         # rotate
-        self._rotate(phi)
+        self._rotate_new(phi)
         # move mesh
         self._move(dx,dy)
         # render normalized pattern
@@ -239,6 +247,33 @@ class PatternCreator:
                                              0.5 * (self._pattern_current.shape[0] - self._sim_shape[0])
         self._update_coordinates_mesh()
 
+
+    def _rotate_new(self, ang=0):
+
+        # positive counterclockwise
+        ang = -ang
+        print(ang)
+        theta = np.radians(ang)
+        c, s = np.cos(theta), np.sin(theta)
+        print(c, s)
+        rot_matrix = np.array([[c, -s], [s, c]])
+        print('rot_matrix',rot_matrix)
+        print('self._xmesh shape',self._xmesh.shape)
+
+        x = self._detector_xmesh_temp.reshape(-1)
+        y = self._detector_ymesh_temp.reshape(-1)
+        print(x[0:10], y[0:10])
+        xy = np.vstack((x,y))
+        print(xy[0:10,:])
+        rotated_xy = rot_matrix.dot(xy)
+        print(rotated_xy[0:10, :])
+        self._detector_xmesh_temp = rotated_xy[0, :].reshape(self._detector_xmesh_temp.shape)
+        self._detector_ymesh_temp = rotated_xy[1, :].reshape(self._detector_ymesh_temp.shape)
+        #plt.subplot(111)
+        #plt.plot(xy[0, 0:300], xy[1, 0:300])
+        #plt.plot(rotated_xy[0,0:300], rotated_xy[1,0:300])
+        #plt.show()
+
     def _update_coordinates_mesh(self):
         '''
         create or update object x and y mesh
@@ -273,8 +308,8 @@ class PatternCreator:
         :param dx: translation in x, units in angle
         :param dy: translation in y, units in angle
         '''
-        self._xmesh = self._xmesh + dx
-        self._ymesh = self._ymesh + dy
+        self._detector_xmesh_temp = self._detector_xmesh_temp - dx
+        self._detector_ymesh_temp = self._detector_ymesh_temp - dy
 
     def _grid_interpolation(self, total_events, ):
         '''
@@ -296,12 +331,16 @@ class PatternCreator:
         # convert to index space
         xscale = self._xmesh.shape[1] / (self._xmesh[0, -1] - self._xmesh[0, 0])
         yscale = self._ymesh.shape[0] / (self._ymesh[-1, 0] - self._ymesh[0, 0])
+        '''
         if self._sub_pixels == 1:
             grid_x_temp = (self._detector_xmesh - self._xmesh[0, 0]) * xscale
             grid_y_temp = (self._detector_ymesh - self._ymesh[0, 0]) * yscale
         elif self._sub_pixels > 1:
             grid_x_temp = (self._detector_xmesh_expanded - self._xmesh[0, 0]) * xscale
             grid_y_temp = (self._detector_ymesh_expanded - self._ymesh[0, 0]) * yscale
+        '''
+        grid_x_temp = (self._detector_xmesh_temp - self._xmesh[0, 0]) * xscale
+        grid_y_temp = (self._detector_ymesh_temp - self._ymesh[0, 0]) * yscale
 
         #interpolation
         temp_pattern = np.array([])
