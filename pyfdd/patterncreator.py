@@ -83,25 +83,15 @@ class PatternCreator:
         if self._sub_pixels > 1:
             self._expande_detector_mesh()
 
-        # set mesh values
-        self._nx_original = lib.nx
-        self._ny_original = lib.ny
-        self._xstep_original = lib.xstep
-        self._ystep_original = lib.ystep
-        self._xfirst_original = lib.xfirst
-        self._yfirst_original = lib.yfirst
-        self._xlast_original = lib.xlast
-        self._ylast_original = lib.ylast
-
-        # set working values
-        self._nx = self._nx_original
-        self._ny = self._ny_original
-        self._xstep = self._xstep_original
-        self._ystep = self._ystep_original
-        self._xfirst = self._xfirst_original
-        self._yfirst = self._yfirst_original
-        self._xlast = self._xlast_original
-        self._ylast = self._ylast_original
+        # set simulation mesh values
+        self._nx_lib2dl = lib.nx
+        self._ny_lib2dl = lib.ny
+        self._xstep_lib2dl = lib.xstep
+        self._ystep_lib2dl = lib.ystep
+        self._xfirst_lib2dl = lib.xfirst
+        self._yfirst_lib2dl = lib.yfirst
+        self._xlast_lib2dl = lib.xlast
+        self._ylast_lib2dl = lib.ylast
 
         # set working mesh for simulated pattern
         self._xmesh = np.array([])
@@ -139,15 +129,7 @@ class PatternCreator:
         if not fractions_per_site.size == self._n_sites:
             raise ValueError('Size of fractions_per_sim does not match the number of simulations')
 
-        self._pattern_current = np.ones(self._xmesh.shape)
-        # reset mesh
-        self._xstep = self._xstep_original
-        self._ystep = self._ystep_original
-        self._xfirst = self._xfirst_original
-        self._yfirst = self._yfirst_original
-        self._xlast = self._xlast_original
-        self._ylast = self._ylast_original
-        self._update_coordinates_mesh()
+        self._pattern_current = np.zeros(self._xmesh.shape)
 
         if self._sub_pixels > 1:
             self._detector_xmesh_temp = self._detector_xmesh_expanded.copy()
@@ -164,7 +146,7 @@ class PatternCreator:
         # gaussian convolution
         self._gaussian_conv(sigma)
         # rotate
-        self._rotate_new(phi)
+        self._rotate(phi)
         # move mesh
         self._move(dx,dy)
         # render normalized pattern
@@ -219,60 +201,28 @@ class PatternCreator:
             sigma = 0
         if sigma == 0:
             return
-        assert self._xstep_original == self._ystep_original, 'Simulations steps are not the same in x and y'
-        sigma_pix = sigma / self._xstep_original
+        assert self._xstep_lib2dl == self._ystep_lib2dl, 'Simulations steps are not the same in x and y'
+        sigma_pix = sigma / self._xstep_lib2dl
         # Truncating at 4 or at 2 causes that some Fit are unstable. Chose 3 as intermidiate value
         self._pattern_current = gaussian_filter(self._pattern_current, sigma_pix, truncate=3)
 
     def _rotate(self, ang=0):
-        # Rotation
-        """
-        Rotates self._pattern_stack_original by ang
-        :param ang: angle in degrees
-        """
-        # positive counterclockwise
-        ang = -ang
-        cval = 0 if self._mask_out_of_range else 1e-12
-        self._pattern_current = rotate(self._pattern_current, ang, reshape=True, order=2, mode='constant',
-                                       cval=cval, prefilter=False) #the order needs to be 2 for smoothness during fit
-
-        # rotation can increase matrix size and therefore the mesh needs to be updates
-        self._xfirst = self._xfirst_original - self._xstep_original * \
-                                               0.5 * (self._pattern_current.shape[1] - self._sim_shape[1])
-        self._yfirst = self._yfirst_original - self._ystep_original * \
-                                               0.5 * (self._pattern_current.shape[0] - self._sim_shape[0])
-        self._xlast = self._xlast_original + self._xstep_original * \
-                                             0.5 * (self._pattern_current.shape[1] - self._sim_shape[1])
-        self._ylast = self._ylast_original + self._ystep_original * \
-                                             0.5 * (self._pattern_current.shape[0] - self._sim_shape[0])
-        self._update_coordinates_mesh()
-
-
-    def _rotate_new(self, ang=0):
 
         # positive counterclockwise
         ang = -ang
-        print(ang)
         theta = np.radians(ang)
         c, s = np.cos(theta), np.sin(theta)
-        print(c, s)
+        # rotation matrix
         rot_matrix = np.array([[c, -s], [s, c]])
-        print('rot_matrix',rot_matrix)
-        print('self._xmesh shape',self._xmesh.shape)
 
         x = self._detector_xmesh_temp.reshape(-1)
         y = self._detector_ymesh_temp.reshape(-1)
-        print(x[0:10], y[0:10])
         xy = np.vstack((x,y))
-        print(xy[0:10,:])
         rotated_xy = rot_matrix.dot(xy)
-        print(rotated_xy[0:10, :])
+
         self._detector_xmesh_temp = rotated_xy[0, :].reshape(self._detector_xmesh_temp.shape)
         self._detector_ymesh_temp = rotated_xy[1, :].reshape(self._detector_ymesh_temp.shape)
-        #plt.subplot(111)
-        #plt.plot(xy[0, 0:300], xy[1, 0:300])
-        #plt.plot(rotated_xy[0,0:300], rotated_xy[1,0:300])
-        #plt.show()
+
 
     def _update_coordinates_mesh(self):
         '''
@@ -281,8 +231,8 @@ class PatternCreator:
         use to update mesh after a rotation with size change
         '''
         #set the stop between last and last+1step
-        x = np.arange(self._xfirst, self._xlast + 0.5*self._xstep, self._xstep)
-        y = np.arange(self._yfirst, self._ylast + 0.5*self._ystep, self._ystep)
+        x = np.arange(self._xfirst_lib2dl, self._xlast_lib2dl + 0.5*self._xstep_lib2dl, self._xstep_lib2dl)
+        y = np.arange(self._yfirst_lib2dl, self._ylast_lib2dl + 0.5*self._ystep_lib2dl, self._ystep_lib2dl)
         self._xmesh, self._ymesh = np.meshgrid(x, y)
 
     def _expande_detector_mesh(self):
@@ -319,26 +269,10 @@ class PatternCreator:
         :return the updated pattern in the detector mesh
         '''
 
-        '''
-        fg = plt.figure(2)
-        ax = fg.add_subplot(111)
-        plt.ion()
-        cont = None
-        plt.contourf(self.mask)
-        fg.canvas.draw()
-        '''
-
         # convert to index space
         xscale = self._xmesh.shape[1] / (self._xmesh[0, -1] - self._xmesh[0, 0])
         yscale = self._ymesh.shape[0] / (self._ymesh[-1, 0] - self._ymesh[0, 0])
-        '''
-        if self._sub_pixels == 1:
-            grid_x_temp = (self._detector_xmesh - self._xmesh[0, 0]) * xscale
-            grid_y_temp = (self._detector_ymesh - self._ymesh[0, 0]) * yscale
-        elif self._sub_pixels > 1:
-            grid_x_temp = (self._detector_xmesh_expanded - self._xmesh[0, 0]) * xscale
-            grid_y_temp = (self._detector_ymesh_expanded - self._ymesh[0, 0]) * yscale
-        '''
+
         grid_x_temp = (self._detector_xmesh_temp - self._xmesh[0, 0]) * xscale
         grid_y_temp = (self._detector_ymesh_temp - self._ymesh[0, 0]) * yscale
 
