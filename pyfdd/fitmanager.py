@@ -348,7 +348,7 @@ class FitManager:
             p2_fit = p2 if not p2 == p1 else None
         if p3 is not None:
             p3_fit = p3 if not (p3 == p1 or p3 == p2) else None
-        ft.set_patterns_to_fit(p1_fit, p2_fit, p3_fit)
+        ft._set_patterns_to_fit(p1_fit, p2_fit, p3_fit)
 
         # Get initial values
         p0, p0_fix = self._get_initial_values(pass_results=pass_results)
