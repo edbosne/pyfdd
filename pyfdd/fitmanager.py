@@ -458,15 +458,11 @@ class FitManager:
         self.done_param_verbose = False
 
         patterns_list = ()
+        print('args, ',args)
         for ar in args:
             # if a pattern index is just a scalar make it iterable
             patterns_list += (np.atleast_1d(np.array(ar)),)
         assert len(patterns_list) >= 1
-
-        if len(patterns_list) == 1:
-            patterns_list += ((None,), (None,),)
-        elif len(patterns_list) == 2:
-            patterns_list += ((None,),)
 
         def recursive_call(patterns_list, sites = ()):
             print('patterns_list, sites -', patterns_list, sites)
