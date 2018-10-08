@@ -28,7 +28,9 @@ class FitManager:
     You should be able to do all standard routine analysis from FitManager.
     It also help in creating graphs, using fit options and saving results.
     '''
-    def __init__(self, cost_function='chi2', sub_pixels=1):
+
+    # settings methods
+    def __init__(self,*, cost_function='chi2', n_sites, sub_pixels=1):
         '''
         FitManager is a helper class for using Fit in pyfdd.
         :param cost_function: The type of cost function to use. Possible values are 'chi2' for chi-square
@@ -39,7 +41,7 @@ class FitManager:
         if cost_function not in ('chi2', 'ml'):
             raise ValueError('cost_function not valid. Use chi2 or ml')
 
-        if not isinstance(sub_pixels, int):
+        if not isinstance(sub_pixels, (int, np.integer)):
             raise ValueError('sub_pixels must be of type int')
 
         self.done_param_verbose = False
@@ -56,7 +58,11 @@ class FitManager:
         self.lib = None
 
         # Fit settings
-        self.keys = ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
+        self._n_sites = n_sites
+        self.parameter_keys = ('dx', 'dy', 'phi', 'total_cts', 'sigma')
+        for i in range(self._n_sites):
+            fraction_key = 'f_p' + str(i+1)  # 'f_p1', 'f_p2', 'f_p3',...
+            self.parameter_keys += (fraction_key,)
         self._cost_function = cost_function
         self._fit_options = {}
         self._fit_options_profile = 'default'
@@ -65,9 +71,20 @@ class FitManager:
         self._sub_pixels = sub_pixels
         # total_cts is overwriten with values from the data pattern
         self._scale = {'dx':.01, 'dy':.01, 'phi':0.10, 'total_cts':0.01,
-                       'sigma':.001, 'f_p1':.01, 'f_p2':.01, 'f_p3':.01}
+                       'sigma':.001}
         self._bounds = {'dx': (-3, +3), 'dy': (-3, +3), 'phi': (None, None), 'total_cts': (1, None),
-                         'sigma': (0.01, None), 'f_p1': (0, 1), 'f_p2': (0, 1), 'f_p3': (0, 1)}
+                         'sigma': (0.01, None)}
+        scale_temp = {}
+        bounds_temp = {}
+        for i in range(self._n_sites):
+            fraction_key = 'f_p' + str(i+1)  # 'f_p1', 'f_p2', 'f_p3',...
+            # scale
+            # 'f_p1':.01, 'f_p2':.01, 'f_p3':.01}
+            scale_temp[fraction_key] = 0.01
+            bounds_temp[fraction_key] = (0, 1)
+        self._scale = {**self._scale, **scale_temp}
+        self._bounds = {**self._bounds, **bounds_temp}
+
 
         # Fit parameters settings
         # overwrite defaults from Fit
@@ -76,12 +93,16 @@ class FitManager:
 
         # order of columns in results
         self.columns = \
-            ['value', 'D.O.F.', 'x', 'x_err', 'y', 'y_err', 'phi', 'phi_err',
-             'counts', 'counts_err', 'sigma', 'sigma_err',
-             'site1 n', 'p1', 'site1 description', 'site1 factor', 'site1 u1', 'site1 fraction', 'fraction1_err',
-             'site2 n', 'p2', 'site2 description', 'site2 factor', 'site2 u1', 'site2 fraction', 'fraction2_err',
-             'site3 n', 'p3', 'site3 description', 'site3 factor', 'site3 u1', 'site3 fraction', 'fraction3_err',
-             'success']
+            ('value', 'D.O.F.', 'x', 'x_err', 'y', 'y_err', 'phi', 'phi_err',
+             'counts', 'counts_err', 'sigma', 'sigma_err')
+        self.columns_template = \
+            ('site{:d} n', 'p{:d}', 'site{:d} description', 'site{:d} factor', 'site{:d} u1',
+             'site{:d} fraction', 'fraction{:d}_err')
+        for i in range(self._n_sites):
+             for k in self.columns_template:
+                 self.columns += (k.format(i+1),)
+        self.columns += ('success',)
+
         self.df = pd.DataFrame(data=None, columns=self.columns)
 
     def set_pattern(self, data_pattern, library):
@@ -133,14 +154,14 @@ class FitManager:
         print('\nParameter settings')
         print('{:<16}{:<16}{:<16}{:<16}{:<16}'.format('Name', 'Inicial Value', 'Fixed', 'Bounds', 'Scale'))
         string_temp = '{:<16}{:<16.2f}{:<16}{:<16}{:<16}'
-        for key in self.keys:
+        for key in self.parameter_keys:
             # {'p0':None, 'value':None, 'use':False, 'std':None, 'scale':1, 'bounds':(None,None)}
             print(string_temp.format(
                 key,
-                ft.parameters_dict[key]['p0'],
-                ft.parameters_dict[key]['use'] == False,
-                '({},{})'.format(ft.parameters_dict[key]['bounds'][0],ft.parameters_dict[key]['bounds'][1]),
-                ft.parameters_dict[key]['scale']
+                ft._parameters_dict[key]['p0'],
+                ft._parameters_dict[key]['use'] == False,
+                '({},{})'.format(ft._parameters_dict[key]['bounds'][0],ft._parameters_dict[key]['bounds'][1]),
+                ft._parameters_dict[key]['scale']
             ))
         print('\n')
 
@@ -153,7 +174,7 @@ class FitManager:
         '''
         #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         for key in kwargs.keys():
-            if key in self.keys:
+            if key in self.parameter_keys:
                 self.p_initial_values[key] = kwargs[key]
             else:
                 raise(ValueError, 'key word ' + key + 'is not recognized!' +
@@ -166,7 +187,7 @@ class FitManager:
         '''
         #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         for key in kwargs.keys():
-            if key in self.keys:
+            if key in self.parameter_keys:
                 self.p_fixed_values[key] = kwargs[key]
             else:
                 raise (ValueError, 'key word ' + key + 'is not recognized!' +
@@ -179,7 +200,7 @@ class FitManager:
         '''
         #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         for key in kwargs.keys():
-            if key in self.keys:
+            if key in self.parameter_keys:
                 if not isinstance(kwargs[key], tuple) or len(kwargs[key]) != 2:
                     raise (ValueError, 'Bounds must be a tuple of length 2.')
                 self._bounds[key] = kwargs[key]
@@ -197,7 +218,7 @@ class FitManager:
         '''
         #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         for key in kwargs.keys():
-            if key in self.keys:
+            if key in self.parameter_keys:
                 self._scale[key] = kwargs[key]
             else:
                 raise (ValueError, 'key word ' + key + 'is not recognized!' +
@@ -253,7 +274,6 @@ class FitManager:
         else:
             warnings.warn('No profile for method {} and no options provided. Using library defaults'.format(min_method))
 
-
     def _get_initial_values(self, pass_results=False):
         '''
         Get the initial values for the next fit
@@ -271,7 +291,7 @@ class FitManager:
         p0_last = self.last_fit.results['x'] + 1e-5 if p0_pass else None
         #print('p0_last', p0_last)
         p0_last_i = 0
-        for key in self.keys:
+        for key in self.parameter_keys:
             # Use user defined fixed value
             if key in self.p_fixed_values:
                 p0 += (self.p_fixed_values[key],)
@@ -306,7 +326,7 @@ class FitManager:
 
     def _get_scale_values(self):
         scale = ()
-        for key in self.keys:
+        for key in self.parameter_keys:
             # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
             # total_cts is a spacial case at it uses the counts from the pattern
             if key == 'total_cts':
@@ -320,7 +340,7 @@ class FitManager:
                 scale += (self._scale[key],)
         return scale
 
-    def _build_fits_obj(self, p1=None, p2=None, p3=None, verbose_graphics=False, pass_results=False):
+    def _build_fits_obj(self, sites, verbose_graphics=False, pass_results=False):
         '''
         Builds a Fit object
         :param p1: pattern 1
@@ -331,7 +351,7 @@ class FitManager:
         :return: Fit object
         '''
 
-        ft = Fit(self.lib, verbose_graphics)
+        ft = Fit(self.lib, sites, verbose_graphics)
 
         ft.set_sub_pixels(self._sub_pixels)
         ft.set_fit_options(self._fit_options)
@@ -341,45 +361,50 @@ class FitManager:
         ymesh = self.mm_pattern.ymesh
         ft.set_data_pattern(xmesh, ymesh, patt)
 
-        # ignore similar patterns
-        p1_fit = p2_fit = p3_fit = None
-        p1_fit = p1
-        if p2 is not None:
-            p2_fit = p2 if not p2 == p1 else None
-        if p3 is not None:
-            p3_fit = p3 if not (p3 == p1 or p3 == p2) else None
-        ft._set_patterns_to_fit(p1_fit, p2_fit, p3_fit)
-
         # Get initial values
         p0, p0_fix = self._get_initial_values(pass_results=pass_results)
 
         # Get scale
         scale = self._get_scale_values()
 
-        ft.set_scale_values(dx=scale[0], dy=scale[1], phi=scale[2], total_cts=scale[3],
-                            sigma=scale[4], f_p1=scale[5], f_p2=scale[6], f_p3=scale[7])
+        # base input
+        scale_dict = {
+            'dx':scale[0], 'dy':scale[1], 'phi':scale[2], 'total_cts':scale[3], 'sigma':scale[4]
+        }
+        init_dict = {
+            'dx':p0[0], 'dy':p0[1], 'phi':p0[2], 'total_cts':p0[3], 'sigma':p0[4]
+        }
+        fix_dict = {
+            'dx': p0_fix[0], 'dy': p0_fix[1], 'phi': p0_fix[2], 'total_cts': p0_fix[3], 'sigma': p0_fix[4]
+        }
+        bound_dict = {
+            'dx':self._bounds['dx'], 'dy':self._bounds['dy'], 'phi':self._bounds['phi'],
+            'total_cts':self._bounds['total_cts'], 'sigma':self._bounds['sigma']
+        }
+        # add site values
 
-        ft.set_inicial_values(p0[0], p0[1], p0[2], p0[3], p0[4], p0[5], p0[6], p0[7])
+        for i in range(self._n_sites):
+            fraction_key = 'f_p' + str(i + 1)  # 'f_p1', 'f_p2', 'f_p3',...
+            scale_dict[fraction_key] = scale[5+i]
+            init_dict[fraction_key] = p0[5+i]
+            fix_dict[fraction_key] = p0_fix[5+i]
+            bound_dict[fraction_key] = self._bounds[fraction_key]
 
-        ft.fix_parameters(p0_fix[0], p0_fix[1], p0_fix[2], p0_fix[3], p0_fix[4], p0_fix[5],
-                          p0_fix[6], p0_fix[7])
-
-        ft.set_bound_values(dx=self._bounds['dx'], dy=self._bounds['dy'], phi=self._bounds['phi'],
-                            total_cts=self._bounds['total_cts'], sigma=self._bounds['sigma'],
-                            f_p1=self._bounds['f_p1'], f_p2=self._bounds['f_p2'], f_p3=self._bounds['f_p3'])
+        ft.set_scale_values(**scale_dict)
+        ft.set_inicial_values(**init_dict)
+        ft.fix_parameters(**fix_dict)
+        ft.set_bound_values(**bound_dict)
 
         return ft
 
-
-    def _fill_results_dict(self, ft, get_errors, p1=None, p2=None, p3=None):
-
+    def _fill_results_dict(self, ft, get_errors, sites):#p1=None, p2=None, p3=None):
         assert isinstance(ft, Fit), "ft is not of type PyFDD.Fit."
 
         patt = self.mm_pattern.matrixCurrent.copy()
 
         # keys are 'pattern_1','pattern_2','pattern_3','sub_pixels','dx','dy','phi',
         # 'total_cts','sigma','f_p1','f_p2','f_p3'
-        parameter_dict = ft.parameters_dict.copy()
+        parameter_dict = ft._parameters_dict.copy()
         append_dic = {}
         append_dic['value'] = ft.results['fun']
         append_dic['success'] = ft.results['success']
@@ -389,53 +414,33 @@ class FitManager:
         append_dic['phi'] = parameter_dict['phi']['value']
         append_dic['counts'] = parameter_dict['total_cts']['value'] if self._cost_function == 'chi2' else np.nan
         append_dic['sigma'] = parameter_dict['sigma']['value']
-        if p1 is not None:
-            append_dic['site1 n'] = self.lib.ECdict["Spectrums"][p1 - 1]["Spectrum number"]
-            append_dic['p1'] = p1
-            append_dic['site1 description'] = self.lib.ECdict["Spectrums"][p1 - 1]["Spectrum_description"]
-            append_dic['site1 factor'] = self.lib.ECdict["Spectrums"][p1 - 1]["factor"]
-            append_dic['site1 u1'] = self.lib.ECdict["Spectrums"][p1 - 1]["u1"]
-            append_dic['site1 fraction'] = parameter_dict['f_p1']['value']
-        if p2 is not None:
-            append_dic['site2 n'] = self.lib.ECdict["Spectrums"][p2 - 1]["Spectrum number"]
-            append_dic['p2'] = p2
-            append_dic['site2 description'] = self.lib.ECdict["Spectrums"][p2 - 1]["Spectrum_description"]
-            append_dic['site2 factor'] = self.lib.ECdict["Spectrums"][p2 - 1]["factor"]
-            append_dic['site2 u1'] = self.lib.ECdict["Spectrums"][p2 - 1]["u1"]
-            if not p2 == p1:
-                append_dic['site2 fraction'] = parameter_dict['f_p2']['value']
-        if p3 is not None:
-            append_dic['site3 n'] = self.lib.ECdict["Spectrums"][p3 - 1]["Spectrum number"]
-            append_dic['p3'] = p3
-            append_dic['site3 description'] = self.lib.ECdict["Spectrums"][p3 - 1]["Spectrum_description"]
-            append_dic['site3 factor'] = self.lib.ECdict["Spectrums"][p3 - 1]["factor"]
-            append_dic['site3 u1'] = self.lib.ECdict["Spectrums"][p3 - 1]["u1"]
-            if not (p3 == p1 or p3 == p2):
-                append_dic['site3 fraction'] = parameter_dict['f_p3']['value']
+
+        for i in range(self._n_sites):
+            patt_num = sites[i] # index of the pattern in ECdict is patt_num - 1
+            append_dic['site{:d} n'.format(i + 1)] = self.lib.ECdict["Spectrums"][patt_num - 1]["Spectrum number"]
+            append_dic['p{:d}'.format(i + 1)] = patt_num
+            append_dic['site{:d} description'.format(i + 1)] = \
+                self.lib.ECdict["Spectrums"][patt_num - 1]["Spectrum_description"]
+            append_dic['site{:d} factor'.format(i + 1)] = self.lib.ECdict["Spectrums"][patt_num - 1]["factor"]
+            append_dic['site{:d} u1'.format(i + 1)] = self.lib.ECdict["Spectrums"][patt_num - 1]["u1"]
+            append_dic['site{:d} fraction'.format(i + 1)] = parameter_dict['f_p{:d}'.format(i + 1)]['value']
+
         if get_errors:
             append_dic['x_err'] = parameter_dict['dx']['std']
             append_dic['y_err'] = parameter_dict['dy']['std']
             append_dic['phi_err'] = parameter_dict['phi']['std']
             append_dic['counts_err'] = parameter_dict['total_cts']['std'] if self._cost_function == 'chi2' else np.nan
             append_dic['sigma_err'] = parameter_dict['sigma']['std']
-            append_dic['fraction1_err'] = parameter_dict['f_p1']['std'] if p1 is not None else np.nan
-            append_dic['fraction2_err'] = parameter_dict['f_p2']['std'] if p2 is not None and \
-                                                                                not p2 == p1 \
-                                                                                else np.nan
-            append_dic['fraction3_err'] = parameter_dict['f_p3']['std'] if p3 is not None and \
-                                                                                not (p3 == p1 or p3 == p2) \
-                                                                                else np.nan
-
+            for i in range(self._n_sites):
+                # todo check for bugs in case two sites are equal
+                append_dic['fraction{:d}_err'.format(i + 1)] = \
+                    parameter_dict['f_p{:d}'.format(i + 1)]['std']
 
         # print('append_dic ', append_dic)
         self.df = self.df.append(append_dic, ignore_index=True)
-        self.df = self.df[self.columns]
+        #print('columns - ', list(self.df))
+        self.df = self.df[list(self.columns)]
         # print('self.df ', self.df)
-
-
-# TODO
-#cost_func='chi2', sub_pixels=1,
-#                    optimization_profile='default', min_method='L-BFGS-B',
 
     def run_fits(self, *args, pass_results=False, verbose=1, get_errors=False):
         '''
@@ -446,12 +451,15 @@ class FitManager:
         :return:
         '''
 
-        assert isinstance(self.mm_pattern, DataPattern)
+        if len(args) != self._n_sites:
+            raise ValueError('Error, you need to imput the pattern idexes for all the '
+                             '{0} expected sites.'.format(self._n_sites, pattern_index))
 
         self.done_param_verbose = False
 
         patterns_list = ()
         for ar in args:
+            # if a pattern index is just a scalar make it iterable
             patterns_list += (np.atleast_1d(np.array(ar)),)
         assert len(patterns_list) >= 1
 
@@ -460,51 +468,65 @@ class FitManager:
         elif len(patterns_list) == 2:
             patterns_list += ((None,),)
 
-        for p1 in patterns_list[0]:
-            for p2 in patterns_list[1]:
-                for p3 in patterns_list[2]:
+        def recursive_call(patterns_list, sites = ()):
+            if len(patterns_list > 0):
+                for s in patterns_list[0]:
+                    sites += (s,)
+                    recursive_call(patterns_list[1:], sites)
+            else:
+                # visualization is by default off in run_fits
+                self._single_fit(sites, verbose=verbose, pass_results=pass_results, get_errors=get_errors)
 
-                    # visualization is by default off in run_fits
-                    self._single_fit(p1, p2, p3, verbose=verbose, pass_results=pass_results, get_errors=get_errors)
+        recursive_call(patterns_list)
 
-    def run_single_fit(self, p1, p2=None, p3=None, verbose=1,
+    def run_single_fit(self, *args, verbose=1,
                        verbose_graphics=False, get_errors=False):
 
-        if isinstance(p1, (np.ndarray, collections.Sequence)) and len(p1) == 1:
-            p1 = p1[0]
-        if isinstance(p2, (np.ndarray, collections.Sequence)) and len(p2) == 1:
-            p2 = p2[0]
-        if isinstance(p2, (np.ndarray, collections.Sequence)) and len(p3) == 1:
-            p3 = p3[0]
+        # Ensure the number of sites indexes is the same as the number of sites in __init__
+        if len(args) != self._n_sites:
+            raise ValueError('Error, you need to imput the pattern idices for all the '
+                             '{0} expected sites. The expected number of sites can be'
+                             'changed in the constructor.'.format(self._n_sites))
+        args = list(args)
+        sites = ()
+        for i in range(self._n_sites):
+            # Convert array of single number to scalar
+            if isinstance(args[i], (np.ndarray, collections.Sequence)) and len(args[i]) == 1:
+                args[i] = args[i][0]
+            # Ensure index is an int.
+            if not isinstance(args[i], (int, np.integer)):
+                raise ValueError('Each pattern index must an int.')
+            sites += (args[i],)
 
         self.done_param_verbose = False
 
-        self._single_fit(p1, p2, p3, get_errors=get_errors, pass_results=False,
+        self._single_fit(sites, get_errors=get_errors, pass_results=False,
                          verbose=verbose, verbose_graphics=verbose_graphics)
 
-
-    def _single_fit(self, p1, p2=None, p3=None, get_errors=False, pass_results=False,
+    def _single_fit(self, sites, get_errors=False, pass_results=False,
                     verbose=1, verbose_graphics=False):
-        if not isinstance(p1, (int, np.integer)):
-            raise ValueError('p1 needs to be an int')
-        if p2 is not None and not isinstance(p2, (int, np.integer)):
-            raise ValueError('p2 needs to be an int')
-        if p3 is not None and not isinstance(p3, (int, np.integer)):
-            raise ValueError('p3 needs to be an int')
 
+        if not isinstance(sites, collections.Sequence):
+            if isinstance(sites, (int, np.integer)):
+                sites = (sites,)
+            else:
+                raise ValueError('sites needs to be an int or a sequence of ints')
+        for s in sites:
+            if not isinstance(s, (int, np.integer)):
+                raise ValueError('sites needs to be an int or a sequence of ints')
 
-        # each input is a range of patterns to fit
+        # sanity check
         assert isinstance(verbose_graphics, bool)
         assert isinstance(get_errors, bool)
         assert isinstance(self.mm_pattern, DataPattern)
 
-        ft = self._build_fits_obj(p1, p2, p3, verbose_graphics, pass_results=pass_results)
+        ft = self._build_fits_obj(sites, verbose_graphics, pass_results=pass_results)
 
         if verbose > 0 and self.done_param_verbose is False:
             self._print_settings(ft)
 
         if verbose > 0:
-            print('P1, P2, P3 - ', p1, ', ', p2, ', ', p3)
+            print('Sites (P1, P2, ...) - ', sites)
 
         ft.minimize_cost_function(self._cost_function)
 
@@ -514,7 +536,7 @@ class FitManager:
         if get_errors:
             ft.get_std_from_hessian(ft.results['x'], func=self._cost_function)
 
-        self._fill_results_dict(ft, get_errors, p1, p2, p3)
+        self._fill_results_dict(ft, get_errors, sites)
 
         # Keep best fit
         if self.min_value is None:
@@ -526,6 +548,7 @@ class FitManager:
 
         self.last_fit = ft
 
+    # results and output methods
     def save_output(self, filename, save_figure=False):
         self.df.to_csv(filename)
         base_name, ext = os.path.splitext(filename)

@@ -12,7 +12,7 @@ def make_tpx_pattern(lib, patterns=(1,), name = 'temp_tpx.json'):
     # 5 subpixels is a good number for the pads
     gen = PatternCreator(lib, xmesh, ymesh, simulations=patterns, sub_pixels=1)
 
-    fractions_per_sim = np.array([0, 1]) # site has zero occupancy, only background
+    fractions_per_sim = np.array([1])
     #fractions_per_sim /= fractions_per_sim.sum()
     total_events = 0.3 * 512**2
     pattern = gen.make_pattern(0.0, 0.0, 0, fractions_per_sim, total_events, sigma=0, type='montecarlo')
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     mm = make_tpx_pattern(lib)
     mm.set_fit_region(distance=2, angle=45)
 
-    fm = FitManager(cost_function='chi2', sub_pixels=1)
+    fm = FitManager(cost_function='ml', n_sites=2, sub_pixels=1)
     fm.set_pattern(mm, lib)
     #fm.set_fixed_values(dx=0, dy=0, sigma=0.1)  # pad=0.094, tpx=0.064
     #fm.set_bounds(phi=(-20,20))
@@ -39,10 +39,10 @@ if __name__ == '__main__':
     fm.set_minimization_settings(profile='fine')
 
     # last 248 set to 249
-    P1 = np.arange(1, 5)#249)
+    P1 = np.arange(1,1)#249)
     #fm.run_fits(P1, pass_results=False, verbose=1)
-    p1 = np.array([2])
-    fm.run_single_fit(p1,verbose_graphics=False)
+    p1 = np.array([1])
+    fm.run_single_fit(p1, 1, verbose_graphics=False)
     sim_dp = fm.get_pattern_from_last_fit()
     plt.figure()
     ax = plt.subplot(111)

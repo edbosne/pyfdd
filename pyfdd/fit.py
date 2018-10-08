@@ -38,14 +38,13 @@ class Fit:
             raise ValueError('lib is not an instance of Lib2dl')
 
         if not isinstance(sites, collections.Sequence):
-            if isinstance(sites, int):
+            if isinstance(sites, (int, np.integer)):
                 sites = (sites,)
             else:
                 raise ValueError('sites needs to be an int or a sequence of ints')
         for s in sites:
-            if not isinstance(s, int):
+            if not isinstance(s, (int, np.integer)):
                 raise ValueError('sites needs to be an int or a sequence of ints')
-        sites = tuple(sites)
 
         # library file and sites idexes
         self._lib = lib
@@ -177,6 +176,13 @@ class Fit:
             self._parameters_dict[fraction]['use'] = not kwargs.pop(fraction, False)
         if kwargs:
             raise TypeError('Unepxected kwargs provided: %s' % list(kwargs.keys()))
+
+    def _fix_duplicated_sites(self):
+        for n, idx in enumerate(self._sites_idx):
+            if idx in self._sites_idx[:n]:
+                fraction = 'f_p' + str(n+1)
+                self._parameters_dict[fraction]['use'] = False
+                self._parameters_dict[fraction]['p0'] = 0
 
     def set_fit_options(self, options):
 
@@ -324,7 +330,7 @@ class Fit:
         fractions_sims = ()
         for i in range(self._n_sites):
             fractions_sims += (params_temp[5 + i],)  # fractions f_p1, f_p2, f_p3,...
-        print('fractions_sims - ', fractions_sims, self._n_sites)
+        #print('fractions_sims - ', fractions_sims, self._n_sites)
 
         return self.chi_square(dx, dy, phi, total_cts, fractions_sims=fractions_sims, sigma=sigma)
 
@@ -395,7 +401,7 @@ class Fit:
         fractions_sims = ()
         for i in range(self._n_sites):
             fractions_sims += (params_temp[5 + i],) #fractions f_p1, f_p2, f_p3,...
-        print('fractions_sims - ', fractions_sims, self._n_sites)
+        #print('fractions_sims - ', fractions_sims, self._n_sites)
 
         return self.log_likelihood(dx, dy, phi, fractions_sims, sigma=sigma)
 
@@ -411,6 +417,9 @@ class Fit:
             # total counts is not used in maximum likelyhood
             self._parameters_dict['total_cts']['use'] = False
 
+        # set duplicated sites to zero
+        self._fix_duplicated_sites()
+
         # order of params is dx,dy,phi,sigma,f_p1,f_p2,f_p3
         p0 = self._get_p0()
         #print('p0 - ', p0)
@@ -423,7 +432,7 @@ class Fit:
         for key in self._pattern_keys:
             if self._parameters_dict[key]['use']:
                 sites += (self._parameters_dict[key]['value'],)
-        print('sites - ', sites)
+        #print('sites - ', sites)
 
         # generate sim pattern
         self.pattern_generator = PatternCreator(self._lib, self.XXmesh, self.YYmesh, sites,
