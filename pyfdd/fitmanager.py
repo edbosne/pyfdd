@@ -469,10 +469,11 @@ class FitManager:
             patterns_list += ((None,),)
 
         def recursive_call(patterns_list, sites = ()):
-            if len(patterns_list > 0):
+            print('patterns_list, sites -', patterns_list, sites)
+            if len(patterns_list) > 0:
                 for s in patterns_list[0]:
-                    sites += (s,)
-                    recursive_call(patterns_list[1:], sites)
+                    sites_new = sites + (s,)
+                    recursive_call(patterns_list[1:], sites_new)
             else:
                 # visualization is by default off in run_fits
                 self._single_fit(sites, verbose=verbose, pass_results=pass_results, get_errors=get_errors)
@@ -482,11 +483,6 @@ class FitManager:
     def run_single_fit(self, *args, verbose=1,
                        verbose_graphics=False, get_errors=False):
 
-        # Ensure the number of sites indexes is the same as the number of sites in __init__
-        if len(args) != self._n_sites:
-            raise ValueError('Error, you need to imput the pattern idices for all the '
-                             '{0} expected sites. The expected number of sites can be'
-                             'changed in the constructor.'.format(self._n_sites))
         args = list(args)
         sites = ()
         for i in range(self._n_sites):
@@ -514,6 +510,13 @@ class FitManager:
         for s in sites:
             if not isinstance(s, (int, np.integer)):
                 raise ValueError('sites needs to be an int or a sequence of ints')
+
+        # Ensure the number of sites indexes is the same as the number of sites in __init__
+        if len(sites) != self._n_sites:
+            raise ValueError('Error, you need to imput the pattern idices for all the '
+                             '{0} expected sites. {1} were provided. '
+                             'The expected number of sites can be '
+                             'changed in the constructor.'.format(self._n_sites, len(sites)))
 
         # sanity check
         assert isinstance(verbose_graphics, bool)
