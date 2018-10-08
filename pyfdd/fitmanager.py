@@ -465,7 +465,7 @@ class FitManager:
         assert len(patterns_list) >= 1
 
         def recursive_call(patterns_list, sites = ()):
-            print('patterns_list, sites -', patterns_list, sites)
+            #print('patterns_list, sites -', patterns_list, sites)
             if len(patterns_list) > 0:
                 for s in patterns_list[0]:
                     sites_new = sites + (s,)
