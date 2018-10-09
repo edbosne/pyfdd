@@ -432,7 +432,6 @@ class FitManager:
             append_dic['counts_err'] = parameter_dict['total_cts']['std'] if self._cost_function == 'chi2' else np.nan
             append_dic['sigma_err'] = parameter_dict['sigma']['std']
             for i in range(self._n_sites):
-                # todo check for bugs in case two sites are equal
                 append_dic['fraction{:d}_err'.format(i + 1)] = \
                     parameter_dict['f_p{:d}'.format(i + 1)]['std']
 
