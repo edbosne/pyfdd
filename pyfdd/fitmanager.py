@@ -481,7 +481,7 @@ class FitManager:
 
         args = list(args)
         sites = ()
-        for i in range(self._n_sites):
+        for i in range(len(args)):
             # Convert array of single number to scalar
             if isinstance(args[i], (np.ndarray, collections.Sequence)) and len(args[i]) == 1:
                 args[i] = args[i][0]
