@@ -458,7 +458,7 @@ class FitManager:
         self.done_param_verbose = False
 
         patterns_list = ()
-        print('args, ',args)
+        #print('args, ',args)
         for ar in args:
             # if a pattern index is just a scalar make it iterable
             patterns_list += (np.atleast_1d(np.array(ar)),)

@@ -148,7 +148,7 @@ class PatternCreator:
         # rotate
         self._rotate(phi)
         # move mesh
-        self._move(dx,dy)
+        self._move(dx, dy, phi)
         # render normalized pattern
         self._grid_interpolation(total_events)
         # keep mask for later
@@ -252,12 +252,24 @@ class PatternCreator:
         y = np.arange(new_yfirst, new_ylast, new_ystep)
         self._detector_xmesh_expanded, self._detector_ymesh_expanded = np.meshgrid(x, y)
 
-    def _move(self, dx=0, dy=0):
+    def _move(self, dx=0, dy=0, ang=0):
         '''
         Translation of pattern
         :param dx: translation in x, units in angle
         :param dy: translation in y, units in angle
+        :param ang: angle of previous rotation. (x,y) vector also needs to be rotated
         '''
+
+        # positive counterclockwise
+        ang = -ang
+        theta = np.radians(ang)
+        c, s = np.cos(theta), np.sin(theta)
+        # rotation matrix
+        rot_matrix = np.array([[c, -s], [s, c]])
+
+        xy = np.vstack((dx, dy))
+        dx, dy = rot_matrix.dot(xy)
+
         self._detector_xmesh_temp = self._detector_xmesh_temp - dx
         self._detector_ymesh_temp = self._detector_ymesh_temp - dy
 
