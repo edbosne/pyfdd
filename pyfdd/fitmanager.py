@@ -8,7 +8,7 @@ __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
 from .lib2dl import Lib2dl
-#from patterncreator import PatternCreator, create_detector_mesh
+from patterncreator import PatternCreator, create_detector_mesh
 from .datapattern import DataPattern
 from .fit import Fit
 
@@ -54,7 +54,7 @@ class FitManager:
         self.min_value = None
         self.best_fit = None
         self.last_fit = None
-        self.mm_pattern = None
+        self.dp_pattern = None
         self.lib = None
 
         # Fit settings
@@ -113,12 +113,12 @@ class FitManager:
         '''
         if isinstance(data_pattern, DataPattern):
             # all good
-            self.mm_pattern = data_pattern
+            self.dp_pattern = data_pattern
         elif isinstance(data_pattern,  str):
             if not os.path.isfile(data_pattern):
                 raise ValueError('data is a str but filepath is not valid')
             else:
-                self.mm_pattern = DataPattern(file_path=data_pattern, verbose=self.verbose)
+                self.dp_pattern = DataPattern(file_path=data_pattern, verbose=self.verbose)
         else:
             ValueError('data_pattern input error')
 
@@ -135,8 +135,8 @@ class FitManager:
 
         print('\nMedipix pattern added')
         print('Inicial orientation (x, y, phi) is (',
-              self.mm_pattern.center[0], ', ', self.mm_pattern.center[1], ',',
-              self.mm_pattern.angle, ')')
+              self.dp_pattern.center[0], ', ', self.dp_pattern.center[1], ',',
+              self.dp_pattern.angle, ')')
 
     def _print_settings(self, ft):
         '''
@@ -303,13 +303,13 @@ class FitManager:
             # Use FitManager choice
             else:
                 if key == 'dx':
-                    p0 += (p0_last[p0_last_i],) if p0_pass else (self.mm_pattern.center[0],)
+                    p0 += (p0_last[p0_last_i],) if p0_pass else (self.dp_pattern.center[0],)
                 elif key == 'dy':
-                    p0 += (p0_last[p0_last_i],) if p0_pass else (self.mm_pattern.center[1],)
+                    p0 += (p0_last[p0_last_i],) if p0_pass else (self.dp_pattern.center[1],)
                 elif key == 'phi':
-                    p0 += (p0_last[p0_last_i],) if p0_pass else (self.mm_pattern.angle,)
+                    p0 += (p0_last[p0_last_i],) if p0_pass else (self.dp_pattern.angle,)
                 elif key == 'total_cts':
-                    patt = self.mm_pattern.matrixOriginal.copy()
+                    patt = self.dp_pattern.matrixOriginal.copy()
                     #counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
                     counts= patt.sum()
                     p0 += (counts,)
@@ -331,7 +331,7 @@ class FitManager:
             # total_cts is a spacial case at it uses the counts from the pattern
             if key == 'total_cts':
                 if self._cost_function == 'chi2':
-                    patt = self.mm_pattern.matrixCurrent
+                    patt = self.dp_pattern.matrixCurrent
                     counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
                     scale += (counts_ordofmag * self._scale[key],)
                 elif self._cost_function == 'ml':
@@ -356,9 +356,9 @@ class FitManager:
         ft.set_sub_pixels(self._sub_pixels)
         ft.set_fit_options(self._fit_options)
 
-        patt = self.mm_pattern.matrixCurrent
-        xmesh = self.mm_pattern.xmesh
-        ymesh = self.mm_pattern.ymesh
+        patt = self.dp_pattern.matrixCurrent
+        xmesh = self.dp_pattern.xmesh
+        ymesh = self.dp_pattern.ymesh
         ft.set_data_pattern(xmesh, ymesh, patt)
 
         # Get initial values
@@ -400,7 +400,7 @@ class FitManager:
     def _fill_results_dict(self, ft, get_errors, sites):#p1=None, p2=None, p3=None):
         assert isinstance(ft, Fit), "ft is not of type PyFDD.Fit."
 
-        patt = self.mm_pattern.matrixCurrent.copy()
+        patt = self.dp_pattern.matrixCurrent.copy()
 
         # keys are 'pattern_1','pattern_2','pattern_3','sub_pixels','dx','dy','phi',
         # 'total_cts','sigma','f_p1','f_p2','f_p3'
@@ -516,7 +516,7 @@ class FitManager:
         # sanity check
         assert isinstance(verbose_graphics, bool)
         assert isinstance(get_errors, bool)
-        assert isinstance(self.mm_pattern, DataPattern)
+        assert isinstance(self.dp_pattern, DataPattern)
 
         ft = self._build_fits_obj(sites, verbose_graphics, pass_results=pass_results)
 
@@ -580,8 +580,8 @@ class FitManager:
             plt.close(fig)
 
     def _get_sim_normalization_factor(self, normalization, pattern_type):
-        total_counts = np.sum(self.mm_pattern.matrixCurrent)
-        num_pix = np.sum(~self.mm_pattern.matrixCurrent.mask)
+        total_counts = np.sum(self.dp_pattern.matrixCurrent)
+        num_pix = np.sum(~self.dp_pattern.matrixCurrent.mask)
         norm_factor = None
         if normalization is None:
             norm_factor = 1
@@ -603,6 +603,42 @@ class FitManager:
         else:
             raise ValueError('normalization needs to be, None, \'counts\', \'yield\' or \'probability\'')
         return norm_factor
+
+    def _gen_detector_pattern_from_fit(self, fit='best', generator='ideal'):
+        # fit can be the best or last
+        if fit == 'best':
+            fit_obj = self.best_fit
+        elif fit =='last':
+            fit_obj = self.last_fit
+        else:
+            raise ValueError('parameter fit must be either \'best\' or \'last\'')
+
+        # get values
+        parameter_dict = fit_obj._parameters_dict.copy()
+        dx = parameter_dict['dx']['value']
+        dy = parameter_dict['dy']['value']
+        phi = parameter_dict['phi']['value']
+        total_events = parameter_dict['total_cts']['value'] if self._cost_function == 'chi2' else 1
+        sigma = parameter_dict['sigma']['value']
+        fractions_sims = ()
+        for i in range(self._n_sites):
+            fractions_sims += (parameter_dict['f_p{:d}'.format(i + 1)]['value'],)
+
+        # generate sim pattern
+        gen = PatternCreator(fit_obj._lib, fit_obj.XXmesh, fit_obj.YYmesh, fit_obj._sites_idx,
+                             mask=self.data_pattern.mask, # need the mask for the normalization
+                             sub_pixels=parameter_dict['sub_pixels']['value'],
+                             mask_out_of_range = True)
+        # mask out of range false means that points that are out of the range of simulations are not masked,
+        # instead they are substituted by a very small number 1e-12
+        sim_pattern = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type='ideal')
+
+        # Substitute only masked pixels that are in range (2.7° from center) and are not the chip edges
+        # This can't really be made without keeping 2 set of masks, so all masked pixels are susbstituted.
+        # This means some pixels with valid data but masked can still be susbtituted
+
+
+
 
     def get_pattern_from_last_fit(self, normalization=None):
         fit_obj = self.last_fit
@@ -628,9 +664,18 @@ class FitManager:
         dp.set_mask(fit_obj.sim_pattern.mask)
         return dp * norm_factor
 
-    def get_datapattern(self, normalization=None):
+    def get_datapattern(self, normalization=None, substitute_masked_with='ideal', which_fit='last'):
+
+        dp_pattern = copy.deepcopy(self.dp_pattern)
+
+        sim_pattern = self._gen_detector_pattern_from_fit(fit=which_fit, generator=substitute_masked_with)
+
+        if self._cost_function == 'ml':
+            sim_pattern = sim_pattern * np.sum(dp.matrixCurrent)
+
+        dp_pattern.data[dp_pattern.mask] = sim_pattern.data[dp_pattern.mask]
 
         norm_factor = self._get_sim_normalization_factor(normalization, pattern_type='data')
 
-        return self.mm_pattern * norm_factor
+        return dp_pattern * norm_factor
 
