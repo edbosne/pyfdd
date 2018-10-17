@@ -8,7 +8,7 @@ __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
 from .lib2dl import Lib2dl
-from patterncreator import PatternCreator, create_detector_mesh
+from .patterncreator import PatternCreator, create_detector_mesh
 from .datapattern import DataPattern
 from .fit import Fit
 
@@ -626,17 +626,18 @@ class FitManager:
 
         # generate sim pattern
         gen = PatternCreator(fit_obj._lib, fit_obj.XXmesh, fit_obj.YYmesh, fit_obj._sites_idx,
-                             mask=self.data_pattern.mask, # need the mask for the normalization
+                             mask=fit_obj.data_pattern.mask, # need the mask for the normalization
                              sub_pixels=parameter_dict['sub_pixels']['value'],
                              mask_out_of_range = True)
         # mask out of range false means that points that are out of the range of simulations are not masked,
         # instead they are substituted by a very small number 1e-12
-        sim_pattern = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type='ideal')
+        sim_pattern = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type=generator)
 
         # Substitute only masked pixels that are in range (2.7° from center) and are not the chip edges
         # This can't really be made without keeping 2 set of masks, so all masked pixels are susbstituted.
         # This means some pixels with valid data but masked can still be susbtituted
 
+        return sim_pattern
 
 
 
@@ -664,16 +665,23 @@ class FitManager:
         dp.set_mask(fit_obj.sim_pattern.mask)
         return dp * norm_factor
 
-    def get_datapattern(self, normalization=None, substitute_masked_with='ideal', which_fit='last'):
+    def get_datapattern(self, normalization=None, substitute_masked_with=None, which_fit='last'):
 
         dp_pattern = copy.deepcopy(self.dp_pattern)
 
-        sim_pattern = self._gen_detector_pattern_from_fit(fit=which_fit, generator=substitute_masked_with)
+        if substitute_masked_with is not None:
+            sim_pattern = self._gen_detector_pattern_from_fit(fit=which_fit, generator=substitute_masked_with)
 
-        if self._cost_function == 'ml':
-            sim_pattern = sim_pattern * np.sum(dp.matrixCurrent)
+            if self._cost_function == 'ml':
+                sim_pattern = sim_pattern * np.sum(dp_pattern.matrixCurrent)
 
-        dp_pattern.data[dp_pattern.mask] = sim_pattern.data[dp_pattern.mask]
+            print('data\n', dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask],
+                'sim\n', sim_pattern.data[dp_pattern.matrixCurrent.mask])
+
+            dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask] = \
+                sim_pattern.data[dp_pattern.matrixCurrent.mask]
+
+            print('data\n', dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask])
 
         norm_factor = self._get_sim_normalization_factor(normalization, pattern_type='data')
 

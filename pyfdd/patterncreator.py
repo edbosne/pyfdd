@@ -126,6 +126,7 @@ class PatternCreator:
         'poisson' for ideal with poisson noise
         :return: masked array with pattern
         """
+        fractions_per_site = np.array(fractions_per_site)
         if not fractions_per_site.size == self._n_sites:
             raise ValueError('Size of fractions_per_sim does not match the number of simulations')
 
