@@ -166,18 +166,22 @@ class PatternCreator:
         else:
             raise ValueError("invalid value for type: options are ideal, montecarlo and poisson")
 
-    def _gen_mc_pattern(self,sim_pattern,n_total):
+    def _gen_mc_pattern(self, sim_pattern, n_total):
         """
         Generates a monte carlo pattern from a simulation pattern with n_total events
         The function normalizes the sim_pattern and uses it as a the PDF.
-        :param sim_pattern: simulated pattern
+        :param sim_pattern_data: simulated pattern
         :param n_total: total number of events
         :return: montecarlo pattern
         """
         n_total = int(n_total)
-        sim_pattern /= sim_pattern.sum()
+        if isinstance(sim_pattern, ma.MaskedArray):
+            sim_pattern_data = sim_pattern.data
+        else:
+            sim_pattern_data = sim_pattern
+        sim_pattern_data /= sim_pattern_data.sum()
 
-        cdf = sim_pattern.reshape(-1).cumsum()
+        cdf = sim_pattern_data.reshape(-1).cumsum()
         inv_cdf = lambda value: np.searchsorted(cdf, value, side="left")
         mc_event = [inv_cdf(x) for x in np.random.uniform(0, 1, n_total)]
         mc_event_x = self._detector_xmesh.reshape(-1)[mc_event]

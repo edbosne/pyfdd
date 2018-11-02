@@ -618,7 +618,8 @@ class FitManager:
         dx = parameter_dict['dx']['value']
         dy = parameter_dict['dy']['value']
         phi = parameter_dict['phi']['value']
-        total_events = parameter_dict['total_cts']['value'] if self._cost_function == 'chi2' else 1
+        total_events = parameter_dict['total_cts']['value'] if self._cost_function == 'chi2' else \
+            np.sum(self.dp_pattern.matrixCurrent)
         sigma = parameter_dict['sigma']['value']
         fractions_sims = ()
         for i in range(self._n_sites):
@@ -672,8 +673,8 @@ class FitManager:
         if substitute_masked_with is not None:
             sim_pattern = self._gen_detector_pattern_from_fit(fit=which_fit, generator=substitute_masked_with)
 
-            if self._cost_function == 'ml':
-                sim_pattern = sim_pattern * np.sum(dp_pattern.matrixCurrent)
+            #if self._cost_function == 'ml':
+            #    sim_pattern = sim_pattern * np.sum(dp_pattern.matrixCurrent)
 
             print('data\n', dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask],
                 'sim\n', sim_pattern.data[dp_pattern.matrixCurrent.mask])
