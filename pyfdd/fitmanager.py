@@ -676,13 +676,13 @@ class FitManager:
             #if self._cost_function == 'ml':
             #    sim_pattern = sim_pattern * np.sum(dp_pattern.matrixCurrent)
 
-            print('data\n', dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask],
-                'sim\n', sim_pattern.data[dp_pattern.matrixCurrent.mask])
+            #print('data\n', dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask],
+            #    'sim\n', sim_pattern.data[dp_pattern.matrixCurrent.mask])
 
             dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask] = \
                 sim_pattern.data[dp_pattern.matrixCurrent.mask]
 
-            print('data\n', dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask])
+            #print('data\n', dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask])
 
         norm_factor = self._get_sim_normalization_factor(normalization, pattern_type='data')
 
