@@ -1,7 +1,6 @@
 
 
 from pyfdd import Lib2dl
-from pyfdd.lib2dl import read2dl
 
 import matplotlib.pyplot as plt
 
