@@ -12,10 +12,8 @@ __email__ = 'eric.bosne@cern.ch'
 
 import struct
 import numpy as np
-import matplotlib.pyplot as plt
 import io, json
 import os
-#import cPickle as json
 
 import sys
 
@@ -30,7 +28,13 @@ class read2dl:
         self.short_sz = 2
         self.float_sz = 4
 
-    def get_record(self, index, fileContent):
+    def _get_record(self, index, fileContent):
+        '''
+        Gets record from the fortran binary file
+        :param index: Position of the record
+        :param fileContent: content of the .2dl file
+        :return:
+        '''
         #assume being at beggining of record
         record = bytearray()
         record_size = fileContent[index]
@@ -49,6 +53,10 @@ class read2dl:
         return record, next_index
 
     def read_file(self):
+        '''
+        read the .2dl file
+        :return:
+        '''
         with open(self.fileName, mode='rb') as file: # b is important -> binary
             fileContent = file.read()
 
@@ -67,7 +75,7 @@ class read2dl:
         #print(record_size, index)
 
         index = 1
-        header, index = self.get_record(index, fileContent) #record size byte doesnt count for the size of the record
+        header, index = self._get_record(index, fileContent) #record size byte doesnt count for the size of the record
         #print("after header index is - ", index)
         rec_index = 0
         self.dict_2dl["nx"] = struct.unpack("<h",header[rec_index:rec_index+self.short_sz])[0]
@@ -96,7 +104,7 @@ class read2dl:
         dict_spec = {}
         self.dict_2dl["Spectrums"] = ()
         while fileContent[index] != 130:
-            record, index = self.get_record(index, fileContent)
+            record, index = self._get_record(index, fileContent)
             rec_index = 0
             dict_spec["Spectrum number"] = struct.unpack("<h",record[rec_index:rec_index+self.short_sz])[0]
             rec_index += self.short_sz
@@ -115,17 +123,22 @@ class read2dl:
 
             dict_spec["array_index"] = index
 
-            record, index = self.get_record(index, fileContent)
+            record, index = self._get_record(index, fileContent)
 
             nfloats = self.dict_2dl["nx"] * self.dict_2dl["ny"]
             #dict_spec["array"] = np.array(struct.unpack("<"+"f" * nfloats, record[0:nfloats * self.float_sz])).reshape((self.dict_2dl["ny"],self.dict_2dl["nx"])).tolist()
             self.dict_2dl["Spectrums"] += (dict_spec.copy(),)
 
     def get_array(self, spectrums_index):
+        '''
+        Gets the array of that index spectrum
+        :param spectrums_index: index of the spectrum
+        :return:
+        '''
         with open(self.fileName, mode='rb') as file: # b is important -> binary
             fileContent = file.read()
         index = spectrums_index #self.dict_2dl["Spectrums"][spectrums_index]["array_index"]
-        record, index = self.get_record(index, fileContent)
+        record, index = self._get_record(index, fileContent)
         nfloats = self.dict_2dl["nx"] * self.dict_2dl["ny"]
         array = np.array(struct.unpack("<"+"f" * nfloats, record[0:nfloats * self.float_sz])).reshape((self.dict_2dl["ny"],self.dict_2dl["nx"]))
         return array.copy()
@@ -134,15 +147,16 @@ class read2dl:
         return self.dict_2dl.copy()
 
     def save2json(self):
+        '''
+        Save dictionary into library
+        :return:
+        '''
         # Save JSON File
         jsonfile = os.path.splitext(self.fileName)[0] + ".json"
 
-        #print("writing to ", jsonfile)
-        #print(os.path.splitext(self.fileName))
-        # json save:
-        # import json
         with io.open(jsonfile, 'w', encoding='utf-8') as f:
             f.write(str(json.dumps(self.dict_2dl, ensure_ascii=False, sort_keys=True, indent=4)),'utf-8')
+
         #with open(jsonfile, 'wb') as fp:
         #    json.dump(self.dict_2dl, fp) #can be used with pickle too
 
@@ -150,13 +164,11 @@ class read2dl:
         #with open('data.json', 'r') as fp:
         #    data = json.load(fp)
 
-        #print dict_spec["array"]
-        #print self.dict_2dl
-
-        #plt.contourf(dict_spec["array"])
-        #plt.show()
-
     def list_simulations(self):
+        '''
+        List all simulations
+        :return:
+        '''
         ll = np.array([])
         for spectrum in self.dict_2dl["Spectrums"]:
             l = np.array([spectrum["Spectrum number"],\

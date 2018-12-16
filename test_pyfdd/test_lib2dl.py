@@ -8,35 +8,42 @@ import matplotlib.pyplot as plt
 
 def test_lib2dl(path):
     lib = Lib2dl(path)
+
+    print_init_values(lib)
+
+    lib.print_header()
+
+    print(lib.get_simulations_list())
+
     plt.figure()
     imgmat = lib.get_simulation_patt(1)
     plt.contourf(imgmat)
 
-def test_read2dl(path):
 
-    EClib = read2dl(path)
-    EClib.read_file()
-    ECdict = EClib.get_dict()
+def print_init_values(lib):
+    print('\n\n\nprinting init values \n')
+    print('lib.fileName, lib.dict_2dl, lib.short_sz, lib.float_sz')
+    print(lib.fileName, lib.dict_2dl, lib.short_sz, lib.float_sz)
 
-    EClib.print_header()
-    print(EClib.list_simulations())
+    print('lib.nx, lib.ny, lib.xstep, lib.ystep')
+    print(lib.nx, lib.ny, lib.xstep, lib.ystep)
 
-    nx = ECdict["nx"]
-    ny = ECdict["ny"]
-    xstep = ECdict["xstep"]
-    ystep = ECdict["ystep"]
+    print('lib.xfirst, lib.yfirst, lib.xlast, lib.ylast')
+    print(lib.xfirst, lib.yfirst, lib.xlast, lib.ylast)
 
-    plt.figure()
-    imgmat = EClib.get_array(ECdict["Spectrums"][0]["array_index"]).reshape((ny, nx))
-    plt.contourf(imgmat)
+    print('lib.numdim, lib.xmirror, lib.ymirror')
+    print(lib.numdim, lib.xmirror, lib.ymirror)
+
+    print('lib.XXmesh, lib.YYmesh')
+    print(lib.XXmesh, lib.YYmesh)
+
+    print('\n\n\n')
 
 
 if __name__ == '__main__':
     path = "/home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/FDD_libraries/GaN_89Sr/ue488g34.2dl"  # 89Sr [0001]
     # path = "/home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl" #89Sr [-1102]
     # path = /home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/FDD_libraries/GaN_89Sr/ue646g53.2dl" #89Sr [-1101]
-
-    test_read2dl(path)
 
     test_lib2dl(path)
 
