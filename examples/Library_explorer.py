@@ -32,7 +32,7 @@ pd.set_option('display.max_colwidth', -1)
 analysis_path = "/home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/"
 lib_path = os.path.join(analysis_path, "FDD_libraries/GaN_89Sr/ue567g54.2dl")
 lib = Lib2dl(lib_path)
-df = pd.DataFrame(data=lib.sim_list,
+df = pd.DataFrame(data=lib.get_simulations_list(),
                   columns=["Spectrum number",
                            "Spectrum_description",
                            "factor",
