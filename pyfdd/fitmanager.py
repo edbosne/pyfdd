@@ -416,13 +416,13 @@ class FitManager:
         append_dic['sigma'] = parameter_dict['sigma']['value']
 
         for i in range(self._n_sites):
-            patt_num = sites[i] # index of the pattern in ECdict is patt_num - 1
-            append_dic['site{:d} n'.format(i + 1)] = self.lib.ECdict["Spectrums"][patt_num - 1]["Spectrum number"]
+            patt_num = sites[i] # index of the pattern in dict_2dl is patt_num - 1
+            append_dic['site{:d} n'.format(i + 1)] = self.lib.dict_2dl["Spectrums"][patt_num - 1]["Spectrum number"]
             append_dic['p{:d}'.format(i + 1)] = patt_num
             append_dic['site{:d} description'.format(i + 1)] = \
-                self.lib.ECdict["Spectrums"][patt_num - 1]["Spectrum_description"]
-            append_dic['site{:d} factor'.format(i + 1)] = self.lib.ECdict["Spectrums"][patt_num - 1]["factor"]
-            append_dic['site{:d} u1'.format(i + 1)] = self.lib.ECdict["Spectrums"][patt_num - 1]["u1"]
+                self.lib.dict_2dl["Spectrums"][patt_num - 1]["Spectrum_description"]
+            append_dic['site{:d} factor'.format(i + 1)] = self.lib.dict_2dl["Spectrums"][patt_num - 1]["factor"]
+            append_dic['site{:d} u1'.format(i + 1)] = self.lib.dict_2dl["Spectrums"][patt_num - 1]["u1"]
             append_dic['site{:d} fraction'.format(i + 1)] = parameter_dict['f_p{:d}'.format(i + 1)]['value']
 
         if get_errors:
