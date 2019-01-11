@@ -674,8 +674,8 @@ class DataPattern:
         n_color_bins = kwargs.get('n_color_bins', 10)
         smooth_fwhm = kwargs.get('smooth_fwhm', 0)
         plot_type = kwargs.get('plot_type', 'pixels') #pixels or contour
-        xlabel = kwargs.get('xlabel', r'$\theta$')
-        ylabel = kwargs.get('ylabel', r'$\omega$')
+        xlabel = kwargs.get('xlabel', r'$\theta°$')
+        ylabel = kwargs.get('ylabel', r'$\omega°$')
         zlabel = kwargs.get('zlabel', 'Counts')
         title = kwargs.get('title', '2D pattern - ' + str(self.matrixCurrent.shape[0]) +
                            'x' + str(self.matrixCurrent.shape[1]))
