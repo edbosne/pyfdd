@@ -9,4 +9,4 @@ from .patterncreator import PatternCreator
 from .datapattern import DataPattern
 
 
-__version__ = "1.0.0"
+__version__ = "0.6.1"
