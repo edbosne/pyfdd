@@ -1,8 +1,16 @@
 from distutils.core import setup
+import re, io
+
+# https://stackoverflow.com/a/17638236/2707733
+
+__version__ = re.search(
+    r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]',  # It excludes inline comment too
+    io.open('main_package/__init__.py', encoding='utf_8_sig').read()
+    ).group(1)
 
 setup(
     name='pyfdd',
-    version='0.7',
+    version=__version__,
     packages=['pyfdd', 'pyfdd.lib2dl', 'pyfdd.datapattern', 'pyfdd.datapattern.CustomWidgets', 'examples',
              'ecsli_tools'],
     install_requires=[
