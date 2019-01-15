@@ -499,16 +499,20 @@ class Fit:
             f = lambda xx: self.chi_square_call(xx, enable_scale)
         else:
             raise ValueError('undefined function, should be likelihood or chi_square')
-        H = nd.Hessian(f, step=1e-4)
+        H = nd.Hessian(f, step=1e-5)
         hh = H(x)
-        if func == 'ml':
-            hh_inv = np.linalg.inv(hh)
-        elif func == 'chi2':
-            hh_inv = np.linalg.inv(0.5*hh)
+        if np.linalg.det(hh) != 0:
+            if func == 'ml':
+                hh_inv = np.linalg.inv(hh)
+            elif func == 'chi2':
+                hh_inv = np.linalg.inv(0.5*hh)
+            else:
+                raise ValueError('undefined function, should be likelihood or chi_square')
+            std = np.sqrt(np.diag(hh_inv))
+            std *= self._get_p0_scale() if enable_scale else np.ones(len(x))
         else:
-            raise ValueError('undefined function, should be likelihood or chi_square')
-        std = np.sqrt(np.diag(hh_inv))
-        std *= self._get_p0_scale() if enable_scale else np.ones(len(x))
+            raise Warning('As Hessian is not invertible, errors are not calculated.')
+            std = -np.ones(len(x))
         self.std = std
         di = 0
         for key in self._parameters_order:
