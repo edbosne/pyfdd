@@ -252,15 +252,15 @@ class FitManager:
 
             if profile == 'coarse':
                 # likelihood values are orders of mag bigger than chi2, so they need smaller ftol
-                ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-5}
-                chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-5}
+                ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7, 'maxcor':100, 'eps':1e-8}
+                chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6, 'maxcor':100, 'eps':1e-8}
             elif profile == 'default':
-                ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-9, 'maxcor':100, 'eps':1e-5} #maxfun to 200 prevents memory problems
-                chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-5}
+                ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-9, 'maxcor':100, 'eps':1e-8} #maxfun to 200 prevents memory problems
+                chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6, 'maxcor':100, 'eps':1e-8}
             elif profile == 'fine':
                 # use default eps with fine
-                ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-12, 'maxcor':100, 'eps':1e-5}
-                chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7,  'maxcor':100, 'eps':1e-5}
+                ml_fit_options =   {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-12, 'maxcor':100, 'eps':1e-8}
+                chi2_fit_options = {'disp':False, 'maxiter':30, 'maxfun':600, 'ftol':1e-7,  'maxcor':100, 'eps':1e-8}
             else:
                 raise ValueError('profile value should be set to: coarse, default or fine.')
 

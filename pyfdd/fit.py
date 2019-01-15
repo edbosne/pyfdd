@@ -449,6 +449,8 @@ class Fit:
         # select method
         res = op.minimize(function, p0, args=True, method=self._minimization_method, bounds=bnds, \
                           options=self._fit_options)  # 'eps': 0.0001, L-BFGS-B
+        if self._fit_options['disp']:
+            print(res)
         # minimization with cobyla also seems to be a good option with {'rhobeg':1e-1/1e-2} . but it is unconstrained
         di = 0
         for key in self._parameters_order:
