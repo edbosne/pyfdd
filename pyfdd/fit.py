@@ -511,7 +511,7 @@ class Fit:
             std = np.sqrt(np.diag(hh_inv))
             std *= self._get_p0_scale() if enable_scale else np.ones(len(x))
         else:
-            raise Warning('As Hessian is not invertible, errors are not calculated.')
+            warnings.warn('As Hessian is not invertible, errors are not calculated.')
             std = -np.ones(len(x))
         self.std = std
         di = 0
