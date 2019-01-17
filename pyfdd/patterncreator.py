@@ -177,6 +177,7 @@ class PatternCreator:
         n_total = int(n_total)
         if isinstance(sim_pattern, ma.MaskedArray):
             sim_pattern_data = sim_pattern.data
+            n_total = int(n_total * sim_pattern_data.sum() / sim_pattern.sum())
         else:
             sim_pattern_data = sim_pattern
         sim_pattern_data /= sim_pattern_data.sum()
