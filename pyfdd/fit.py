@@ -466,7 +466,7 @@ class Fit:
         fractions_sims = ()
         for i in np.arange(1, 1 + self._n_sites):
             fraction = 'f_p' + str(i)
-            fractions_sims += (kwargs.pop(fraction),())
+            fractions_sims += (kwargs.pop(fraction),)
         if kwargs:
             raise TypeError('Unepxected kwargs provided: %s' % list(kwargs.keys()))
 
