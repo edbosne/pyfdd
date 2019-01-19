@@ -340,7 +340,7 @@ class Fit:
 # methods for maximum likelihood
     def log_likelihood(self, dx, dy, phi, fractions_sims, sigma=0):
         """
-        Calculates the Pearson chi2 for the given conditions.
+        Calculates the log likelihood for the given conditions.
         :param dx: delta x in angles
         :param dy: delta y in angles
         :param phi: delta phi in anlges
@@ -360,9 +360,8 @@ class Fit:
         # gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations, mask=data_pattern.mask)
         sim_pattern = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type='ideal')
         self.sim_pattern = sim_pattern.copy()
-        # log likelihood
-        ll = np.sum(data_pattern * np.log(sim_pattern))
-        # extended log likelihood - no need to fit events
+        # negative log likelihood
+        nll = -np.sum(data_pattern * np.log(sim_pattern))        # extended log likelihood - no need to fit events
         #ll = -np.sum(events_per_sim) + np.sum(data_pattern * np.log(sim_pattern))
         #print('likelihood - ', ll)
         # =====
@@ -379,7 +378,7 @@ class Fit:
             self.verbose_graphics_ax.set_aspect('equal')
             self.verbose_graphics_fg.canvas.draw()
         # =====
-        return -ll
+        return nll
 
     def log_likelihood_call(self, params, enable_scale=False):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
