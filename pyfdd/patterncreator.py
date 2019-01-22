@@ -301,11 +301,20 @@ class PatternCreator:
         cval = 0 if self._mask_out_of_range else 1e-12
         temp_pattern = map_coordinates(self._pattern_current, (grid_y_temp, grid_x_temp),
                                        order=2, prefilter=False, mode='constant', cval=cval)
+
         if self._sub_pixels > 1:
             y_final_size, x_final_size = self._detector_ymesh.shape
             factor = self._sub_pixels
+            # correct for out of range
+            out_of_range_correction = np.array(temp_pattern == cval, int)
+            out_of_range_correction = out_of_range_correction. \
+                reshape([y_final_size, factor, x_final_size, factor]).sum(3).sum(1)
+            out_of_range_correction = out_of_range_correction > 0
+
             # sum over extra pixels, normalization here is redundant
             temp_pattern = temp_pattern.reshape([y_final_size, factor, x_final_size, factor]).sum(3).sum(1)
+            temp_pattern[out_of_range_correction] = cval
+
         self._pattern_current = ma.array(data=temp_pattern, mask=self.mask)
 
     def _normalization(self, total_events=1):
