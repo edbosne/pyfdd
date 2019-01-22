@@ -12,7 +12,9 @@ get_ipython().magic('matplotlib inline')
 
 #import sys
 #sys.path.append("/home/eric/PycharmProjects/PyFDD")
-from pyfdd import Lib2dl
+#from pyfdd import Lib2dl
+import pyfdd
+print('PyFDD version', pyfdd.__version__)
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,11 +29,11 @@ pd.set_option('display.max_colwidth', -1)
 # ## Import library
 # 
 
-# In[2]:
+# In[8]:
 
 analysis_path = "/home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/"
-lib_path = os.path.join(analysis_path, "FDD_libraries/GaN_89Sr/ue567g54.2dl")
-lib = Lib2dl(lib_path)
+lib_path = os.path.join(analysis_path, "FDD_libraries/GaN_24Na/ue488g20.2dl")
+lib = pyfdd.Lib2dl(lib_path)
 df = pd.DataFrame(data=lib.get_simulations_list(),
                   columns=["Spectrum number",
                            "Spectrum_description",
@@ -41,7 +43,12 @@ df = pd.DataFrame(data=lib.get_simulations_list(),
 #for entry in lib.sim_list:
 
 
-# In[3]:
+# In[9]:
+
+lib.print_header()
+
+
+# In[4]:
 
 df
 
@@ -50,12 +57,12 @@ df
 # 
 # use the pattern number
 
-# In[4]:
+# In[5]:
 
 patt_number = 1
 
 
-# In[5]:
+# In[6]:
 
 get_ipython().magic('matplotlib inline')
 imgmat = lib.get_simulation_patt(patt_number)

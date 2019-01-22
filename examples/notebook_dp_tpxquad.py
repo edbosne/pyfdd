@@ -9,9 +9,8 @@
 
 # In[1]:
 
-#import sys
-#sys.path.append("/home/eric/PycharmProjects/PyFDD")
-from pyfdd import DataPattern
+import pyfdd
+print('PyFDD version', pyfdd.__version__)
 from ecsli_tools import *
 
 import matplotlib.pyplot as plt
@@ -39,8 +38,8 @@ filename = "/home/eric/cernbox/Betapix_CERN/2016/2016-04_Mg/raw002/pattern_d3_Np
 
 # In[3]:
 
-dp1 = DataPattern(file_path=filename1, nChipsX=2, nChipsY=2, real_size=3)
-dp2 = DataPattern(file_path=filename2, nChipsX=2, nChipsY=2, real_size=3)
+dp1 = pyfdd.DataPattern(file_path=filename1, nChipsX=2, nChipsY=2, real_size=3)
+dp2 = pyfdd.DataPattern(file_path=filename2, nChipsX=2, nChipsY=2, real_size=3)
 dp = dp1 + dp2
 
 
