@@ -11856,7 +11856,7 @@ for i in range(0, len(axis_names)):
     # The number of subpixels used in the past has been 6 for the pad
     # for the timepix depending on the number of added pixels in the DataPattern 
     # is set to half the number of added pixels
-    fm = pyfdd.FitManager(cost_function=&#39;chi2&#39;, sub_pixels=2)
+    fm = pyfdd.FitManager(cost_function=&#39;chi2&#39;, n_sites=2, sub_pixels=2)
     
     # Set the pattern and library to fit with
     fm.set_pattern(filename, library)
