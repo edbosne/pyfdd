@@ -11784,9 +11784,8 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[1]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span class="c1">#import sys</span>
-<span class="c1">#sys.path.append(&quot;/home/eric/PycharmProjects/PyFDD&quot;)</span>
-<span class="kn">from</span> <span class="nn">pyfdd</span> <span class="k">import</span> <span class="n">DataPattern</span>
+<div class=" highlight hl-ipython3"><pre><span class="kn">import</span> <span class="nn">pyfdd</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;PyFDD version&#39;</span><span class="p">,</span> <span class="n">pyfdd</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
 <span class="kn">from</span> <span class="nn">ecsli_tools</span> <span class="k">import</span> <span class="o">*</span>
 
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
@@ -11835,8 +11834,8 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[3]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span class="n">dp1</span> <span class="o">=</span> <span class="n">DataPattern</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">filename1</span><span class="p">,</span> <span class="n">nChipsX</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">nChipsY</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">real_size</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<span class="n">dp2</span> <span class="o">=</span> <span class="n">DataPattern</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">filename2</span><span class="p">,</span> <span class="n">nChipsX</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">nChipsY</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">real_size</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span class="n">dp1</span> <span class="o">=</span> <span class="n">pyfdd</span><span class="o">.</span><span class="n">DataPattern</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">filename1</span><span class="p">,</span> <span class="n">nChipsX</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">nChipsY</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">real_size</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">dp2</span> <span class="o">=</span> <span class="n">pyfdd</span><span class="o">.</span><span class="n">DataPattern</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="n">filename2</span><span class="p">,</span> <span class="n">nChipsX</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">nChipsY</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">real_size</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 <span class="n">dp</span> <span class="o">=</span> <span class="n">dp1</span> <span class="o">+</span> <span class="n">dp2</span>
 </pre></div>
 
@@ -11945,10 +11944,10 @@ final_size 63
 
 
 
-<div id="ad7f6e8f-4bf8-4cbc-89c9-19c5d7ab51c2"></div>
+<div id="0151b0b4-2178-4e99-946a-f30c7c0bb292"></div>
 <div class="output_subarea output_javascript ">
 <script type="text/javascript">
-var element = $('#ad7f6e8f-4bf8-4cbc-89c9-19c5d7ab51c2');
+var element = $('#0151b0b4-2178-4e99-946a-f30c7c0bb292');
 /* Put everything inside the global mpl namespace */
 window.mpl = {};
 

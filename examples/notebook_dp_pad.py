@@ -9,9 +9,8 @@
 
 # In[4]:
 
-#import sys
-#sys.path.append("/home/eric/PycharmProjects/PyFDD")
-from pyfdd import DataPattern
+import pyfdd
+print('PyFDD version', pyfdd.__version__)
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -37,8 +36,8 @@ filename2 = "/home/user/path/to/pattern_2.2db"
 
 # In[3]:
 
-dp1 = DataPattern(file_path=filename1)
-dp2 = DataPattern(file_path=filename2)
+dp1 = pyfdd.DataPattern(file_path=filename1)
+dp2 = pyfdd.DataPattern(file_path=filename2)
 dp = dp1 + dp2
 
 

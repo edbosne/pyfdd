@@ -180,11 +180,8 @@ class DataPattern:
 
         new_mm = copy.deepcopy(self)
 
-        new_mm.matrixOriginal = copy.deepcopy(new_pattern)
-        new_mm.matrixCurrent = copy.deepcopy(new_pattern)
-
-        new_mm.matrixOriginal.mask = copy.deepcopy(new_pattern_mask)
-        new_mm.matrixCurrent.mask = copy.deepcopy(new_pattern_mask)
+        new_mm.matrixOriginal = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
+        new_mm.matrixCurrent = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
 
         return new_mm
 
@@ -398,15 +395,14 @@ class DataPattern:
         mask = np.loadtxt(filename)
         if mask.shape != self.matrixCurrent.shape:
             raise ValueError('Shape of mask in file does not match the shape of DataPattern')
-        print(mask.shape, self.matrixCurrent.shape, mask)
-        #self._espand_mask(mask, expand_by)
-        self.matrixCurrent.mask = (mask == 1)
+        mask = self._espand_mask(mask, expand_by)
+        self.matrixCurrent.mask = (mask == 0)
 
     def set_mask(self, mask, expand_by=0):
         mask = np.array(mask)
         if mask.shape != self.matrixCurrent.shape:
             raise ValueError('Shape of mask does not match the shape of DataPattern')
-        self._espand_mask(mask, expand_by)
+        mask = self._espand_mask(mask, expand_by)
         self.matrixCurrent.mask = mask
 
     def save_mask(self, filename):

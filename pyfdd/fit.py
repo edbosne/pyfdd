@@ -340,7 +340,7 @@ class Fit:
 # methods for maximum likelihood
     def log_likelihood(self, dx, dy, phi, fractions_sims, sigma=0):
         """
-        Calculates the Pearson chi2 for the given conditions.
+        Calculates the log likelihood for the given conditions.
         :param dx: delta x in angles
         :param dy: delta y in angles
         :param phi: delta phi in anlges
@@ -360,9 +360,8 @@ class Fit:
         # gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations, mask=data_pattern.mask)
         sim_pattern = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type='ideal')
         self.sim_pattern = sim_pattern.copy()
-        # log likelihood
-        ll = np.sum(data_pattern * np.log(sim_pattern))
-        # extended log likelihood - no need to fit events
+        # negative log likelihood
+        nll = -np.sum(data_pattern * np.log(sim_pattern))        # extended log likelihood - no need to fit events
         #ll = -np.sum(events_per_sim) + np.sum(data_pattern * np.log(sim_pattern))
         #print('likelihood - ', ll)
         # =====
@@ -379,7 +378,7 @@ class Fit:
             self.verbose_graphics_ax.set_aspect('equal')
             self.verbose_graphics_fg.canvas.draw()
         # =====
-        return -ll
+        return nll
 
     def log_likelihood_call(self, params, enable_scale=False):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
@@ -467,7 +466,7 @@ class Fit:
         fractions_sims = ()
         for i in np.arange(1, 1 + self._n_sites):
             fraction = 'f_p' + str(i)
-            fractions_sims += (kwargs.pop(fraction),())
+            fractions_sims += (kwargs.pop(fraction),)
         if kwargs:
             raise TypeError('Unepxected kwargs provided: %s' % list(kwargs.keys()))
 
@@ -499,16 +498,20 @@ class Fit:
             f = lambda xx: self.chi_square_call(xx, enable_scale)
         else:
             raise ValueError('undefined function, should be likelihood or chi_square')
-        H = nd.Hessian(f, step=1e-4)
+        H = nd.Hessian(f, step=1e-5)
         hh = H(x)
-        if func == 'ml':
-            hh_inv = np.linalg.inv(hh)
-        elif func == 'chi2':
-            hh_inv = np.linalg.inv(0.5*hh)
+        if np.linalg.det(hh) != 0:
+            if func == 'ml':
+                hh_inv = np.linalg.inv(hh)
+            elif func == 'chi2':
+                hh_inv = np.linalg.inv(0.5*hh)
+            else:
+                raise ValueError('undefined function, should be likelihood or chi_square')
+            std = np.sqrt(np.diag(hh_inv))
+            std *= self._get_p0_scale() if enable_scale else np.ones(len(x))
         else:
-            raise ValueError('undefined function, should be likelihood or chi_square')
-        std = np.sqrt(np.diag(hh_inv))
-        std *= self._get_p0_scale() if enable_scale else np.ones(len(x))
+            warnings.warn('As Hessian is not invertible, errors are not calculated.')
+            std = -np.ones(len(x))
         self.std = std
         di = 0
         for key in self._parameters_order:

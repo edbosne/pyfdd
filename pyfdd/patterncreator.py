@@ -150,8 +150,10 @@ class PatternCreator:
         self._rotate(phi)
         # move mesh
         self._move(dx, dy, phi)
-        # render normalized pattern
-        self._grid_interpolation(total_events)
+        # render pattern
+        self._grid_interpolation()
+        # normalized pattern
+        self._normalization(total_events)
         # keep mask for later
         mask = self._pattern_current.mask.copy()
         sim_pattern = self._pattern_current.copy()
@@ -177,6 +179,7 @@ class PatternCreator:
         n_total = int(n_total)
         if isinstance(sim_pattern, ma.MaskedArray):
             sim_pattern_data = sim_pattern.data
+            n_total = int(n_total * sim_pattern_data.sum() / sim_pattern.sum())
         else:
             sim_pattern_data = sim_pattern
         sim_pattern_data /= sim_pattern_data.sum()
@@ -278,7 +281,7 @@ class PatternCreator:
         self._detector_xmesh_temp = self._detector_xmesh_temp - dx
         self._detector_ymesh_temp = self._detector_ymesh_temp - dy
 
-    def _grid_interpolation(self, total_events, ):
+    def _grid_interpolation(self):
         '''
         uses interpolation to get the values of the pattern at the grid positons
         it also normalizes each pattern to the previously set numbet or events for the given range
@@ -303,8 +306,10 @@ class PatternCreator:
             factor = self._sub_pixels
             # sum over extra pixels, normalization here is redundant
             temp_pattern = temp_pattern.reshape([y_final_size, factor, x_final_size, factor]).sum(3).sum(1)
-        temp_pattern = ma.array(data=temp_pattern, mask=self.mask)
-        temp_pattern = temp_pattern.data / temp_pattern.sum() * total_events # number of events
+        self._pattern_current = ma.array(data=temp_pattern, mask=self.mask)
+
+    def _normalization(self, total_events=1):
+        temp_pattern = self._pattern_current.data / self._pattern_current.sum() * total_events  # number of events
         temp_pattern = ma.array(data=temp_pattern, mask=self.mask)
         if self._mask_out_of_range:
             self._pattern_current = ma.masked_equal(temp_pattern, 0)
