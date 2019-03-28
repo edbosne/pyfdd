@@ -190,7 +190,7 @@ class FitManager:
             if key in self.parameter_keys:
                 self.p_fixed_values[key] = kwargs[key]
             else:
-                raise (ValueError, 'key word ' + key + 'is not recognized!' +
+                raise ValueError('key word ' + key + 'is not recognized!' +
                        '\n Valid keys are, \'dx\',\'dy\',\'phi\',\'total_cts\',\'sigma\',\'f_p1\',\'f_p2\',\'f_p3\'')
 
     def set_bounds(self, **kwargs):
@@ -202,10 +202,10 @@ class FitManager:
         for key in kwargs.keys():
             if key in self.parameter_keys:
                 if not isinstance(kwargs[key], tuple) or len(kwargs[key]) != 2:
-                    raise (ValueError, 'Bounds must be a tuple of length 2.')
+                    raise ValueError('Bounds must be a tuple of length 2.')
                 self._bounds[key] = kwargs[key]
             else:
-                raise (ValueError, 'key word ' + key + 'is not recognized!' +
+                raise ValueError('key word ' + key + 'is not recognized!' +
                        '\n Valid keys are, \'dx\',\'dy\',\'phi\',\'total_cts\',\'sigma\',\'f_p1\',\'f_p2\',\'f_p3\'')
 
     def set_step_modifier(self, **kwargs):
@@ -221,7 +221,7 @@ class FitManager:
             if key in self.parameter_keys:
                 self._scale[key] = kwargs[key]
             else:
-                raise (ValueError, 'key word ' + key + 'is not recognized!' +
+                raise ValueError('key word ' + key + 'is not recognized!' +
                        '\n Valid keys are, \'dx\',\'dy\',\'phi\',\'total_cts\',\'sigma\',\'f_p1\',\'f_p2\',\'f_p3\'')
 
     def set_minimization_settings(self, profile='default', min_method='L-BFGS-B', options={}):
