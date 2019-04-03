@@ -275,6 +275,25 @@ class FitManager:
         else:
             warnings.warn('No profile for method {} and no options provided. Using library defaults'.format(min_method))
 
+    def get_pattern_counts(self, ignore_masked=False):
+        '''
+        Get the total counts of the pattern to be fit
+        :param ignore_masked:
+        :return:
+        '''
+
+        if not isinstance(ignore_masked, bool):
+            raise ValueError('ignore_masked must be of type bool.')
+
+        if self.dp_pattern is None:
+            raise ValueError('The data_pattern is not properly set.')
+
+        if ignore_masked:
+            total_cts = self.dp_pattern.matrixCurrent.data.sum()
+        else:
+            total_cts = self.dp_pattern.matrixCurrent.sum()
+        return total_cts
+
     def _get_initial_values(self, pass_results=False):
         '''
         Get the initial values for the next fit
