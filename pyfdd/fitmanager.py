@@ -15,6 +15,7 @@ from .fit import Fit
 import pandas as pd
 import os
 import numpy as np
+import numpy.ma as ma
 import math
 import matplotlib.pyplot as plt
 import warnings
@@ -632,15 +633,14 @@ class FitManager:
                              mask_out_of_range = True)
         # mask out of range false means that points that are out of the range of simulations are not masked,
         # instead they are substituted by a very small number 1e-12
-        sim_pattern = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type=generator)
+        sim_pattern_ideal = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type='ideal')
+        sim_pattern_noise = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type=generator)
 
         # Substitute only masked pixels that are in range (2.7° from center) and are not the chip edges
         # This can't really be made without keeping 2 set of masks, so all masked pixels are susbstituted.
         # This means some pixels with valid data but masked can still be susbtituted
 
-        return sim_pattern
-
-
+        return ma.array(sim_pattern_noise.data, mask=(sim_pattern_ideal.data == 0))
 
     def get_pattern_from_last_fit(self, normalization=None):
         fit_obj = self.last_fit
@@ -679,8 +679,12 @@ class FitManager:
             #print('data\n', dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask],
             #    'sim\n', sim_pattern.data[dp_pattern.matrixCurrent.mask])
 
-            dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask] = \
-                sim_pattern.data[dp_pattern.matrixCurrent.mask]
+            # dont substitute pixels that are out of range of simulations
+            substitute_matrix = (np.array(dp_pattern.matrixCurrent.mask, np.int) +
+                                np.array(sim_pattern.mask, np.int)) == 1
+
+            dp_pattern.matrixCurrent.data[substitute_matrix] = \
+                sim_pattern.data[substitute_matrix]
 
             #print('data\n', dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask])
 

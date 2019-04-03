@@ -10,4 +10,3 @@ from .datapattern import DataPattern
 
 
 __version__ = "0.7.0"
-
