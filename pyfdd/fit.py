@@ -68,6 +68,8 @@ class Fit:
         self._parameters_order = None
         self._pattern_keys = None
         self._init_parameters_variables()
+        self.previous_cost_value = None
+
 
         # minimization default options
         self._fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-8, 'maxcor': 100}
@@ -291,7 +293,7 @@ class Fit:
         self.sim_pattern = sim_pattern.copy()
         #chi2 = np.sum((data_pattern - sim_pattern) ** 2 / np.abs(sim_pattern))
         chi2 = np.sum((data_pattern - sim_pattern)**2 / sim_pattern)
-        #print('chi2 - ', chi2)
+        #print('chi2 - {:0.12f}'.format(chi2))
         # print('p-value - ',pval)
         # =====
         if self.verbose_graphics:
@@ -312,9 +314,9 @@ class Fit:
 
     def chi_square_call(self, params, enable_scale=False):
         # order of params is dx,dy,phi,total_cts,f_p1,f_p2,f_p3
-        # print('params ', params)
+        #print('params ', params)
         p0_scale = self._get_p0_scale() if enable_scale else np.ones(len(params))
-        #print('p0_scale ', p0_scale)
+        #print('p0_scale ', p0_scale, enable_scale)
         params_temp = ()
         di = 0
         for key in self._parameters_order:
@@ -332,7 +334,24 @@ class Fit:
             fractions_sims += (params_temp[5 + i],)  # fractions f_p1, f_p2, f_p3,...
         #print('fractions_sims - ', fractions_sims, self._n_sites)
 
-        return self.chi_square(dx, dy, phi, total_cts, fractions_sims=fractions_sims, sigma=sigma)
+        chi2 = self.chi_square(dx, dy, phi, total_cts, fractions_sims=fractions_sims, sigma=sigma)
+
+        # This is sort of a hack to avoid that after a very high chi2
+        # the next point is not exactly the same as the previous.
+        # This happens as if after a step in the direction of -gradient
+        # The function value increases an intermediate step is chosen
+        # at a position weigthed by the values at each extreme.
+        # This allows the pattern to adjust better to the edges of the
+        # experimental vs theoretical range.
+        if self.previous_cost_value is None:
+            self.previous_cost_value = chi2
+        elif chi2 > self.previous_cost_value * 1e12:
+            # limit the increase to 12 orders of mag
+            chi2 = chi2 * 10 ** (np.round(12 - np.log10(chi2)))
+        else:
+            self.previous_cost_value = chi2
+
+        return chi2
 
     def minimize_chi2(self):
         self.minimize_cost_function(cost_func='chi2')
@@ -402,7 +421,24 @@ class Fit:
             fractions_sims += (params_temp[5 + i],) #fractions f_p1, f_p2, f_p3,...
         #print('fractions_sims - ', fractions_sims, self._n_sites)
 
-        return self.log_likelihood(dx, dy, phi, fractions_sims, sigma=sigma)
+        nll = self.log_likelihood(dx, dy, phi, fractions_sims, sigma=sigma)
+
+        # This is sort of a hack to avoid that after a very high chi2
+        # the next point is not exactly the same as the previous.
+        # This happens as if after a step in the direction of -gradient
+        # The function value increases an intermediate step is chosen
+        # at a position weigthed by the values at each extreme.
+        # This allows the pattern to adjust better to the edges of the
+        # experimental vs theoretical range.
+        if self.previous_cost_value is None:
+            self.previous_cost_value = nll
+        elif nll > self.previous_cost_value * 1e12:
+            # limit the increase to 12 orders of mag
+            nll = nll * 10 ** (np.round(12 - np.log10(nll)))
+        else:
+            self.previous_cost_value = nll
+
+        return nll
 
     def maximize_likelyhood(self):
         self.minimize_cost_function(cost_func='ml')
@@ -479,7 +515,7 @@ class Fit:
         fractions_sims = ()
         for i in np.arange(1, 1 + self._n_sites):
             fraction = 'f_p' + str(i)
-            fractions_sims += (kwargs.pop(fraction),())
+            fractions_sims += (kwargs.pop(fraction),)
         if kwargs:
             raise TypeError('Unepxected kwargs provided: %s' % list(kwargs.keys()))
         # print('fractions_sims - ', fractions_sims)
@@ -498,7 +534,7 @@ class Fit:
             f = lambda xx: self.chi_square_call(xx, enable_scale)
         else:
             raise ValueError('undefined function, should be likelihood or chi_square')
-        H = nd.Hessian(f, step=1e-3)
+        H = nd.Hessian(f, step=1e-6)
         hh = H(x)
         if np.linalg.det(hh) != 0:
             if func == 'ml':
