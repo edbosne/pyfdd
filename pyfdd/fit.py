@@ -492,11 +492,12 @@ class Fit:
             if self._parameters_dict[key]['use']:
                 res['x'][di] *= self._parameters_dict[key]['scale']
                 self._parameters_dict[key]['value'] = res['x'][di]
+                res['jac'][di] /= self._parameters_dict[key]['scale']
                 di += 1
             else:
                 self._parameters_dict[key]['value'] = self._parameters_dict[key]['p0']
 
-            self.results = res
+        self.results = res
 
     def log_likelihood_call_explicit(self, dx, dy, phi, sigma, **kwargs):
         fractions_sims = ()

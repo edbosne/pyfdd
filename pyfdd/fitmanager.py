@@ -102,7 +102,7 @@ class FitManager:
         for i in range(self._n_sites):
              for k in self.columns_template:
                  self.columns += (k.format(i+1),)
-        self.columns += ('success',)
+        self.columns += ('success', 'gradient norm')
 
         self.df = pd.DataFrame(data=None, columns=self.columns)
 
@@ -434,6 +434,7 @@ class FitManager:
         append_dic = {}
         append_dic['value'] = ft.results['fun']
         append_dic['success'] = ft.results['success']
+        append_dic['gradient norm'] = np.linalg.norm(ft.results['jac'])
         append_dic['D.O.F.'] = ft.get_dof()
         append_dic['x'] = parameter_dict['dx']['value']
         append_dic['y'] = parameter_dict['dy']['value']
