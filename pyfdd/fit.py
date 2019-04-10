@@ -526,17 +526,21 @@ class Fit:
 
 
 # methods for calculating error
-    def get_std_from_hessian(self, x, enable_scale=False, func=''):
+    def get_std_from_hessian(self, x, enable_scale=True, func=''):
         x = np.array(x)
+        print('x', x)
         x /= self._get_p0_scale() if enable_scale else np.ones(len(x))
+        print('scaled x', x)
         if func == 'ml':
             f = lambda xx: self.log_likelihood_call(xx, enable_scale)
         elif func == 'chi2':
             f = lambda xx: self.chi_square_call(xx, enable_scale)
         else:
             raise ValueError('undefined function, should be likelihood or chi_square')
-        H = nd.Hessian(f, step=1e-6)
+        H = nd.Hessian(f, step=1e-4)
         hh = H(x)
+        print('Parameters order', self._parameters_order)
+        print('Hessian diagonal', np.diag(hh))
         if np.linalg.det(hh) != 0:
             if func == 'ml':
                 hh_inv = np.linalg.inv(hh)
@@ -544,11 +548,14 @@ class Fit:
                 hh_inv = np.linalg.inv(0.5*hh)
             else:
                 raise ValueError('undefined function, should be likelihood or chi_square')
+            print('np.diag(hh_inv)', np.diag(hh_inv))
             std = np.sqrt(np.diag(hh_inv))
             std *= self._get_p0_scale() if enable_scale else np.ones(len(x))
         else:
-            warnings.warn('As Hessian is not invertible, errors are not calculated.')
+            warnings.warn('As Hessian is not invertible, errors are not calculated. '
+                          'This usualy happens when all site fractions are zero')
             std = -np.ones(len(x))
+        #print('errors,', std)
         self.std = std
         di = 0
         for key in self._parameters_order:

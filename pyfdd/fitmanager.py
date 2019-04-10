@@ -559,7 +559,7 @@ class FitManager:
             print(ft.results)
 
         if get_errors:
-            ft.get_std_from_hessian(ft.results['x'], func=self._cost_function)
+            ft.get_std_from_hessian(ft.results['x'], enable_scale=True, func=self._cost_function)
 
         self._fill_results_dict(ft, get_errors, sites)
 
