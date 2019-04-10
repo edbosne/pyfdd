@@ -382,7 +382,7 @@ class Fit:
         # negative log likelihood
         nll = -np.sum(data_pattern * np.log(sim_pattern))        # extended log likelihood - no need to fit events
         #ll = -np.sum(events_per_sim) + np.sum(data_pattern * np.log(sim_pattern))
-        #print('likelihood - ', ll)
+        #print('likelihood - ', nll)
         # =====
         if self.verbose_graphics:
             if self.verbose_graphics_ax is None or self.verbose_graphics_fg is None:
