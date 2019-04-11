@@ -528,9 +528,9 @@ class Fit:
 # methods for calculating error
     def get_std_from_hessian(self, x, enable_scale=True, func=''):
         x = np.array(x)
-        print('x', x)
+        #print('x', x)
         x /= self._get_p0_scale() if enable_scale else np.ones(len(x))
-        print('scaled x', x)
+        #print('scaled x', x)
         if func == 'ml':
             f = lambda xx: self.log_likelihood_call(xx, enable_scale)
         elif func == 'chi2':
@@ -539,8 +539,8 @@ class Fit:
             raise ValueError('undefined function, should be likelihood or chi_square')
         H = nd.Hessian(f, step=1e-4)
         hh = H(x)
-        print('Parameters order', self._parameters_order)
-        print('Hessian diagonal', np.diag(hh))
+        #print('Parameters order', self._parameters_order)
+        #print('Hessian diagonal', np.diag(hh))
         if np.linalg.det(hh) != 0:
             if func == 'ml':
                 hh_inv = np.linalg.inv(hh)
@@ -548,7 +548,7 @@ class Fit:
                 hh_inv = np.linalg.inv(0.5*hh)
             else:
                 raise ValueError('undefined function, should be likelihood or chi_square')
-            print('np.diag(hh_inv)', np.diag(hh_inv))
+            #print('np.diag(hh_inv)', np.diag(hh_inv))
             std = np.sqrt(np.diag(hh_inv))
             std *= self._get_p0_scale() if enable_scale else np.ones(len(x))
         else:
