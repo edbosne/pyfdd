@@ -488,15 +488,25 @@ class Fit:
             print(res)
         # minimization with cobyla also seems to be a good option with {'rhobeg':1e-1/1e-2} . but it is unconstrained
         di = 0
+        orientation_jac = np.zeros(3)
         for key in self._parameters_order:
             if self._parameters_dict[key]['use']:
                 res['x'][di] *= self._parameters_dict[key]['scale']
                 self._parameters_dict[key]['value'] = res['x'][di]
                 res['jac'][di] /= self._parameters_dict[key]['scale']
+
+                # setting up orientation_jac
+                if key == 'dx':
+                    orientation_jac[0] = res['jac'][di]
+                elif key == 'dy':
+                    orientation_jac[1] = res['jac'][di]
+                elif key == 'phi':
+                    orientation_jac[2] = res['jac'][di]
+
                 di += 1
             else:
                 self._parameters_dict[key]['value'] = self._parameters_dict[key]['p0']
-
+        res['orientation jac'] = orientation_jac
         self.results = res
 
     def log_likelihood_call_explicit(self, dx, dy, phi, sigma, **kwargs):
