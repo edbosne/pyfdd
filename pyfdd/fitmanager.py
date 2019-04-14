@@ -343,7 +343,8 @@ class FitManager:
                     p0 += (p0_last[p0_last_i],) if p0_pass else (0.1,)
                 else:
                     # assuming a pattern fraction
-                    p0 += (p0_last[p0_last_i],) if p0_pass and p0_last_i<len(p0_last) else (0.15,)
+                    p0 += (p0_last[p0_last_i],) if p0_pass and p0_last_i<len(p0_last) \
+                        else (min(0.15,0.5/self._n_sites),)
                 p_fix += (False,)
                 if p0_pass:
                     p0_last_i += 1
