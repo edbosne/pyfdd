@@ -499,6 +499,12 @@ class FitManager:
             append_dic['phi_err'] = parameter_dict['phi']['std']
             append_dic['counts_err'] = parameter_dict['total_cts']['std'] if self._cost_function == 'chi2' else np.nan
             append_dic['sigma_err'] = parameter_dict['sigma']['std']
+        else:
+            append_dic['x_err'] = np.nan
+            append_dic['y_err'] = np.nan
+            append_dic['phi_err'] = np.nan
+            append_dic['counts_err'] = np.nan
+            append_dic['sigma_err'] = np.nan
 
         # print('append_dic ', append_dic)
         main_columns = pd.DataFrame().append(append_dic, ignore_index=True)
@@ -517,6 +523,8 @@ class FitManager:
                 if get_errors:
                     append_dic['fraction_err'] = \
                         [parameter_dict['f_p{:d}'.format(i + 1)]['std'], ]
+                else:
+                    append_dic['fraction_err'] = np.nan
             else:
                 append_dic['site n'] += [self.lib.dict_2dl["Spectrums"][patt_num - 1]["Spectrum number"], ]
                 append_dic['p'] += [patt_num, ]
@@ -528,6 +536,9 @@ class FitManager:
                 if get_errors:
                     append_dic['fraction_err'] += \
                         [parameter_dict['f_p{:d}'.format(i + 1)]['std'], ]
+                else:
+                    append_dic['fraction_err'] += np.nan
+
 
         temp_df = pd.concat([main_columns, pd.DataFrame.from_dict(append_dic)],
                                      axis=1 ,ignore_index=False)
