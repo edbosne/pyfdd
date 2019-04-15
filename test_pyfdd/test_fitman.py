@@ -49,7 +49,7 @@ if __name__ == '__main__':
     ax = plt.subplot(111)
     sim_dp.draw(ax,percentiles=(0.1,0.99))
 
-    print(fm.df)
+    print(fm.df_horizontal)
     plt.figure()
     ax = plt.subplot(111)
     fm.get_datapattern().draw(ax)

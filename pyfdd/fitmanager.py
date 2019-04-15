@@ -93,7 +93,7 @@ class FitManager:
         self.p_fixed_values = {}
 
         # order of columns in results
-        self.columns = \
+        self.columns_horizontal = \
             ('value', 'D.O.F.', 'x', 'x_err', 'y', 'y_err', 'phi', 'phi_err',
              'counts', 'counts_err', 'sigma', 'sigma_err')
         self.columns_template = \
@@ -101,10 +101,18 @@ class FitManager:
              'site{:d} fraction', 'fraction{:d}_err')
         for i in range(self._n_sites):
              for k in self.columns_template:
-                 self.columns += (k.format(i+1),)
-        self.columns += ('success', 'orientation gradient')
+                 self.columns_horizontal += (k.format(i + 1),)
+        self.columns_horizontal += ('success', 'orientation gradient')
 
-        self.df = pd.DataFrame(data=None, columns=self.columns)
+        self.columns_vertical = \
+            ('value', 'D.O.F.', 'x', 'x_err', 'y', 'y_err', 'phi', 'phi_err',
+             'counts', 'counts_err', 'sigma', 'sigma_err')
+        self.columns_vertical += ('site n', 'p', 'site description', 'site factor', 'site u1',
+             'site fraction', 'fraction_err')
+        self.columns_vertical += ('success', 'orientation gradient')
+
+        self.df_horizontal = pd.DataFrame(data=None, columns=self.columns_horizontal)
+        self.df_vertical = pd.DataFrame(data=None)#, columns=self.columns_vertical)
 
     def set_pattern(self, data_pattern, library):
         '''
@@ -424,7 +432,7 @@ class FitManager:
 
         return ft
 
-    def _fill_results_dict(self, ft, get_errors, sites):#p1=None, p2=None, p3=None):
+    def _fill_horizontal_results_dict(self, ft, get_errors, sites):#p1=None, p2=None, p3=None):
         assert isinstance(ft, Fit), "ft is not of type PyFDD.Fit."
 
         patt = self.dp_pattern.matrixCurrent.copy()
@@ -463,11 +471,69 @@ class FitManager:
                 append_dic['fraction{:d}_err'.format(i + 1)] = \
                     parameter_dict['f_p{:d}'.format(i + 1)]['std']
 
+        self.df_horizontal = self.df_horizontal.append(append_dic, ignore_index=True)
+        self.df_horizontal = self.df_horizontal[list(self.columns_horizontal)]
+
+    def _fill_vertical_results_dict(self, ft, get_errors, sites):#p1=None, p2=None, p3=None):
+        assert isinstance(ft, Fit), "ft is not of type PyFDD.Fit."
+
+        patt = self.dp_pattern.matrixCurrent.copy()
+
+        # keys are 'pattern_1','pattern_2','pattern_3','sub_pixels','dx','dy','phi',
+        # 'total_cts','sigma','f_p1','f_p2','f_p3'
+        parameter_dict = ft._parameters_dict.copy()
+        append_dic = {}
+        append_dic['value'] = ft.results['fun']
+        append_dic['success'] = ft.results['success']
+        append_dic['orientation gradient'] = np.linalg.norm(ft.results['orientation jac'])
+        append_dic['D.O.F.'] = ft.get_dof()
+        append_dic['x'] = parameter_dict['dx']['value']
+        append_dic['y'] = parameter_dict['dy']['value']
+        append_dic['phi'] = parameter_dict['phi']['value']
+        append_dic['counts'] = parameter_dict['total_cts']['value'] if self._cost_function == 'chi2' else np.nan
+        append_dic['sigma'] = parameter_dict['sigma']['value']
+
+        if get_errors:
+            append_dic['x_err'] = parameter_dict['dx']['std']
+            append_dic['y_err'] = parameter_dict['dy']['std']
+            append_dic['phi_err'] = parameter_dict['phi']['std']
+            append_dic['counts_err'] = parameter_dict['total_cts']['std'] if self._cost_function == 'chi2' else np.nan
+            append_dic['sigma_err'] = parameter_dict['sigma']['std']
+
         # print('append_dic ', append_dic)
-        self.df = self.df.append(append_dic, ignore_index=True)
-        #print('columns - ', list(self.df))
-        self.df = self.df[list(self.columns)]
-        # print('self.df ', self.df)
+        main_columns = pd.DataFrame().append(append_dic, ignore_index=True)
+
+        for i in range(self._n_sites):
+            patt_num = sites[i]  # index of the pattern in dict_2dl is patt_num - 1
+            if i == 0:
+                append_dic = {}
+                append_dic['site n'] = [self.lib.dict_2dl["Spectrums"][patt_num - 1]["Spectrum number"], ]
+                append_dic['p'] = [patt_num, ]
+                append_dic['site description'] = \
+                    [self.lib.dict_2dl["Spectrums"][patt_num - 1]["Spectrum_description"], ]
+                append_dic['site factor'] = [self.lib.dict_2dl["Spectrums"][patt_num - 1]["factor"], ]
+                append_dic['site u1'] = [self.lib.dict_2dl["Spectrums"][patt_num - 1]["u1"], ]
+                append_dic['site fraction'] = [parameter_dict['f_p{:d}'.format(i + 1)]['value'], ]
+                if get_errors:
+                    append_dic['fraction_err'] = \
+                        [parameter_dict['f_p{:d}'.format(i + 1)]['std'], ]
+            else:
+                append_dic['site n'] += [self.lib.dict_2dl["Spectrums"][patt_num - 1]["Spectrum number"], ]
+                append_dic['p'] += [patt_num, ]
+                append_dic['site description'] += \
+                    [self.lib.dict_2dl["Spectrums"][patt_num - 1]["Spectrum_description"], ]
+                append_dic['site factor'] += [self.lib.dict_2dl["Spectrums"][patt_num - 1]["factor"], ]
+                append_dic['site u1'] += [self.lib.dict_2dl["Spectrums"][patt_num - 1]["u1"], ]
+                append_dic['site fraction'] += [parameter_dict['f_p{:d}'.format(i + 1)]['value'], ]
+                if get_errors:
+                    append_dic['fraction_err'] += \
+                        [parameter_dict['f_p{:d}'.format(i + 1)]['std'], ]
+
+        temp_df = pd.concat([main_columns, pd.DataFrame.from_dict(append_dic)],
+                                     axis=1 ,ignore_index=False)
+
+        self.df_vertical = self.df_vertical.append(temp_df, ignore_index=True, sort=False)
+        self.df_vertical = self.df_vertical[list(self.columns_vertical)]
 
     def run_fits(self, *args, pass_results=False, verbose=1, get_errors=False):
         '''
@@ -562,7 +628,8 @@ class FitManager:
         if get_errors:
             ft.get_std_from_hessian(ft.results['x'], enable_scale=True, func=self._cost_function)
 
-        self._fill_results_dict(ft, get_errors, sites)
+        self._fill_horizontal_results_dict(ft, get_errors, sites)
+        self._fill_vertical_results_dict(ft, get_errors, sites)
 
         # Keep best fit
         if self.min_value is None:
@@ -575,13 +642,17 @@ class FitManager:
         self.last_fit = ft
 
     # results and output methods
-    def save_output(self, filename, save_figure=False):
-        self.df.to_csv(filename)
+    def save_output(self, filename, layout='horizontal', save_figure=False):
+        if layout == 'horizontal':
+            df = self.df_horizontal
+        if layout == 'vertical':
+            df = self.df_vertical
+
         base_name, ext = os.path.splitext(filename)
         if ext == '.txt' or ext == '.csv':
-            self.df.to_csv(filename)
+            df.to_csv(filename)
         elif ext == '.xlsx' or ext == '.xls':
-            self.df.to_csv(filename)
+            df.to_excel(filename)
         else:
             raise ValueError('Extention not recognized, use txt, csv, xls or xlsx')
 
