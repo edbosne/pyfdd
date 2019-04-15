@@ -563,7 +563,7 @@ class Fit:
             std *= self._get_p0_scale() if enable_scale else np.ones(len(x))
         else:
             warnings.warn('As Hessian is not invertible, errors are not calculated. '
-                          'This usualy happens when all site fractions are zero')
+                          'This usualy happens when site fractions are zero')
             std = -np.ones(len(x))
         #print('errors,', std)
         self.std = std
