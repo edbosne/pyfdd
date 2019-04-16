@@ -112,7 +112,7 @@ class FitManager:
         self.columns_vertical += ('success', 'orientation gradient')
 
         self.df_horizontal = pd.DataFrame(data=None, columns=self.columns_horizontal)
-        self.df_vertical = pd.DataFrame(data=None)#, columns=self.columns_vertical)
+        self.df_vertical = pd.DataFrame(data=None)#, columns=self.columns_vertical) # columns are set during filling
 
     def set_pattern(self, data_pattern, library):
         '''
