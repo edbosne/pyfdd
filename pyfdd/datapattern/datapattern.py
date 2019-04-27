@@ -193,11 +193,8 @@ class DataPattern:
 
         new_mm = copy.deepcopy(self)
 
-        new_mm.matrixOriginal = copy.deepcopy(new_pattern)
-        new_mm.matrixCurrent = copy.deepcopy(new_pattern)
-
-        new_mm.matrixOriginal.mask = copy.deepcopy(new_pattern_mask)
-        new_mm.matrixCurrent.mask = copy.deepcopy(new_pattern_mask)
+        new_mm.matrixOriginal = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
+        new_mm.matrixCurrent = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
 
         return new_mm
 
