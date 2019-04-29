@@ -198,6 +198,11 @@ class DataPattern:
 
         return new_mm
 
+    def __rmul__(self, other):
+
+        return self.__mul__(other)
+
+
     def __mul__(self, other):
 
         # other needs to be a float
@@ -208,8 +213,8 @@ class DataPattern:
         # Create new MM
         new_mm = copy.deepcopy(self)
 
-        new_mm.matrixOriginal = copy.deepcopy(new_pattern)
-        new_mm.matrixCurrent = copy.deepcopy(new_pattern)
+        new_mm.matrixOriginal = new_pattern.copy()
+        new_mm.matrixCurrent = new_pattern.copy()
 
         return new_mm
 
