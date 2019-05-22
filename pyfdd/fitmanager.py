@@ -289,7 +289,7 @@ class FitManager:
         else:
             warnings.warn('No profile for method {} and no options provided. Using library defaults'.format(min_method))
 
-    def get_pattern_counts(self, ignore_masked=False):
+    def get_pattern_counts(self, ignore_masked=True):
         '''
         Get the total counts of the pattern to be fit
         :param ignore_masked:

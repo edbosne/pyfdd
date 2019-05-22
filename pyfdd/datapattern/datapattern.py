@@ -108,8 +108,8 @@ class DataPattern:
         (self.ny, self.nx) = (0, 0)
 
         # values for angular calibration
-        self.pixel_size_mm = 1
-        self.distance = 300
+        self.pixel_size_mm = None
+        self.distance = None
         self.reverse_x = False
 
         # values for manipulation methods
@@ -135,7 +135,8 @@ class DataPattern:
         # creating mesh
         # ang_range = self.ang_get_range(self.distance, self.matrixDrawable.shape[0] * self.pixel_size_mm)
         # self.range = kwargs.get('range', (-ang_range / 2.0, ang_range / 2.0))
-        self.manip_create_mesh()
+        if not self.is_mesh_defined:
+            self.manip_create_mesh()
 
         # inicialization medipix histogram
         self.hist = MpxHist(self.matrixCurrent)
