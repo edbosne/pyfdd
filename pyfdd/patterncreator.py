@@ -209,9 +209,14 @@ class PatternCreator:
             sigma = 0
         if sigma == 0:
             return
-        assert self._xstep_lib2dl == self._ystep_lib2dl, 'Simulations steps are not the same in x and y'
-        sigma_pix = sigma / self._xstep_lib2dl
-        # Truncating at 4 or at 2 causes that some Fit are unstable. Chose 3 as intermidiate value
+        if not self._xstep_lib2dl == self._ystep_lib2dl:
+            sim_step = (self._xstep_lib2dl + self._ystep_lib2dl) / 2
+            warnings.warn('Simulations steps are not the same in x and y.\n'
+                          'Gaussian convolution done assuming a step of {}'.format(sim_step) )
+        else:
+            sim_step = self._xstep_lib2dl
+        sigma_pix = sigma / sim_step
+        # Truncating at 4 or at 2 causes that some Fit are unstable. Chose 3 as intermediate value
         self._pattern_current = gaussian_filter(self._pattern_current, sigma_pix, truncate=3)
 
     def _rotate(self, ang=0):
