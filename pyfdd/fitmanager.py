@@ -555,10 +555,6 @@ class FitManager:
         :return:
         '''
 
-        if len(args) != self._n_sites:
-            raise ValueError('Error, you need to imput the pattern idexes for all the '
-                             '{0} expected sites.'.format(self._n_sites, pattern_index))
-
         self.done_param_verbose = False
 
         patterns_list = ()
@@ -613,7 +609,7 @@ class FitManager:
 
         # Ensure the number of sites indexes is the same as the number of sites in __init__
         if len(sites) != self._n_sites:
-            raise ValueError('Error, you need to imput the pattern idices for all the '
+            raise ValueError('Error, you need to input the pattern indices for all the '
                              '{0} expected sites. {1} were provided. '
                              'The expected number of sites can be '
                              'changed in the constructor.'.format(self._n_sites, len(sites)))
