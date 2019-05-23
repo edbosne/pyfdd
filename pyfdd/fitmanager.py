@@ -694,9 +694,7 @@ class FitManager:
         else:
             sim_pattern = self._gen_detector_pattern_from_fit(fit_obj=fit_obj, generator='yield')
             total_yield = sim_pattern.sum()
-            print('total_yield', total_yield)
             #total_yield = np.sum(~self.dp_pattern.matrixCurrent.mask)
-            print('# pixels', np.sum(~self.dp_pattern.matrixCurrent.mask))
         norm_factor = None
         if normalization is None:
             norm_factor = 1
