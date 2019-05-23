@@ -685,9 +685,16 @@ class FitManager:
             fig.savefig(base_name + '_sim-data.png')
             plt.close(fig)
 
-    def _get_sim_normalization_factor(self, normalization, pattern_type):
+    def _get_sim_normalization_factor(self, normalization, pattern_type, fit_obj=None):
+
+        assert isinstance(fit_obj, Fit) or fit_obj is None
         total_counts = np.sum(self.dp_pattern.matrixCurrent)
-        num_pix = np.sum(~self.dp_pattern.matrixCurrent.mask)
+        if fit_obj is None:
+            total_yield = None
+        else:
+            #sim_pattern = self._gen_detector_pattern_from_fit(fit_obj=fit_obj, generator='ideal')
+            #total_yield = sim_pattern.sum()
+            total_yield = np.sum(~self.dp_pattern.matrixCurrent.mask)
         norm_factor = None
         if normalization is None:
             norm_factor = 1
@@ -697,10 +704,12 @@ class FitManager:
             elif pattern_type == 'ml':
                 norm_factor = total_counts
         elif normalization == 'yield':
+            if total_yield is None:
+                raise ValueError('Simulation pattern is not defined.')
             if pattern_type == 'chi2' or pattern_type == 'data':
-                norm_factor = num_pix / total_counts
+                norm_factor = total_yield / total_counts
             elif pattern_type == 'ml':
-                norm_factor = num_pix
+                norm_factor = total_yield
         elif normalization == 'probability':
             if  pattern_type == 'chi2' or pattern_type == 'data':
                 norm_factor = 1 / total_counts
@@ -710,14 +719,9 @@ class FitManager:
             raise ValueError('normalization needs to be, None, \'counts\', \'yield\' or \'probability\'')
         return norm_factor
 
-    def _gen_detector_pattern_from_fit(self, fit='best', generator='ideal'):
-        # fit can be the best or last
-        if fit == 'best':
-            fit_obj = self.best_fit
-        elif fit =='last':
-            fit_obj = self.last_fit
-        else:
-            raise ValueError('parameter fit must be either \'best\' or \'last\'')
+    def _gen_detector_pattern_from_fit(self, fit_obj,  generator='ideal'):
+
+        assert isinstance(fit_obj, Fit)
 
         # get values
         parameter_dict = fit_obj._parameters_dict.copy()
@@ -752,7 +756,8 @@ class FitManager:
         assert isinstance(fit_obj, Fit)
         #print(fit_obj.sim_pattern.data)
 
-        norm_factor = self._get_sim_normalization_factor(normalization, pattern_type=self._cost_function)
+        norm_factor = \
+            self._get_sim_normalization_factor(normalization, pattern_type=self._cost_function, fit_obj=fit_obj)
 
         dp = DataPattern(pattern_array=fit_obj.sim_pattern.data)
         dp._set_xymesh(fit_obj.XXmesh, fit_obj.YYmesh)
@@ -764,7 +769,8 @@ class FitManager:
         assert isinstance(fit_obj, Fit)
         #print(fit_obj.sim_pattern.data)
 
-        norm_factor = self._get_sim_normalization_factor(normalization, pattern_type=self._cost_function)
+        norm_factor = \
+            self._get_sim_normalization_factor(normalization, pattern_type=self._cost_function, fit_obj=fit_obj)
 
         dp = DataPattern(pattern_array=fit_obj.sim_pattern.data)
         dp._set_xymesh(fit_obj.XXmesh, fit_obj.YYmesh)
@@ -773,16 +779,18 @@ class FitManager:
 
     def get_datapattern(self, normalization=None, substitute_masked_with=None, which_fit='last'):
 
+        # which_fit can be the best or last
+        if which_fit == 'best':
+            fit_obj = self.best_fit
+        elif which_fit == 'last':
+            fit_obj = self.last_fit
+        else:
+            raise ValueError('parameter fit must be either \'best\' or \'last\'')
+
         dp_pattern = copy.deepcopy(self.dp_pattern)
 
         if substitute_masked_with is not None:
-            sim_pattern = self._gen_detector_pattern_from_fit(fit=which_fit, generator=substitute_masked_with)
-
-            #if self._cost_function == 'ml':
-            #    sim_pattern = sim_pattern * np.sum(dp_pattern.matrixCurrent)
-
-            #print('data\n', dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask],
-            #    'sim\n', sim_pattern.data[dp_pattern.matrixCurrent.mask])
+            sim_pattern = self._gen_detector_pattern_from_fit(fit_obj=fit_obj, generator=substitute_masked_with)
 
             # dont substitute pixels that are out of range of simulations
             substitute_matrix = (np.array(dp_pattern.matrixCurrent.mask, np.int) +
@@ -793,7 +801,7 @@ class FitManager:
 
             #print('data\n', dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask])
 
-        norm_factor = self._get_sim_normalization_factor(normalization, pattern_type='data')
+        norm_factor = self._get_sim_normalization_factor(normalization, pattern_type='data', fit_obj=fit_obj)
 
         return dp_pattern * norm_factor
 

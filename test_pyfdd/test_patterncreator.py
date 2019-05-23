@@ -14,13 +14,14 @@ if __name__ == "__main__":
     xmesh, ymesh = create_detector_mesh(100, 100, 0.3, 300)
     print('xmesh shape', xmesh.shape)
     # 5 subpixels is a good number for the pads
-    gen = PatternCreator(lib, xmesh, ymesh, 1, sub_pixels=5, mask_out_of_range=False)
+    gen = PatternCreator(lib, xmesh, ymesh, 1, sub_pixels=5, mask_out_of_range=True)
 
     fractions_per_sim = np.array([1])#[0, 1])
     #fractions_per_sim /= fractions_per_sim.sum()
     total_events = 1
     pattern = gen.make_pattern(0.0, -0.5, -5, fractions_per_sim, total_events, sigma=0.1, type='ideal')
     print(pattern.sum())
+    print(pattern[50,50])
 
     plt.figure(1)
     plt.contourf(xmesh, ymesh, pattern)

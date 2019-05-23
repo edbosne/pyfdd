@@ -152,6 +152,9 @@ class PatternCreator:
         self._move(dx, dy, phi)
         # render pattern
         self._grid_interpolation()
+        if type == 'yield':
+            return self._pattern_current.copy()
+
         # normalized pattern
         self._normalization(total_events)
         # keep mask for later
@@ -166,7 +169,7 @@ class PatternCreator:
         elif type == 'poisson':
             return ma.array(np.random.poisson(sim_pattern), mask=mask)
         else:
-            raise ValueError("invalid value for type: options are ideal, montecarlo and poisson")
+            raise ValueError("invalid value for type: options are ideal, yield, montecarlo and poisson")
 
     def _gen_mc_pattern(self, sim_pattern, n_total):
         """
@@ -302,7 +305,6 @@ class PatternCreator:
         grid_y_temp = (self._detector_ymesh_temp - self._ymesh[0, 0]) * yscale
 
         #interpolation
-        temp_pattern = np.array([])
         cval = 0 if self._mask_out_of_range else 1e-12
         temp_pattern = map_coordinates(self._pattern_current, (grid_y_temp, grid_x_temp),
                                        order=2, prefilter=False, mode='constant', cval=cval)
@@ -310,6 +312,7 @@ class PatternCreator:
         if self._sub_pixels > 1:
             y_final_size, x_final_size = self._detector_ymesh.shape
             factor = self._sub_pixels
+
             # correct for out of range
             out_of_range_correction = np.array(temp_pattern == cval, int)
             out_of_range_correction = out_of_range_correction. \
@@ -320,14 +323,17 @@ class PatternCreator:
             temp_pattern = temp_pattern.reshape([y_final_size, factor, x_final_size, factor]).sum(3).sum(1)
             temp_pattern[out_of_range_correction] = cval
 
-        self._pattern_current = ma.array(data=temp_pattern, mask=self.mask)
+        temp_pattern = ma.array(data=temp_pattern, mask=self.mask)
+
+        if self._mask_out_of_range:
+            temp_pattern = ma.masked_equal(temp_pattern, 0)
+
+        self._pattern_current = temp_pattern
 
     def _normalization(self, total_events=1):
+
         temp_pattern = self._pattern_current.data / self._pattern_current.sum() * total_events  # number of events
-        temp_pattern = ma.array(data=temp_pattern, mask=self.mask)
-        if self._mask_out_of_range:
-            self._pattern_current = ma.masked_equal(temp_pattern, 0)
-        else:
-            self._pattern_current = ma.array(temp_pattern, mask=False)
+        temp_pattern = ma.array(data=temp_pattern, mask=self._pattern_current.mask)
+        self._pattern_current = temp_pattern
 
 
