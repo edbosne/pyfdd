@@ -303,9 +303,9 @@ class FitManager:
             raise ValueError('The data_pattern is not properly set.')
 
         if ignore_masked:
-            total_cts = self.dp_pattern.matrixCurrent.data.sum()
-        else:
             total_cts = self.dp_pattern.matrixCurrent.sum()
+        else:
+            total_cts = self.dp_pattern.matrixCurrent.data.sum()
         return total_cts
 
     def _get_initial_values(self, pass_results=False):
