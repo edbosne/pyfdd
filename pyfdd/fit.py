@@ -475,6 +475,10 @@ class Fit:
                                                 sub_pixels=self._parameters_dict['sub_pixels']['value'],
                                                 mask_out_of_range = False)
 
+        if not self._parameters_dict['sigma']['use']:
+            self.pattern_generator.pre_smooth_simulations(self._parameters_dict['sigma']['p0'])
+
+
         # defining cost function and get options
         if cost_func == 'chi2':
             function = self.chi_square_call

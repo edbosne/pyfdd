@@ -56,7 +56,7 @@ class PatternCreator:
 
         if simulations:
             simulations = np.array(simulations)
-            if len(simulations.shape) == 0: # ensures that dimention is 1
+            if len(simulations.shape) == 0: # ensures that dimension is 1
                 simulations = simulations[np.newaxis]
             self._n_sites = simulations.size
         else:
@@ -64,6 +64,7 @@ class PatternCreator:
 
         if not isinstance(lib, Lib2dl):
             raise ValueError('lib must be an instance of Lib2dl')
+        self.lib = lib
 
         self._mask_out_of_range = mask_out_of_range
 
@@ -101,7 +102,7 @@ class PatternCreator:
         self.mask = mask
 
         # set simulated patterns stack to avoid going back to the library
-        # first pattern in the stack is the background
+        # first pattern in the stack is the random
         temp = np.ones(self._sim_shape)
         pattern_stack = temp[np.newaxis]
         # loop to get each site pattern
@@ -109,6 +110,8 @@ class PatternCreator:
             temp = lib.get_simulation_patt(simulations[i])
             pattern_stack = np.concatenate((pattern_stack, temp[np.newaxis]), 0)
         self._pattern_stack = pattern_stack
+        self._pre_smooth_pattern_stack = np.ones(self._pattern_stack.shape)
+        self._pre_smooth_sigma = None
         self._pattern_current = np.ones(self._xmesh.shape)
 
         self.fractions_per_sim = np.zeros(self._n_sites + 1) # +1 for random
@@ -139,13 +142,20 @@ class PatternCreator:
             self._detector_xmesh_temp = self._detector_xmesh.copy()
             self._detector_ymesh_temp = self._detector_ymesh.copy()
 
+        #verify is pre-smothed patterns can be used to save time
+        if self._pre_smooth_sigma is not None and self._pre_smooth_sigma == sigma:
+            use_pre_smooth = True
+        else:
+            use_pre_smooth = False
+
         # don't change the order to the function calls
         # apply fractions
         random_fraction = np.array([1 - fractions_per_site.sum()])
         fractions = np.concatenate((random_fraction,fractions_per_site))
-        self._apply_fractions(fractions)
+        self._apply_fractions(fractions, use_pre_smooth=use_pre_smooth)
         # gaussian convolution
-        self._gaussian_conv(sigma)
+        if not use_pre_smooth:
+            self._gaussian_conv(sigma)
         # rotate
         self._rotate(phi)
         # move mesh
@@ -170,6 +180,22 @@ class PatternCreator:
             return ma.array(np.random.poisson(sim_pattern), mask=mask)
         else:
             raise ValueError("invalid value for type: options are ideal, yield, montecarlo and poisson")
+
+    def pre_smooth_simulations(self, sigma):
+        if sigma < 0:
+            sigma = 0
+        if not self._xstep_lib2dl == self._ystep_lib2dl:
+            sim_step = (self._xstep_lib2dl + self._ystep_lib2dl) / 2
+            warnings.warn('Simulations steps are not the same in x and y.\n'
+                          'Gaussian convolution done assuming a step of {}'.format(sim_step))
+        else:
+            sim_step = self._xstep_lib2dl
+        self._pre_smooth_sigma = sigma
+
+        sigma_pix = sigma / sim_step
+        for i in np.arange(1, self._n_sites+1): # index 1 is just the random
+             # Truncating at 4 or at 2 causes that some Fit are unstable. Chose 3 as intermediate value
+            self._pre_smooth_pattern_stack[i,:,:] = gaussian_filter(self._pattern_stack[i,:,:], sigma_pix, truncate=3)
 
     def _gen_mc_pattern(self, sim_pattern, n_total):
         """
@@ -198,13 +224,19 @@ class PatternCreator:
         H, xedges, yedges = np.histogram2d(mc_event_y, mc_event_x, bins, range)
         return H
 
-    def _apply_fractions(self, fractions):
-        if not self._pattern_stack.shape[0] == fractions.size:
+    def _apply_fractions(self, fractions, use_pre_smooth=False):
+
+        if use_pre_smooth:
+            pattern_stack = self._pre_smooth_pattern_stack
+        else:
+            pattern_stack = self._pattern_stack
+
+        if not pattern_stack.shape[0] == fractions.size:
             raise ValueError('number of fractions is not the same as the number of simulations + rand')
         new_pattern = np.zeros(self._sim_shape)
         # Each pattern in the stack (simulation yields) is multiplied by the respective fraction
-        for i in range(0, self._pattern_stack.shape[0]):
-            new_pattern += self._pattern_stack[i, :, :] * fractions[i]
+        for i in range(0, pattern_stack.shape[0]):
+            new_pattern += pattern_stack[i, :, :] * fractions[i]
         self._pattern_current = new_pattern
 
     def _gaussian_conv(self, sigma=0):
