@@ -692,8 +692,9 @@ class FitManager:
         if fit_obj is None:
             total_yield = None
         else:
-            sim_pattern = self._gen_detector_pattern_from_fit(fit_obj=fit_obj, generator='yield')
+            sim_pattern = self._gen_detector_pattern_from_fit(fit_obj=fit_obj, generator='yield', rm_mask=False)
             total_yield = sim_pattern.sum()
+            # print('total_yield', total_yield, '# pixels', np.sum(~sim_pattern.mask))
             #total_yield = np.sum(~self.dp_pattern.matrixCurrent.mask)
         norm_factor = None
         if normalization is None:
@@ -719,7 +720,7 @@ class FitManager:
             raise ValueError('normalization needs to be, None, \'counts\', \'yield\' or \'probability\'')
         return norm_factor
 
-    def _gen_detector_pattern_from_fit(self, fit_obj,  generator='ideal'):
+    def _gen_detector_pattern_from_fit(self, fit_obj, generator='ideal', rm_mask=False):
 
         assert isinstance(fit_obj, Fit)
 
@@ -742,14 +743,17 @@ class FitManager:
                              mask_out_of_range = True)
         # mask out of range false means that points that are out of the range of simulations are not masked,
         # instead they are substituted by a very small number 1e-12
-        sim_pattern_ideal = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type='ideal')
-        sim_pattern_noise = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type=generator)
+        sim_pattern = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type=generator)
 
         # Substitute only masked pixels that are in range (2.7° from center) and are not the chip edges
         # This can't really be made without keeping 2 set of masks, so all masked pixels are susbstituted.
         # This means some pixels with valid data but masked can still be susbtituted
-
-        return ma.array(sim_pattern_noise.data, mask=(sim_pattern_ideal.data == 0))
+        if rm_mask:
+            # only mask what is outside of simulation range
+            sim_pattern_ideal = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type='ideal')
+            return ma.array(sim_pattern.data, mask=(sim_pattern_ideal.data == 0))
+        else:
+            return sim_pattern
 
     def get_pattern_from_last_fit(self, normalization=None):
         fit_obj = self.last_fit
@@ -762,6 +766,7 @@ class FitManager:
         dp = DataPattern(pattern_array=fit_obj.sim_pattern.data)
         dp._set_xymesh(fit_obj.XXmesh, fit_obj.YYmesh)
         dp.set_mask(fit_obj.sim_pattern.mask)
+
         return dp * norm_factor
 
     def get_pattern_from_best_fit(self, normalization=None):
@@ -790,7 +795,8 @@ class FitManager:
         dp_pattern = copy.deepcopy(self.dp_pattern)
 
         if substitute_masked_with is not None:
-            sim_pattern = self._gen_detector_pattern_from_fit(fit_obj=fit_obj, generator=substitute_masked_with)
+            sim_pattern = self._gen_detector_pattern_from_fit(fit_obj=fit_obj, generator=substitute_masked_with,
+                                                              rm_mask=True)
 
             # dont substitute pixels that are out of range of simulations
             substitute_matrix = (np.array(dp_pattern.matrixCurrent.mask, np.int) +
