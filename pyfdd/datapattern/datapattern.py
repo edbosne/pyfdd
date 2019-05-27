@@ -58,16 +58,19 @@ class MpxHist:
         lowbin = bis.bisect(self.normalized_integral, percentiles[0], lo=1, hi=len(self.normalized_integral))-1
             # having lo=1 ensures lowbin is never -1
         highbin = bis.bisect(self.normalized_integral, percentiles[1])
+
+        # I decided to round the ticks because in previous versions the tick label would write all decimal cases
+        # It seems that now its ok without rounding but I will still round at the 4th case, instead of the 1st. v0.7.0
         if self.bin_edges[lowbin] != 0.:
-            # low bin precision defined as 1 - order of mag
-            p10_low = 10**(1 - int(math.floor(math.log10(abs(self.bin_edges[lowbin])))))
+            # low bin precision defined as 4 - order of mag
+            p10_low = 10**(4 - int(math.floor(math.log10(abs(self.bin_edges[lowbin])))))
             # floor in precision point
-            lowtick = np.floor(self.bin_edges[lowbin] * p10_low) / p10_low
+            lowtick = np.floor(self.bin_edges[lowbin] * p10_low) / p10_low #self.bin_edges[lowbin]
         else:
             lowtick = 0
-        # high bin precision defined as 1 - order of mag
-        p10_high = 10**(1 - int(math.floor(math.log10(abs(self.bin_edges[highbin])))))
-        hightick = np.ceil(self.bin_edges[highbin] * p10_high) / p10_high
+        # high bin precision defined as 4 - order of mag
+        p10_high = 10**(4 - int(math.floor(math.log10(abs(self.bin_edges[highbin])))))
+        hightick = np.ceil(self.bin_edges[highbin] * p10_high) / p10_high #self.bin_edges[highbin]
         return lowtick, hightick
 
 
