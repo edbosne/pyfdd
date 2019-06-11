@@ -616,7 +616,8 @@ class DataPattern:
                         .reshape([final_size, factor, final_size, factor]).mean(3).mean(1)
         self.ymesh = self.ymesh[rm_edge_pix:ny - rm_edge_pix, rm_edge_pix:nx - rm_edge_pix] \
             .reshape([final_size, factor, final_size, factor]).mean(3).mean(1)
-        self.pixel_size_mm *= factor
+        if self.pixel_size_mm is not None:
+            self.pixel_size_mm *= factor
         #self.manip_create_mesh()
 
     def manip_create_mesh(self, pixel_size=None, distance=None, reverse_x=None):
