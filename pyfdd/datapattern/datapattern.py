@@ -150,7 +150,7 @@ class DataPattern:
         self.rectangle_limits = None
         self.RS = None
 
-    def __have_same_atributes(self,other):
+    def __have_same_attributes(self, other):
 
         # verify if possible and get values
         assert isinstance(other, DataPattern), "Add object is not a DataPattern"
@@ -174,10 +174,9 @@ class DataPattern:
                     np.allclose(self.ymesh, other.ymesh)):
                 raise ValueError("error, the DataPattern have different angular mesh")
 
-
     def __add__(self, other):
 
-        self.__have_same_atributes(other)
+        self.__have_same_attributes(other)
 
         new_pattern = self.matrixCurrent.data + other.matrixCurrent.data
         new_pattern_mask = self.matrixCurrent.mask + other.matrixCurrent.mask
@@ -190,7 +189,7 @@ class DataPattern:
         return new_mm
 
     def __sub__(self, other):
-        self.__have_same_atributes(other)
+        self.__have_same_attributes(other)
 
         new_pattern = self.matrixCurrent.data - other.matrixCurrent.data
         new_pattern_mask = self.matrixCurrent.mask + other.matrixCurrent.mask
@@ -676,8 +675,8 @@ class DataPattern:
         n_color_bins = kwargs.get('n_color_bins', 10)
         smooth_fwhm = kwargs.get('smooth_fwhm', 0)
         plot_type = kwargs.get('plot_type', 'pixels') #pixels or contour
-        xlabel = kwargs.get('xlabel', r'$\theta°$')
-        ylabel = kwargs.get('ylabel', r'$\omega°$')
+        xlabel = kwargs.get('xlabel', r'y-angle $\theta[°]$')
+        ylabel = kwargs.get('ylabel', r'x-angle $\omega[°]$')
         zlabel = kwargs.get('zlabel', 'Counts')
         title = kwargs.get('title', '2D pattern - ' + str(self.matrixCurrent.shape[0]) +
                            'x' + str(self.matrixCurrent.shape[1]))
