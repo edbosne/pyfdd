@@ -21,6 +21,8 @@ import numpy as np
 import pandas as pd
 import os
 
+from IPython.display import display
+
 pd.set_option('display.max_rows', 10000)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.max_colwidth', -1)
@@ -29,7 +31,7 @@ pd.set_option('display.max_colwidth', -1)
 # ## Import library
 # 
 
-# In[8]:
+# In[2]:
 
 analysis_path = "/home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/"
 lib_path = os.path.join(analysis_path, "FDD_libraries/GaN_24Na/ue488g20.2dl")
@@ -43,14 +45,14 @@ df = pd.DataFrame(data=lib.get_simulations_list(),
 #for entry in lib.sim_list:
 
 
-# In[9]:
+# In[3]:
 
 lib.print_header()
 
 
 # In[4]:
 
-df
+display(df)
 
 
 # ## Plot pattern

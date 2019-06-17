@@ -16,6 +16,8 @@ import numpy as np
 import pandas as pd
 import os
 
+from IPython.display import display
+
 pd.set_option('display.max_rows', 10000)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.max_colwidth', -1)
@@ -78,7 +80,7 @@ get_ipython().run_cell_magic('time', '', 'for i in range(0, len(axis_names)):\n 
 
 # In[ ]:
 
-fm.df
+display(fm.df_horizontal)
 
 
 # In[ ]:
