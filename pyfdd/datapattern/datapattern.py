@@ -550,9 +550,9 @@ class DataPattern:
         assert isinstance(rm_edge_pix, int), 'number of edge pixels to remove should be int'
         if rm_edge_pix > 0:
             self.matrixCurrent = self.matrixCurrent[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
-
-        # Update mesh
-        self.manip_create_mesh()
+            # Update mesh
+            self.xmesh = self.xmesh[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
+            self.ymesh = self.ymesh[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
 
     def manip_compress(self, factor=2, rm_central_pix=0, rm_edge_pix=0):
         '''
@@ -668,7 +668,7 @@ class DataPattern:
             if len(ticks) != 2:
                 raise ValueError("ticks must be of length 2 with the colormap limits, for example [0.8, 2]")
         else:
-            percentiles = kwargs.get('percentiles', [0.01, 0.99])
+            percentiles = kwargs.get('percentiles', [0.00, 1.0])
             if len(percentiles) != 2:
                 raise ValueError("percentiles must be of length 2, for example [0.01, 0.99]")
 
