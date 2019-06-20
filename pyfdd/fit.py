@@ -419,9 +419,14 @@ class Fit:
         fractions_sims = ()
         for i in range(self._n_sites):
             fractions_sims += (params_temp[5 + i],) #fractions f_p1, f_p2, f_p3,...
-        #print('fractions_sims - ', fractions_sims, self._n_sites)
 
         nll = self.log_likelihood(dx, dy, phi, fractions_sims, sigma=sigma)
+
+        #print('\n')
+        #print('dx,\t dy,\t phi,\t total_cts,\t sigma')
+        #print(dx, '\t', dy, '\t', phi, '\t', total_cts, '\t', sigma)
+        #print('fractions_sims - ', fractions_sims, '# sites - ',self._n_sites)
+        #print('negative log likelihood - ', nll)
 
         # This is sort of a hack to avoid that after a very high chi2
         # the next point is not exactly the same as the previous.

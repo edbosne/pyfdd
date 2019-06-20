@@ -274,7 +274,7 @@ class FitManager:
             elif profile == 'fine':
                 ml_fit_options =   {'disp':False, 'maxiter':60, 'maxfun':1200, 'ftol':1e-12,'maxls':100,
                                     'maxcor':10, 'eps':1e-8}
-                chi2_fit_options = {'disp':False, 'maxiter':60, 'maxfun':1200, 'ftol':1e-7, 'maxls':100,
+                chi2_fit_options = {'disp':False, 'maxiter':60, 'maxfun':1200, 'ftol':1e-9, 'maxls':100,
                                     'maxcor':10, 'eps':1e-8}
             else:
                 raise ValueError('profile value should be set to: coarse, default or fine.')
