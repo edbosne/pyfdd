@@ -289,7 +289,7 @@ class Fit:
         gen = self.pattern_generator
         # mask out of range false means that points that are out of the range of simulations are not masked,
         # instead they are substituted by a very small number 1e-12
-        sim_pattern = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type='ideal')
+        sim_pattern = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, pattern_type='ideal')
         self.sim_pattern = sim_pattern.copy()
         #chi2 = np.sum((data_pattern - sim_pattern) ** 2 / np.abs(sim_pattern))
         chi2 = np.sum((data_pattern - sim_pattern)**2 / sim_pattern)
@@ -377,7 +377,7 @@ class Fit:
         # generate sim pattern
         gen = self.pattern_generator
         # gen = PatternCreator(self.lib, self.XXmesh, self.YYmesh, simulations, mask=data_pattern.mask)
-        sim_pattern = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type='ideal')
+        sim_pattern = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, pattern_type='ideal')
         self.sim_pattern = sim_pattern.copy()
         # negative log likelihood
         nll = -np.sum(data_pattern * np.log(sim_pattern))        # extended log likelihood - no need to fit events

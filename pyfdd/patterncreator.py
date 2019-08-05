@@ -5,6 +5,7 @@ __email__ = 'eric.bosne@cern.ch'
 
 
 from .lib2dl import Lib2dl
+from .datapattern import DataPattern
 
 import numpy as np
 import numpy.ma as ma
@@ -95,10 +96,10 @@ class PatternCreator:
         self._ylast_lib2dl = lib.ylast
 
         # set working mesh for simulated pattern
-        self._xmesh = np.array([])
-        self._ymesh = np.array([])
+        self._sim_xmesh = np.array([])
+        self._sim_ymesh = np.array([])
         self._update_coordinates_mesh()
-        self._sim_shape = self._xmesh.shape
+        self._sim_shape = self._sim_xmesh.shape
         self.mask = mask
 
         # set simulated patterns stack to avoid going back to the library
@@ -112,11 +113,22 @@ class PatternCreator:
         self._pattern_stack = pattern_stack
         self._pre_smooth_pattern_stack = np.ones(self._pattern_stack.shape)
         self._pre_smooth_sigma = None
-        self._pattern_current = np.ones(self._xmesh.shape)
+        self._pattern_current = np.ones(self._sim_xmesh.shape)
 
         self.fractions_per_sim = np.zeros(self._n_sites + 1) # +1 for random
 
-    def make_pattern(self, dx, dy, phi, fractions_per_site, total_events, sigma=0, type='ideal'):
+    def make_datapattern(self, dx, dy, phi, fractions_per_site, total_events, sigma=0, pattern_type='ideal'):
+
+        pattern_array = self.make_pattern(dx, dy, phi, fractions_per_site, total_events, sigma, pattern_type)
+
+        dp = DataPattern(pattern_array=pattern_array)
+
+        dp.set_xymesh(self._detector_xmesh, self._detector_ymesh)
+
+        return dp
+
+
+    def make_pattern(self, dx, dy, phi, fractions_per_site, total_events, sigma=0, pattern_type='ideal'):
         """
         Makes a pattern according to the library and sites selected in the initialization of the patterncreator
         Set total_events=1 and type='ideal' for a normalized spectrum.
@@ -125,15 +137,18 @@ class PatternCreator:
         :param phi: delta phi in anlges
         :param fraction_per_sim: fractions of each simulated pattern, first is random
         :param total_events: total number of events
-        :param type: 'ideal' for normalized pattern, 'montecarlo' for rand generated,
+        :param pattern_type: 'ideal' for normalized pattern, 'montecarlo' for rand generated,
         'poisson' for ideal with poisson noise
         :return: masked array with pattern
         """
         fractions_per_site = np.array(fractions_per_site)
+        if len(fractions_per_site.shape) == 0:
+            fractions_per_site = fractions_per_site[np.newaxis]
+
         if not fractions_per_site.size == self._n_sites:
             raise ValueError('Size of fractions_per_sim does not match the number of simulations')
 
-        self._pattern_current = np.zeros(self._xmesh.shape)
+        self._pattern_current = np.zeros(self._sim_xmesh.shape)
 
         if self._sub_pixels > 1:
             self._detector_xmesh_temp = self._detector_xmesh_expanded.copy()
@@ -162,7 +177,7 @@ class PatternCreator:
         self._move(dx, dy, phi)
         # render pattern
         self._grid_interpolation()
-        if type == 'yield':
+        if pattern_type == 'yield':
             return self._pattern_current.copy()
 
         # normalized pattern
@@ -171,15 +186,15 @@ class PatternCreator:
         mask = self._pattern_current.mask.copy()
         sim_pattern = self._pattern_current.copy()
         # types
-        if type == 'ideal':
+        if pattern_type == 'ideal':
             return sim_pattern
-        elif type == 'montecarlo':
+        elif pattern_type == 'montecarlo':
             n_total = total_events
             return ma.array(self._gen_mc_pattern(sim_pattern, n_total), mask=mask)
-        elif type == 'poisson':
+        elif pattern_type == 'poisson':
             return ma.array(np.random.poisson(sim_pattern), mask=mask)
         else:
-            raise ValueError("invalid value for type: options are ideal, yield, montecarlo and poisson")
+            raise ValueError("invalid value for pattern_type: options are ideal, yield, montecarlo and poisson")
 
     def pre_smooth_simulations(self, sigma):
         if sigma < 0:
@@ -281,7 +296,7 @@ class PatternCreator:
         #set the stop between last and last+1step
         x = np.arange(self._xfirst_lib2dl, self._xlast_lib2dl + 0.5*self._xstep_lib2dl, self._xstep_lib2dl)
         y = np.arange(self._yfirst_lib2dl, self._ylast_lib2dl + 0.5*self._ystep_lib2dl, self._ystep_lib2dl)
-        self._xmesh, self._ymesh = np.meshgrid(x, y)
+        self._sim_xmesh, self._sim_ymesh = np.meshgrid(x, y)
 
     def _expande_detector_mesh(self):
 
@@ -330,11 +345,13 @@ class PatternCreator:
         '''
 
         # convert to index space
-        xscale = self._xmesh.shape[1] / (self._xmesh[0, -1] - self._xmesh[0, 0])
-        yscale = self._ymesh.shape[0] / (self._ymesh[-1, 0] - self._ymesh[0, 0])
+        # divide by the angular range and multiply by the number of pixels
+        xscale = self._sim_xmesh.shape[1] / (self._sim_xmesh[0, -1] - self._sim_xmesh[0, 0])
+        yscale = self._sim_ymesh.shape[0] / (self._sim_ymesh[-1, 0] - self._sim_ymesh[0, 0])
 
-        grid_x_temp = (self._detector_xmesh_temp - self._xmesh[0, 0]) * xscale
-        grid_y_temp = (self._detector_ymesh_temp - self._ymesh[0, 0]) * yscale
+        # removing half a pixel helps center the final pattern but I don't know why
+        grid_x_temp = (self._detector_xmesh_temp - self._sim_xmesh[0, 0]) * xscale - 0.5
+        grid_y_temp = (self._detector_ymesh_temp - self._sim_ymesh[0, 0]) * yscale - 0.5
 
         #interpolation
         cval = 0 if self._mask_out_of_range else 1e-12

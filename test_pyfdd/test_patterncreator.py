@@ -23,7 +23,7 @@ if __name__ == "__main__":
     fractions_per_sim = np.array([1])#[0, 1])
     #fractions_per_sim /= fractions_per_sim.sum()
     total_events = 1
-    pattern = gen.make_pattern(0.0, -0.1, -6, fractions_per_sim, total_events, sigma=0.1, type='yield')
+    pattern = gen.make_pattern(0.0, -0.1, -6, fractions_per_sim, total_events, sigma=0.1, pattern_type='yield')
     print(pattern.sum())
     print(pattern[50,50])
 

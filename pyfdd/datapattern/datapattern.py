@@ -108,7 +108,7 @@ class DataPattern:
         self.is_mesh_defined = False
         self.xmesh = np.array([[]])
         self.ymesh = np.array([[]])
-        (self.ny, self.nx) = (0, 0)
+        (self.ny, self.nx) = (None, None)
 
         # values for angular calibration
         self.pixel_size_mm = None
@@ -244,7 +244,13 @@ class DataPattern:
     def get_xymesh(self):
         return self.xmesh.copy(), self.ymesh.copy()
 
-    def _set_xymesh(self, xmesh, ymesh):
+    def set_xymesh(self, xmesh, ymesh):
+
+        if xmesh.shape != ymesh.shape:
+            raise ValueError('xmesh and ymesh need to have the same shape')
+
+        if self.ny is None and self.nx is None:
+            (self.ny, self.nx) = xmesh.shape
 
         if (xmesh.shape != (self.ny, self.nx) or
             ymesh.shape != (self.ny, self.nx)):
@@ -284,18 +290,23 @@ class DataPattern:
         self.matrixOriginal = ma.array(data=np.loadtxt(os.path.join(self.path_in, self.filename_in)), mask=False)
         (self.ny, self.nx) = self.matrixOriginal.shape
 
-    def io_save_ascii(self, filename, ignore_mask=False):
+    def io_save_ascii(self, filename, ignore_mask=False, number_format='int'):
         """
         saves the current matrix to an ascii file
         :param filename: is the name or full path to the file
         :param ignore_mask: if True data values are saved instead of a zero where the mask is on
+        :param number_format: set the number format, it can be set to 'int' or 'float'
         :return:
         """
         if ignore_mask:
             matrix = self.matrixCurrent.data
         else:
             matrix = self.matrixCurrent.filled(0)
-        np.savetxt(filename, matrix, "%d")
+
+        if number_format == 'int':
+            np.savetxt(filename, matrix, "%d")
+        if number_format == 'float':
+            np.savetxt(filename, matrix, "%f")
 
     def _io_load_origin(self):
         """

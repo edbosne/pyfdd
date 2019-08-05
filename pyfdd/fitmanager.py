@@ -743,14 +743,14 @@ class FitManager:
                              mask_out_of_range = True)
         # mask out of range false means that points that are out of the range of simulations are not masked,
         # instead they are substituted by a very small number 1e-12
-        sim_pattern = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type=generator)
+        sim_pattern = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, pattern_type=generator)
 
         # Substitute only masked pixels that are in range (2.7° from center) and are not the chip edges
         # This can't really be made without keeping 2 set of masks, so all masked pixels are susbstituted.
         # This means some pixels with valid data but masked can still be susbtituted
         if rm_mask:
             # only mask what is outside of simulation range
-            sim_pattern_ideal = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, type='ideal')
+            sim_pattern_ideal = gen.make_pattern(dx, dy, phi, fractions_sims, total_events, sigma=sigma, pattern_type='ideal')
             return ma.array(sim_pattern.data, mask=(sim_pattern_ideal.data == 0))
         else:
             return sim_pattern
@@ -764,7 +764,7 @@ class FitManager:
             self._get_sim_normalization_factor(normalization, pattern_type=self._cost_function, fit_obj=fit_obj)
 
         dp = DataPattern(pattern_array=fit_obj.sim_pattern.data)
-        dp._set_xymesh(fit_obj.XXmesh, fit_obj.YYmesh)
+        dp.set_xymesh(fit_obj.XXmesh, fit_obj.YYmesh)
         dp.set_mask(fit_obj.sim_pattern.mask)
 
         return dp * norm_factor
@@ -778,7 +778,7 @@ class FitManager:
             self._get_sim_normalization_factor(normalization, pattern_type=self._cost_function, fit_obj=fit_obj)
 
         dp = DataPattern(pattern_array=fit_obj.sim_pattern.data)
-        dp._set_xymesh(fit_obj.XXmesh, fit_obj.YYmesh)
+        dp.set_xymesh(fit_obj.XXmesh, fit_obj.YYmesh)
         dp.set_mask(fit_obj.sim_pattern.mask)
         return dp * norm_factor
 

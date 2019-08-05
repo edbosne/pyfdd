@@ -15,7 +15,7 @@ def make_tpx_pattern(lib, patterns=(1,), name = 'temp_tpx.json'):
     fractions_per_sim = np.array([1])
     #fractions_per_sim /= fractions_per_sim.sum()
     total_events = 0.3 * 512**2
-    pattern = gen.make_pattern(0.0, 0.0, 0, fractions_per_sim, total_events, sigma=0, type='montecarlo')
+    pattern = gen.make_pattern(0.0, 0.0, 0, fractions_per_sim, total_events, sigma=0, pattern_type='montecarlo')
     print(pattern.sum())
 
     # create medipix matrix

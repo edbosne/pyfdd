@@ -28,7 +28,7 @@ def make_mc_pattern(lib, sites, size = 'medium'):
     creator = PatternCreator(lib, xmesh, ymesh, sites)#(249-249+1,377-249+1))
     fractions_per_sim = np.array([0.30,0.05,0.05, 0.10])
     total_events = 1e9
-    patt = creator.make_pattern(-0.08, 0.18, 5, fractions_per_sim, total_events, sigma=0.1, type='poisson')
+    patt = creator.make_pattern(-0.08, 0.18, 5, fractions_per_sim, total_events, sigma=0.1, pattern_type='poisson')
     return patt, xmesh, ymesh
 
 
