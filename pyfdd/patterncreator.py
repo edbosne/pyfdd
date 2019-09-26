@@ -228,15 +228,16 @@ class PatternCreator:
             sim_pattern_data = sim_pattern
         sim_pattern_data /= sim_pattern_data.sum()
 
+        # cumulative probability density function
         cdf = sim_pattern_data.reshape(-1).cumsum()
         inv_cdf = lambda value: np.searchsorted(cdf, value, side="left")
         mc_event = [inv_cdf(x) for x in np.random.uniform(0, 1, n_total)]
         mc_event_x = self._detector_xmesh.reshape(-1)[mc_event]
         mc_event_y = self._detector_ymesh.reshape(-1)[mc_event]
         bins = self._detector_xmesh.shape[::-1]
-        range = [[self._detector_ymesh.min(), self._detector_ymesh.max()],
+        mesh_range = [[self._detector_ymesh.min(), self._detector_ymesh.max()],
                  [self._detector_xmesh.min(), self._detector_xmesh.max()]]
-        H, xedges, yedges = np.histogram2d(mc_event_y, mc_event_x, bins, range)
+        H, xedges, yedges = np.histogram2d(mc_event_y, mc_event_x, bins, mesh_range)
         return H
 
     def _apply_fractions(self, fractions, use_pre_smooth=False):
