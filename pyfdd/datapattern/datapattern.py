@@ -738,6 +738,8 @@ class DataPattern:
         axes.set_ylabel(ylabel)
         axes.axis('image')
 
+        return axes, cb
+
     def callonangle(self, center, angle):
         self.center = center
         self.angle = angle
