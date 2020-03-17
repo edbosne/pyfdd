@@ -393,8 +393,8 @@ class DataPattern:
             self.is_mesh_defined = json_in['is_mesh_defined']
             self.xmesh = np.array(json_in['xmesh'])
             self.ymesh = np.array(json_in['ymesh'])
-            json_in['ny'] = self.ny
-            json_in['nx'] = self.nx
+            self.ny = json_in['ny']
+            self.nx = json_in['nx']
             # values for angular calibration
             self.pixel_size_mm = json_in['pixel_size_mm']
             self.distance = json_in['distance']
