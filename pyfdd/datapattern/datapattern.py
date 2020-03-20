@@ -574,6 +574,7 @@ class DataPattern:
         :param factor:
         :return:
         '''
+        #TODO update for arbitrary vertical and horizontal size
         if rm_central_pix is not None:
             self.rm_central_pix = rm_central_pix
         if ((self.nChipsX > 1 or self.nChipsY > 1) and
@@ -706,6 +707,7 @@ class DataPattern:
         if blank_masked is False:
             self.matrixDrawable.mask = 0
             if self.nChipsX > 1 and self.real_size > 1:
+                #TODO This is not valid if the matrix is compressed
                 half = (np.array(self.matrixDrawable.shape)/2).astype(np.int)
                 #print([half[0]-(self.real_size-1),half[0]-(self.real_size-1)])
                 self.matrixDrawable.mask[half[0] - (self.real_size-1):half[0] + (self.real_size-1), :] = True
