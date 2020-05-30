@@ -565,7 +565,67 @@ class DataPattern:
             self.xmesh = self.xmesh[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
             self.ymesh = self.ymesh[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
 
-    def manip_compress(self, factor=2, rm_central_pix=0, rm_edge_pix=0):
+    def _update_compress_factors(self, factor, rm_central_pix, rm_edge_pix, consider_single_chip):
+
+        (ny, nx) = self.matrixCurrent.shape
+
+        # Quad detector compression
+        if (2 == self.nChipsX and 2 == self.nChipsY) and consider_single_chip is False:
+            # verify if zeroed central pixels are divided by factor
+            if 0 <= rm_central_pix:
+                # Ensure that the division rest is zero
+                central_gap = (2 * (self.real_size + rm_central_pix - 1))
+                rest = central_gap % factor
+                if rest != 0:
+                    rm_central_pix += (factor - rest) / 2
+                    warnings.warn("warning removed central pixels increased to " + str(rm_central_pix) +
+                                  ", rest is " + str(rest))
+
+            # verify if the rest of the matrix is divisable by factor
+            chip_size = 256 # size of a single timepix chip
+
+            if ny != self.nChipsY * (chip_size + self.real_size - 1) or \
+               nx != self.nChipsX * (chip_size + self.real_size - 1):
+                warnings.warn('Compression of a quad chip assumes a chip size of 256 pixels')
+
+            rest = (chip_size - rm_edge_pix - rm_central_pix) % factor
+            if rest != 0:
+                rm_edge_pix += rest
+                warnings.warn("warning removed edge pixels increased to " + str(rm_edge_pix))
+
+        # Compression of a single chip
+        elif (1 == self.nChipsX and 1 == self.nChipsY) or consider_single_chip is True:
+            if ny < nx:
+                n_min = ny
+                n_min_name = 'ny'
+            else:
+                n_min = nx
+                n_min_name = 'nx'
+
+            # The smallest side sets the rm_edge_pix
+            rest = (n_min - 2 * rm_edge_pix) % factor
+            if rest != 0:
+                rm_edge_pix += rest / 2
+                print("warning removed edge pixels increased to ", rm_edge_pix)
+
+            # crop largest side if needed
+            if n_min_name == 'ny':
+                rest = (nx - 2 * rm_edge_pix) % factor
+                print('rest/2', rest/2)
+                retrnArr = self.matrixCurrent.data[:, int(np.floor(rest/2)):nx - int(np.ceil(rest/2))]
+                retrnMa = self.matrixCurrent.mask[:, int(np.floor(rest/2)):nx - int(np.ceil(rest/2))]
+                self.matrixCurrent = ma.array(data=retrnArr, mask=(retrnMa >= 1))
+
+            elif n_min_name == 'nx':
+                rest = (ny - 2 * rm_edge_pix) % factor
+                retrnArr = self.matrixCurrent.data[np.floor(rest/2):ny - np.ceil(rest/2), :]
+                retrnMa = self.matrixCurrent.mask[np.floor(rest/2):ny - np.ceil(rest/2), :]
+                self.matrixCurrent = ma.array(data=retrnArr, mask=(retrnMa >= 1))
+
+        return factor, rm_central_pix, rm_edge_pix
+
+
+    def manip_compress(self, factor=2, rm_central_pix=0, rm_edge_pix=0, consider_single_chip=False):
         '''
         This function reduces the binning of the matrix in a smart way.
         Removed central pixels are not merged with data bins.
@@ -575,6 +635,8 @@ class DataPattern:
         :return:
         '''
         #TODO update for arbitrary vertical and horizontal size
+
+        # Inicial verifications
         if rm_central_pix is not None:
             self.rm_central_pix = rm_central_pix
         if ((self.nChipsX > 1 or self.nChipsY > 1) and
@@ -584,49 +646,35 @@ class DataPattern:
         assert isinstance(factor,int), 'factor should be int'
         assert isinstance(rm_central_pix, int), 'number of central pixels to remove should be int'
         assert isinstance(rm_edge_pix, int), 'number of edge pixels to remove should be int'
+        assert isinstance(consider_single_chip, bool), 'consider_single_chip should be bool'
 
+        # update factors to ensure matrix is devisable by factor
+        factor, rm_central_pix, rm_edge_pix = \
+            self._update_compress_factors(factor, rm_central_pix, rm_edge_pix, consider_single_chip)
+
+        # calculate final shape
         (ny, nx) = self.matrixCurrent.shape
-        # verify if zeroed central pixels are divided by factor
-        if 2 <= self.nChipsX or 2 <= self.nChipsY:
-            if 0 <= rm_central_pix:
-                rest = (2 * (self.real_size + rm_central_pix - 1))%factor
-                if rest != 0:
-                    rm_central_pix += (factor - rest)/2
-                    print("warning removed central pixels increased to ", rm_central_pix, "rest is ", rest)
-                self.zero_central_pix(rm_central_pix+(self.real_size-1))
-
-        # verify if the rest of the matrix is divisable by factor
-        # Update remove edge pixels
-        # TODO single chip with arbitrary size
-        if 2 == self.nChipsX and 2 == self.nChipsY:
-            # 256 is the size of the chip
-            rest = (256-rm_edge_pix-rm_central_pix)%factor
-            if rest != 0:
-                rm_edge_pix += rest
-                print("warning removed edge pixels increased to ", rm_edge_pix)
-        elif 1 == self.nChipsX and 1 == self.nChipsY:
-            rest = (self.nx - 2 * rm_edge_pix) % factor
-            if rest != 0:
-                rm_edge_pix += rest / 2
-                print("warning removed edge pixels increased to ", rm_edge_pix)
 
         rm_edge_pix = int(rm_edge_pix)
-        final_size = int((nx - rm_edge_pix*2)/factor)
+        final_size = [int((ny - rm_edge_pix * 2) / factor), int((nx - rm_edge_pix * 2) / factor)]
         if self.verbose >= 1:
-            print('rest - ', rest)
-            print('final_size',final_size)
+            print('final_size', final_size)
+
+        # Update masked central pixels acoordingly
+        self.zero_central_pix(rm_central_pix + (self.real_size - 1))
 
         # Reshaping the matrix
         retrnArr = self.matrixCurrent.data[rm_edge_pix:ny-rm_edge_pix,rm_edge_pix:nx-rm_edge_pix]\
-                       .reshape([final_size, factor, final_size, factor]).sum(3).sum(1)
+                       .reshape([final_size[0], factor, final_size[1], factor]).sum(3).sum(1)
         retrnMa = self.matrixCurrent.mask[rm_edge_pix:ny - rm_edge_pix, rm_edge_pix:nx - rm_edge_pix] \
-                        .reshape([final_size, factor, final_size, factor]).sum(3).sum(1)
+                        .reshape([final_size[0], factor, final_size[1], factor]).sum(3).sum(1)
         self.matrixCurrent = ma.array(data=retrnArr, mask=(retrnMa>=1))
+
         # Update mesh
         self.xmesh = self.xmesh[rm_edge_pix:ny - rm_edge_pix, rm_edge_pix:nx - rm_edge_pix] \
-                        .reshape([final_size, factor, final_size, factor]).mean(3).mean(1)
+                        .reshape([final_size[0], factor, final_size[1], factor]).mean(3).mean(1)
         self.ymesh = self.ymesh[rm_edge_pix:ny - rm_edge_pix, rm_edge_pix:nx - rm_edge_pix] \
-            .reshape([final_size, factor, final_size, factor]).mean(3).mean(1)
+            .reshape([final_size[0], factor, final_size[1], factor]).mean(3).mean(1)
         if self.pixel_size_mm is not None:
             self.pixel_size_mm *= factor
         #self.manip_create_mesh()
@@ -720,7 +768,10 @@ class DataPattern:
             lowtick, hightick = self.get_ticks(percentiles)
 
         if plot_type == 'contour':
+            # set up to n_color_bins levels at nice locations
             levels = ml.ticker.MaxNLocator(nbins=n_color_bins).tick_values(lowtick, hightick)
+            # set up exactly n_color_bins levels (alternative)
+            #levels = ml.ticker.LinearLocator(numticks=n_color_bins+1).tick_values(lowtick, hightick)
             ret = axes.contourf(self.xmesh, self.ymesh, self.matrixDrawable, cmap=imgCmap, levels=levels)
             if self.reverse_x == True:
                 axes.invert_xaxis()
