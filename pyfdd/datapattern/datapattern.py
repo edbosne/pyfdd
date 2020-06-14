@@ -181,7 +181,11 @@ class DataPattern:
         new_pattern = self.matrixCurrent.data + other.matrixCurrent.data
         new_pattern_mask = self.matrixCurrent.mask + other.matrixCurrent.mask
 
+        # do a deepcopy without the plot axes
+        temp_ax = self.ax
+        self.ax = None
         new_mm = copy.deepcopy(self)
+        self.ax = temp_ax
 
         new_mm.matrixOriginal = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
         new_mm.matrixCurrent = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
@@ -805,22 +809,30 @@ class DataPattern:
         self.angle = 0
         self.ang_wid = AngleMeasure(self.ax, self.callonangle)
 
+    def mask_pixel(self, i, j):
+        self.matrixCurrent.mask[i, j] = True
+
+    def mask_rectangle(self, rectangle_limits):
+        condition = ((self.xmesh <= rectangle_limits[1]) &
+                     (self.xmesh >= rectangle_limits[0]) &
+                     (self.ymesh <= rectangle_limits[3]) &
+                     (self.ymesh >= rectangle_limits[2]))
+        self.matrixCurrent = ma.masked_where(condition, self.matrixCurrent)
+
     def onselect_RS(self, eclick, erelease):
         'eclick and erelease are matplotlib events at press and release'
-        self.rectangle_limits = np.array([eclick.xdata, erelease.xdata, eclick.ydata, erelease.ydata])
+        rectangle_limits = np.array([eclick.xdata, erelease.xdata, eclick.ydata, erelease.ydata])
         self.RS = None
-        print('rectangle -',self.rectangle_limits)
-        condition = ((self.xmesh <= self.rectangle_limits[1]) &
-                     (self.xmesh >= self.rectangle_limits[0]) &
-                     (self.ymesh <= self.rectangle_limits[3]) &
-                     (self.ymesh >= self.rectangle_limits[2]))
-        self.matrixCurrent = ma.masked_where(condition, self.matrixCurrent)
+        self.mask_rectangle(rectangle_limits)
 
     def get_rectangle_mask_tool(self):
         if self.ax is None:
             raise ValueError('No axes are defined')
-        self.rectangle_limits = None
-        self.RS = RectangleSelector(self.ax, self.onselect_RS, drawtype='box')
+        rectprops = dict(facecolor='red', edgecolor='black',
+                         alpha=0.8, fill=True)
+        # useblit=True is necessary for PyQt
+        self.RS = RectangleSelector(self.ax, self.onselect_RS, drawtype='box', useblit=True, interactive=False,
+                                    rectprops=rectprops)
 
     def get_ticks(self, percentiles, ):
         if len(percentiles) != 2:

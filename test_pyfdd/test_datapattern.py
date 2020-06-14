@@ -211,6 +211,6 @@ def test_compress():
 
 
 if __name__ == '__main__':
-    #test_datapattern()
+    test_datapattern()
     #test_compress()
-    test_assimetric()
+    #test_assimetric()
