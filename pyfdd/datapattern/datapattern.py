@@ -49,12 +49,12 @@ class MpxHist:
     def __init__(self, values):
         if isinstance(values, ma.MaskedArray):
             values = values[~values.mask]
-        self.hist, self.bin_edges = np.histogram(values.reshape((1, values.size)), bins=1000)
+        self.hist, self.bin_edges = np.histogram(values.reshape((1, values.size)), bins=5000)
         self.normalized_integral = self.hist.cumsum()/float(self.hist.sum())
         self.mean = np.mean(values.reshape((1, values.size)))
         self.std = np.std(values.reshape((1, values.size)))
 
-    def get_percentiles_bins(self, percentiles):
+    def get_bins_from_percentiles(self, percentiles):
         lowbin = bis.bisect(self.normalized_integral, percentiles[0], lo=1, hi=len(self.normalized_integral))-1
             # having lo=1 ensures lowbin is never -1
         highbin = bis.bisect(self.normalized_integral, percentiles[1])
@@ -72,6 +72,17 @@ class MpxHist:
         p10_high = 10**(4 - int(math.floor(math.log10(abs(self.bin_edges[highbin])))))
         hightick = np.ceil(self.bin_edges[highbin] * p10_high) / p10_high #self.bin_edges[highbin]
         return lowtick, hightick
+
+    def get_percentiles_from_ticks(self, ticks):
+        # bin_edges is 1 longer than the normalized integral
+        lowbin = bis.bisect(self.bin_edges[:-2], ticks[0], lo=0, hi=len(self.bin_edges[:-2]))
+        # having lo=1 ensures lowbin is never -1
+        highbin = bis.bisect(self.bin_edges[:-2], ticks[1], lo=1, hi=len(self.bin_edges[:-2]))
+        low_percentile = np.round(self.normalized_integral[lowbin], 2)
+        high_percentile = np.round(self.normalized_integral[highbin], 2)
+        percentiles = (low_percentile, high_percentile)
+        return percentiles
+
 
 
 class DataPattern:
@@ -628,6 +639,10 @@ class DataPattern:
 
         return factor, rm_central_pix, rm_edge_pix
 
+    def manip_convert_to_single_chip(self):
+        self.nChipsX = 1
+        self.nChipsY = 1
+        self.real_size = 1
 
     def manip_compress(self, factor=2, rm_central_pix=0, rm_edge_pix=0, consider_single_chip=False):
         '''
@@ -682,6 +697,8 @@ class DataPattern:
         if self.pixel_size_mm is not None:
             self.pixel_size_mm *= factor
         #self.manip_create_mesh()
+        # After compression convert to a single chip
+        self.manip_convert_to_single_chip()
 
     def manip_create_mesh(self, pixel_size=None, distance=None, reverse_x=None):
         if pixel_size is not None:
@@ -724,6 +741,7 @@ class DataPattern:
 
         assert isinstance(axes, plt.Axes)
         self.ax = axes
+        fig = ml.axis.Axis.get_figure(axes)
 
         ticks = None
         percentiles = None
@@ -787,7 +805,7 @@ class DataPattern:
         else:
             raise ValueError('plot_type not recognized, use contour or pixels')
 
-        cb = plt.colorbar(ret, ax=axes)
+        cb = fig.colorbar(ret, ax=axes)
 
         cb.set_label(zlabel)
         axes.set_title(title)
@@ -819,6 +837,14 @@ class DataPattern:
                      (self.ymesh >= rectangle_limits[2]))
         self.matrixCurrent = ma.masked_where(condition, self.matrixCurrent)
 
+    def mask_below(self, value):
+        condition = self.matrixCurrent <= value
+        self.matrixCurrent = ma.masked_where(condition, self.matrixCurrent)
+
+    def mask_above(self, value):
+        condition = self.matrixCurrent >= value
+        self.matrixCurrent = ma.masked_where(condition, self.matrixCurrent)
+
     def onselect_RS(self, eclick, erelease):
         'eclick and erelease are matplotlib events at press and release'
         rectangle_limits = np.array([eclick.xdata, erelease.xdata, eclick.ydata, erelease.ydata])
@@ -834,9 +860,9 @@ class DataPattern:
         self.RS = RectangleSelector(self.ax, self.onselect_RS, drawtype='box', useblit=True, interactive=False,
                                     rectprops=rectprops)
 
-    def get_ticks(self, percentiles, ):
+    def get_ticks(self, percentiles):
         if len(percentiles) != 2:
             raise ValueError("percentiles must be of length 2, for example [0.01, 0.99]")
         self.hist = MpxHist(self.matrixCurrent)
-        lowtick, hightick = self.hist.get_percentiles_bins(percentiles)
+        lowtick, hightick = self.hist.get_bins_from_percentiles(percentiles)
         return [lowtick, hightick]

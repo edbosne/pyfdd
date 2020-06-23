@@ -4,28 +4,153 @@ import os
 import warnings
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
+# from PySide2 import QtCore, QtGui, QtWidgets, uic
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT #as NavigationToolbar
 from matplotlib.widgets import RectangleSelector
-import matplotlib.pyplot as plt
+from pyfdd.datapattern.CustomWidgets import AngleMeasure
+#import matplotlib.pyplot as plt  # do not use pyplot
+import matplotlib as mpl
 import seaborn as sns
 import numpy as np
-import numpy.ma as ma
-
 
 import pyfdd
 
 # Load the ui created with PyQt creator
 # First, convert .ui file to .py with,
 # pyuic5 datapattern_widget.ui -o datapattern_widget.py
-from qt_designer.datapattern_widget import Ui_DataPatternWidget
-from qt_designer.buildmesh_dialog import Ui_BuildMeshDialog
+# import with absolute import locations
+from gui.qt_designer.datapattern_widget import Ui_DataPatternWidget
+from gui.qt_designer.buildmesh_dialog import Ui_BuildMeshDialog
+from gui.qt_designer.colorscale_dialog import Ui_ColorScaleDialog
+from gui.qt_designer.setlabels_dialog import Ui_SetLabelsDialog
 
 
 # Set style
 sns.set_style('white')
 sns.set_context('talk')
+
+
+class NavigationToolbar(NavigationToolbar2QT):
+    # only display the buttons we need
+    toolitems = [t for t in NavigationToolbar2QT.toolitems if
+                 t[0] in ('Home', 'Pan', 'Zoom')]
+
+    def _init_toolbar(self):
+        # spacer widget for left
+        left_spacer = QtWidgets.QWidget()
+        left_spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        #left_spacer.setStyleSheet("background-color:black;")
+        # spacer widget for right
+        right_spacer = QtWidgets.QWidget()
+        right_spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        #right_spacer.setContentsMargins(0,0,0,0)
+        #right_spacer.setStyleSheet("background-color:black;")
+        #self.setStyleSheet("background-color:white;")
+
+        self.addWidget(left_spacer)
+        NavigationToolbar2QT._init_toolbar(self)
+        self.addWidget(right_spacer)
+
+
+class SetLabels_dialog(QtWidgets.QDialog, Ui_SetLabelsDialog):
+    def __init__(self, parent=None):
+        super(SetLabels_dialog, self).__init__(parent)
+        self.parent = parent
+        self.setupUi(self)
+
+        labels_suggestions = {'title': 'Channeling Pattern',
+                              'xlabel': r'x-angle $\theta[°]$',
+                              'ylabel': r'y-angle $\omega[°]$',
+                              'zlabel': 'Counts'}
+
+        self.new_labels = dict()
+
+        for key in labels_suggestions.keys():
+            if self.parent.plot_labels[key] is '':
+                self.new_labels[key] = labels_suggestions[key]
+            else:
+                self.new_labels[key] = self.parent.plot_labels[key]
+
+        self._init_le_string()
+
+        # Connect signals
+        self.le_title.editingFinished.connect(self.call_le_title)
+        self.le_x_axis.editingFinished.connect(self.call_le_x_axis)
+        self.le_y_axis.editingFinished.connect(self.call_le_y_axis)
+        self.le_z_axis.editingFinished.connect(self.call_le_z_axis)
+
+    def _init_le_string(self):
+        '''
+        Instatiate the initial values of the line edit boxes
+        :return:
+        '''
+        self.le_title.setText(self.new_labels['title'])
+        self.le_x_axis.setText(self.new_labels['xlabel'])
+        self.le_y_axis.setText(self.new_labels['ylabel'])
+        self.le_z_axis.setText(self.new_labels['zlabel'])
+
+    def call_le_title(self):
+        self.new_labels['title'] = self.le_title.text()
+
+    def call_le_x_axis(self):
+        self.new_labels['xlabel'] = self.le_x_axis.text()
+
+    def call_le_y_axis(self):
+        self.new_labels['ylabel'] = self.le_y_axis.text()
+
+    def call_le_z_axis(self):
+        self.new_labels['zlabel'] = self.le_z_axis.text()
+
+    def get_settings(self):
+        return self.new_labels
+
+
+class ColorScale_dialog(QtWidgets.QDialog, Ui_ColorScaleDialog):
+    def __init__(self, parent=None):
+        super(ColorScale_dialog, self).__init__(parent)
+        self.parent = parent
+        self.setupUi(self)
+
+        # Set initial values
+        self.sb_min_percentile.setValue(self.parent.percentiles[0]*100)
+        self.sb_min_tick.setValue(self.parent.ticks[0])
+        self.sb_max_percentile.setValue(self.parent.percentiles[1]*100)
+        self.sb_max_tick.setValue(self.parent.ticks[1])
+
+        # Connect signals
+        self.sb_min_percentile.valueChanged.connect(self.call_sb_min_percentile)
+        self.sb_min_tick.valueChanged.connect(self.call_sb_min_tick)
+        self.sb_max_percentile.valueChanged.connect(self.call_sb_max_percentile)
+        self.sb_max_tick.valueChanged.connect(self.call_sb_max_tick)
+
+    def update_plot(self):
+        self.parent.draw_datapattern()
+        self.parent.update_infotext()
+
+    def update_ticks_from_percentiles(self):
+
+        self.parent.ticks = self.parent.datapattern.get_ticks(self.parent.percentiles)
+        self.sb_min_tick.setValue(self.parent.ticks[0])
+        self.sb_max_tick.setValue(self.parent.ticks[1])
+        self.update_plot()
+
+    def call_sb_min_percentile(self, value):
+        self.parent.percentiles[0] = value / 100
+        self.update_ticks_from_percentiles()
+
+    def call_sb_max_percentile(self, value):
+        self.parent.percentiles[1] = value / 100
+        self.update_ticks_from_percentiles()
+
+    def call_sb_min_tick(self, value):
+        self.parent.ticks[0] = value
+        self.update_plot()
+
+    def call_sb_max_tick(self, value):
+        self.parent.ticks[1] = value
+        self.update_plot()
 
 
 class BuildMesh_dialog(QtWidgets.QDialog, Ui_BuildMeshDialog):
@@ -73,7 +198,7 @@ class DataPattern_window(QtWidgets.QMainWindow):
         # Set a DataPattern widget as central widget
         dp_w = DataPattern_widget(mainwindow=self)
         self.setCentralWidget(dp_w)
-        dp_w.resize(1000, 600)
+        self.resize(1150, 670)
 
 
 class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
@@ -97,29 +222,56 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
 
         # initiate variables
         self.datapattern = None
+        self.percentiles = [0.05, 0.99]
+        self.ticks = None
+        # mpl variables
+        self.mpl_canvas = None
+        self.mpl_toolbar = None
+        self.maskpixel_mpl_cid = None
+        self.plot_labels = {'title': '',
+                              'xlabel': '',
+                              'ylabel': '',
+                              'zlabel': ''}
 
         # Create a menubar entry for the datapattern
         self.menubar = self.mainwindow.menuBar()
         self.dp_menu = self.setup_menu()
 
         # Set up matplotlib canvas
-        self.pltfig = plt.figure()
-        self.pltfig.set_facecolor('#d7d6d5')
+        # get background color from color from widget and convert it to RBG
+        pyqt_bkg = self.palette().color(QtGui.QPalette.Background).getRgbF()
+        mpl_bkg = mpl.colors.rgb2hex(pyqt_bkg)
+
+        #self.pltfig = plt.figure() # don't use pyplot
+        self.pltfig = mpl.figure.Figure()
+        self.pltfig.set_facecolor(mpl_bkg)
         self.plot_ax = self.pltfig.add_subplot(111)
-        self.colorbar_ax = None
         self.plot_ax.set_aspect('equal')
-        plt.tight_layout()
+        self.colorbar_ax = None
         self.addmpl(self.pltfig)
-        self.maskpixel_mpl_cid = None
+        # call tight_layout after addmpl
+        self.pltfig.tight_layout()
 
         # Connect signals
+        # Pattern manipulation
         self.pb_buildmesh.clicked.connect(self.call_pb_buildmesh)
+        self.pb_compressmesh.clicked.connect(self.call_pb_compressmesh)
+        self.pb_orientchanneling.clicked.connect(self.call_pb_orientchanneling)
+        self.pb_fitrange.clicked.connect(self.call_pb_fitrange)
 
+        # Mask signals
         self.pb_maskpixel.clicked.connect(self.call_pb_maskpixel)
         self.pb_maskrectangle.clicked.connect(self.call_pb_maskrectangle)
+        self.pb_maskbelow.clicked.connect(self.call_pb_maskbelow)
+        self.pb_maskabove.clicked.connect(self.call_pb_maskabove)
         self.pb_removeedge.clicked.connect(self.call_pb_removeedge)
+        self.pb_removecentral.clicked.connect(self.call_pb_removecentral)
+        self.pb_loadmask.clicked.connect(self.call_pb_loadmask)
+        self.pb_savemask.clicked.connect(self.call_pb_savemask)
+        self.pb_setlabels.clicked.connect(self.call_pb_setlabels)
 
-
+        # Pattern visualization
+        self.pb_colorscale.clicked.connect(self.call_pb_colorscale)
 
     def setup_menu(self):
         dp_menu = self.menubar.addMenu('&Data Pattern')
@@ -176,7 +328,8 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         Open a json datapattern file
         :return:
         '''
-        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open DataPattern', filter='DataPattern (*.json)')
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open DataPattern', filter='DataPattern (*.json)',
+                                                         options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if filename == ('', ''):  # Cancel
             return
 
@@ -191,7 +344,8 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         Open a json datapattern file
         :return:
         '''
-        filename = QtWidgets.QFileDialog.getOpenFileNames(self, 'Add DataPatterns', filter='DataPattern (*.json)')
+        filename = QtWidgets.QFileDialog.getOpenFileNames(self, 'Add DataPatterns', filter='DataPattern (*.json)',
+                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if filename == ('', ''):  # Cancel
             return
 
@@ -213,12 +367,14 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         if not self.datapattern_exits():
             return
 
-        filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save DataPattern', filter='DataPattern (*.json)')
+        filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save DataPattern', filter='DataPattern (*.json)',
+                                                         options=QtWidgets.QFileDialog.DontUseNativeDialog)
         self.datapattern.io_save_json(filename[0])
 
     def import_dp_call(self):
         filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Import matrix file',
-                                                         filter='Import matrix (*.txt *.csv *.2db)')
+                                                         filter='Import matrix (*.txt *.csv *.2db)',
+                                                         options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if filename == ('', ''):  # Cancel
             return
 
@@ -241,14 +397,16 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         if not self.datapattern_exits():
             return
 
-        filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Export DataPattern', filter='ASCII (*.txt)')
+        filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Export DataPattern', filter='ASCII (*.txt)',
+                                                         options=QtWidgets.QFileDialog.DontUseNativeDialog)
         self.datapattern.io_save_ascii(filename[0])
 
     def exportorigin_dp_call(self):
         if not self.datapattern_exits():
             return
 
-        filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Export DataPattern', filter='Binary (*.2db)')
+        filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Export DataPattern', filter='Binary (*.2db)',
+                                                         options=QtWidgets.QFileDialog.DontUseNativeDialog)
         self.datapattern.io_save_origin(filename[0])
 
     def saveasimage_call(self):
@@ -259,7 +417,8 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
 
         filename = QtWidgets.QFileDialog.\
             getSaveFileName(self, 'Export DataPattern',
-                            filter='image (*emf *eps *.pdf *.png *.ps *.raw *.rgba *.svg *.svgz)')
+                            filter='image (*emf *eps *.pdf *.png *.ps *.raw *.rgba *.svg *.svgz)',
+                            options=QtWidgets.QFileDialog.DontUseNativeDialog)
 
         # Save with a white background
         #self.pltfig.set_facecolor('white')
@@ -281,18 +440,20 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
     def draw_datapattern(self):
 
         # Clear previous axes and colorbar
-
         if self.colorbar_ax is not None:
             self.colorbar_ax.remove()
         if self.plot_ax is not None:
             self.plot_ax.clear()
 
+        if self.ticks is None:
+            self.ticks = self.datapattern.get_ticks(self.percentiles)
+
         self.plot_ax, self.colorbar_ax = \
-            self.datapattern.draw(self.plot_ax, percentiles=(0.04, 0.99), title='', xlabel='', ylabel='', zlabel='')
-        # The reason why the plot moves is because of the tight_layout
-        # plt.tight_layout()
-        self.canvas.draw()
-        self.plot_ax.set_aspect('equal')
+            self.datapattern.draw(self.plot_ax, ticks=self.ticks, **self.plot_labels)
+
+        self.pltfig.tight_layout()
+        self.mpl_canvas.draw()
+        #self.plot_ax.set_aspect('equal')
 
     def on_move(self,event):
         #print(event)
@@ -300,13 +461,32 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
             x, y = event.xdata, event.ydata
             if self.datapattern is not None:
                 i,j = self.get_index_from_xy(x,y)
+                # get value with 2 decimal cases. 2db files don't round properly
                 z = self.datapattern.matrixDrawable[i, j]
+                if isinstance(z, float):
+                    z = float('{:.1f}'.format(z))
             else:
                 z = 0
 
-            self.mainwindow.statusBar().showMessage('(x,y,z) - ({:.2},{:.2},{})'.format(x, y, z))
+
+            self.mainwindow.statusBar().showMessage('(x,y,z) - ({:.2f},{:.2f},{})'.format(x, y, z))
         else:
             self.mainwindow.statusBar().showMessage('')
+
+    def use_crosscursor_in_axes(self, on):
+        def exit_axes(event):
+            QtGui.QGuiApplication.restoreOverrideCursor()
+
+        def enter_axes(event):
+            if event.inaxes == self.plot_ax:
+                QtGui.QGuiApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
+
+        if on:
+            self.cursor_enter_mpl_cid = self.mpl_canvas.mpl_connect("axes_enter_event", enter_axes)
+            self.cursor_exit_mpl_cid = self.mpl_canvas.mpl_connect("axes_leave_event", exit_axes)
+        else:
+            self.mpl_canvas.mpl_disconnect(self.cursor_enter_mpl_cid)
+            self.mpl_canvas.mpl_disconnect(self.cursor_exit_mpl_cid)
 
     def get_index_from_xy(self,x,y):
         xm = self.datapattern.xmesh[0,:]
@@ -318,13 +498,17 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         return i,j
 
     def addmpl(self, fig):
+        self.mpl_canvas = FigureCanvas(fig)
+        self.mplvl.addWidget(self.mpl_canvas)
+        self.mpl_canvas.draw()
 
-        self.canvas = FigureCanvas(fig)
-        self.mplvl.addWidget(self.canvas)
-        self.canvas.draw()
+        self.mpl_toolbar = NavigationToolbar(self.mpl_canvas,
+                                             self.mplwindow, coordinates=False)
+        self.mpl_toolbar.setOrientation(QtCore.Qt.Vertical)
+        self.mplvl.addWidget(self.mpl_toolbar)
 
         # connect status bar coordinates display
-        self.canvas.mpl_connect('motion_notify_event', self.on_move)
+        self.mpl_canvas.mpl_connect('motion_notify_event', self.on_move)
 
     def update_infotext(self):
         base_text = 'Total counts: {:.1f}; Valid: {:.1f}\n' \
@@ -347,8 +531,132 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
 
         self.infotext.setText(text)
 
-    def call_pb_buildmesh(self):
+    def on_maskpixelclick(self, event):
+        if event.button == 1:
+            x, y = event.xdata, event.ydata
+            i, j = self.get_index_from_xy(x, y)
+            self.datapattern.mask_pixel(i, j)
 
+            # Draw pattern and update info text
+            self.draw_datapattern()
+            self.update_infotext()
+
+    def call_pb_maskpixel(self):
+        if not self.datapattern_exits():
+            self.pb_maskpixel.setChecked(False)
+            return
+
+        if self.pb_maskpixel.isChecked():
+            self.maskpixel_mpl_cid = self.mpl_canvas.mpl_connect('button_press_event', self.on_maskpixelclick)
+            self.use_crosscursor_in_axes(True)
+        else:
+            self.mpl_canvas.mpl_disconnect(self.maskpixel_mpl_cid)
+            self.use_crosscursor_in_axes(False)
+
+    def on_rectangleselect(self, eclick, erelease):
+        # eclick and erelease are matplotlib events at press and release
+        rectangle_limits = np.array([eclick.xdata, erelease.xdata, eclick.ydata, erelease.ydata])
+
+        self.datapattern.mask_rectangle(rectangle_limits)
+
+        # Draw pattern and update info text
+        self.draw_datapattern()
+        self.update_infotext()
+
+    def call_pb_maskrectangle(self):
+        if not self.datapattern_exits():
+            self.pb_maskrectangle.setChecked(False)
+            return
+
+        if self.pb_maskrectangle.isChecked():
+            rectprops = dict(facecolor='red', edgecolor='black',
+                             alpha=0.8, fill=True)
+            # useblit=True is necessary for PyQt
+            self.RS = RectangleSelector(self.plot_ax, self.on_rectangleselect, drawtype='box', useblit=True,
+                                        interactive=False,
+                                        rectprops=rectprops)
+            self.use_crosscursor_in_axes(True)
+        else:
+            self.RS = None
+            self.use_crosscursor_in_axes(False)
+
+    def call_pb_maskbelow(self):
+        if not self.datapattern_exits():
+            return
+
+        value, ok = QtWidgets.QInputDialog.getInt(self, 'Mask below',
+                                                  'Mask pixels whose value is lower than or equal to\t\t\t',
+                                                  value=0, min=0)
+        if ok:
+            self.datapattern.mask_below(value)
+            # Draw pattern and update info text
+            self.draw_datapattern()
+            self.update_infotext()
+
+    def call_pb_maskabove(self):
+        if not self.datapattern_exits():
+            return
+
+        value, ok = QtWidgets.QInputDialog.getInt(self, 'Mask above',
+                                                  'Mask pixels whose value is higher than or equal to\t\t\t',
+                                                  value=9000, min=0)
+        if ok:
+            self.datapattern.mask_above(value)
+            # Draw pattern and update info text
+            self.draw_datapattern()
+            self.update_infotext()
+
+    def call_pb_removeedge(self):
+        if not self.datapattern_exits():
+            return
+
+        value, ok = QtWidgets.QInputDialog.getInt(self, 'Input value', 'Number of edge pixels to remove\t\t\t',# 0,0)
+                                                  value=0, min=0)
+        if ok:
+            self.datapattern.remove_edge_pixel(value)
+
+        # Draw pattern and update info text
+        self.draw_datapattern()
+        self.update_infotext()
+
+    def call_pb_removecentral(self):
+        if not self.datapattern_exits():
+            return
+
+        value, ok = QtWidgets.QInputDialog.getInt(self, 'Input value', 'Number of edge pixels to remove\t\t\t',# 0,0)
+                                                  value=0, min=0)
+        if ok:
+            self.datapattern.zero_central_pix(value)
+
+        # Draw pattern and update info text
+        self.draw_datapattern()
+        self.update_infotext()
+
+    def call_pb_loadmask(self):
+        if not self.datapattern_exits():
+            return
+
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Open Mask', filter='Mask file (*.txt)',
+                                                         options=QtWidgets.QFileDialog.DontUseNativeDialog)
+        if filename == ('', ''):  # Cancel
+            return
+
+        self.datapattern.load_mask(filename[0])
+
+        # Draw pattern and update info text
+        self.draw_datapattern()
+        self.update_infotext()
+
+
+    def call_pb_savemask(self):
+        if not self.datapattern_exits():
+            return
+
+        filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save Mask', filter='Mask file (*.txt)',
+                                                         options=QtWidgets.QFileDialog.DontUseNativeDialog)
+        self.datapattern.save_mask(filename[0])
+
+    def call_pb_buildmesh(self):
         if not self.datapattern_exits():
             return
 
@@ -376,64 +684,77 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         self.draw_datapattern()
         self.update_infotext()
 
-    def on_maskpixelclick(self, event):
-        if event.button == 1:
-            x, y = event.xdata, event.ydata
-            i, j = self.get_index_from_xy(x, y)
-            self.datapattern.mask_pixel(i, j)
+    def call_pb_compressmesh(self):
+        if not self.datapattern_exits():
+            return
 
+        value, ok = QtWidgets.QInputDialog.getInt(self, 'Compress pixel mesh',
+                                                  'Number of pixels to add together in each direction\t\t\t\n'\
+                                                  '(may cause removal of extra pixels at the edges)',
+                                                  value=2, min=2)
+        if ok:
+            self.datapattern.manip_compress(factor=value)
             # Draw pattern and update info text
             self.draw_datapattern()
             self.update_infotext()
 
-    def call_pb_maskpixel(self):
+    def callonangle(self, center, angle):
+        self.datapattern.center = center
+        self.datapattern.angle = angle
+        self.ang_wid = None
+        self.pb_orientchanneling.setChecked(False)
+
+        # Draw pattern and update info text
+        self.draw_datapattern()
+        self.update_infotext()
+
+    def call_pb_orientchanneling(self):
         if not self.datapattern_exits():
+            self.pb_orientchanneling.setChecked(False)
             return
 
-        if self.pb_maskpixel.isChecked():
-            self.maskpixel_mpl_cid = self.canvas.mpl_connect('button_press_event', self.on_maskpixelclick)
+        if self.pb_orientchanneling.isChecked():
+            self.ang_wid = AngleMeasure(self.plot_ax, self.callonangle)
         else:
-            self.canvas.mpl_disconnect(self.maskpixel_mpl_cid)
+            self.ang_wid = None
 
-    def on_rectangleselect(self, eclick, erelease):
-        # eclick and erelease are matplotlib events at press and release
-        rectangle_limits = np.array([eclick.xdata, erelease.xdata, eclick.ydata, erelease.ydata])
-
-        self.datapattern.mask_rectangle(rectangle_limits)
-
-        # Draw pattern and update info text
-        self.draw_datapattern()
-        self.update_infotext()
-
-    def call_pb_maskrectangle(self):
+    def call_pb_fitrange(self):
         if not self.datapattern_exits():
             return
 
-        if self.pb_maskrectangle.isChecked():
-            rectprops = dict(facecolor='red', edgecolor='black',
-                             alpha=0.8, fill=True)
-            # useblit=True is necessary for PyQt
-            self.RS = RectangleSelector(self.plot_ax, self.on_rectangleselect, drawtype='box', useblit=True, interactive=False,
-                                        rectprops=rectprops)
+        x_orient, y_orient = self.datapattern.center
+        phi = self.datapattern.angle
+
+        value, ok = QtWidgets.QInputDialog.getDouble(self, 'Set fit range',
+                                                  'Set a valid angular range around the channeling axis\t\t\t\n' \
+                                                  '(x={:.2f}, y={:.2f} ,phi={:.2f})'.format(x_orient, y_orient, phi),
+                                                  value=2.7, min=0)
+        if ok:
+            self.datapattern.set_fit_region(distance=value)
+            # Draw pattern and update info text
+            self.draw_datapattern()
+            self.update_infotext()
+
+    def call_pb_colorscale(self):
+        if not self.datapattern_exits():
+            return
+
+        colorscale_dialog = ColorScale_dialog(parent=self)
+        colorscale_dialog.show()
+
+    def call_pb_setlabels(self):
+        if not self.datapattern_exits():
+            return
+
+        setlabels_dialog = SetLabels_dialog(parent=self)
+        if setlabels_dialog.exec_() == QtWidgets.QDialog.Accepted:
+            self.plot_labels = setlabels_dialog.get_settings()
+            # Draw pattern and update info text
+            self.draw_datapattern()
+            self.update_infotext()
         else:
-            self.RS = None
-
-        # Draw pattern and update info text
-        self.draw_datapattern()
-        self.update_infotext()
-
-    def call_pb_removeedge(self):
-
-        if not self.datapattern_exits():
-            return
-
-        value, ok = QtWidgets.QInputDialog.getInt(self, 'Input value', 'Number of edge pixels to remove\t\t\t',# 0,0)
-                                                  value=0, min=0)
-        print(value, ok)
-
-        # Draw pattern and update info text
-        self.draw_datapattern()
-        self.update_infotext()
+            pass
+            # print('Cancelled')
 
 
 if __name__ == '__main__':

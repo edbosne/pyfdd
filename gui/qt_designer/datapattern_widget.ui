@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1000</width>
-    <height>621</height>
+    <width>1150</width>
+    <height>670</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Form</string>
@@ -17,7 +23,7 @@
    <item>
     <widget class="QWidget" name="mplwindow" native="true">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
@@ -34,14 +40,36 @@
        <height>6000</height>
       </size>
      </property>
-     <layout class="QVBoxLayout" name="mplvl"/>
+     <property name="layoutDirection">
+      <enum>Qt::RightToLeft</enum>
+     </property>
+     <property name="autoFillBackground">
+      <bool>false</bool>
+     </property>
+     <layout class="QHBoxLayout" name="mplvl">
+      <property name="spacing">
+       <number>6</number>
+      </property>
+      <property name="leftMargin">
+       <number>9</number>
+      </property>
+      <property name="topMargin">
+       <number>9</number>
+      </property>
+      <property name="rightMargin">
+       <number>9</number>
+      </property>
+      <property name="bottomMargin">
+       <number>9</number>
+      </property>
+     </layout>
     </widget>
    </item>
    <item>
     <widget class="QWidget" name="widget_2" native="true">
      <property name="maximumSize">
       <size>
-       <width>400</width>
+       <width>340</width>
        <height>16777215</height>
       </size>
      </property>
@@ -191,6 +219,9 @@ p, li { white-space: pre-wrap; }
            <property name="text">
             <string>Orient Channeling Axis</string>
            </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
           </widget>
          </item>
          <item row="0" column="1">
@@ -198,33 +229,29 @@ p, li { white-space: pre-wrap; }
            <property name="text">
             <string>Build Angular Calibration Mesh</string>
            </property>
+           <property name="checkable">
+            <bool>false</bool>
+           </property>
           </widget>
          </item>
         </layout>
        </widget>
       </item>
       <item>
-       <widget class="QGroupBox" name="groupBox">
+       <widget class="QGroupBox" name="pb_setticks">
         <property name="title">
-         <string>Plot Edit</string>
+         <string>Pattern Visualization</string>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout">
          <item>
-          <widget class="QPushButton" name="pushButton">
+          <widget class="QPushButton" name="pb_colorscale">
            <property name="text">
-            <string>Set Percentiles</string>
+            <string>Edit Color Scale</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="pushButton_2">
-           <property name="text">
-            <string>Set Ticks</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pushButton_3">
+          <widget class="QPushButton" name="pb_setlabels">
            <property name="text">
             <string>Set Labels</string>
            </property>

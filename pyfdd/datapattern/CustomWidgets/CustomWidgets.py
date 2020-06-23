@@ -117,8 +117,8 @@ class AngleMeasure(AxesWidget):
             return
 
         angle = math.atan2(self.dy, self.dx)
-        print('the center is at position ({:0.2f}, {:0.2f})'.format(self.centerXY[0],self.centerXY[1]))
-        print('the angle is', math.floor(math.degrees(angle)*10)/10.0)
+        #print('the center is at position ({:0.2f}, {:0.2f})'.format(self.centerXY[0],self.centerXY[1]))
+        #print('the angle is', math.floor(math.degrees(angle)*10)/10.0)
 
         self.callonangle(self.centerXY, math.degrees(angle))
 
