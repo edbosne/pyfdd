@@ -633,8 +633,8 @@ class DataPattern:
 
             elif n_min_name == 'nx':
                 rest = (ny - 2 * rm_edge_pix) % factor
-                retrnArr = self.matrixCurrent.data[np.floor(rest/2):ny - np.ceil(rest/2), :]
-                retrnMa = self.matrixCurrent.mask[np.floor(rest/2):ny - np.ceil(rest/2), :]
+                retrnArr = self.matrixCurrent.data[int(np.floor(rest/2)):ny - int(np.ceil(rest/2)), :]
+                retrnMa = self.matrixCurrent.mask[int(np.floor(rest/2)):ny - int(np.ceil(rest/2)), :]
                 self.matrixCurrent = ma.array(data=retrnArr, mask=(retrnMa >= 1))
 
         return factor, rm_central_pix, rm_edge_pix
@@ -798,14 +798,17 @@ class DataPattern:
             if self.reverse_x == True:
                 axes.invert_xaxis()
         elif plot_type == 'pixels':
-            extent = [self.xmesh[0,0], self.xmesh[0,-1], self.ymesh[0,0], self.ymesh[-1,0]]
+            # the extent needs to acount for the last pixel space therefore add the ste size
+            xstep = self.xmesh[0, 1] - self.xmesh[0, 0]
+            ystep = self.ymesh[1, 0] - self.ymesh[0, 0]
+            extent = [self.xmesh[0,0], self.xmesh[0,-1] + xstep, self.ymesh[0,0], self.ymesh[-1,0] + ystep]
             #print('extent - ', extent)
-            ret = axes.imshow(self.matrixDrawable, cmap=imgCmap, interpolation='nearest', aspect='auto',\
+            ret = axes.imshow(self.matrixDrawable, cmap=imgCmap, interpolation='None', aspect='auto',\
                              vmin=lowtick, vmax=hightick, origin='lower', extent=extent)
         else:
             raise ValueError('plot_type not recognized, use contour or pixels')
 
-        cb = fig.colorbar(ret, ax=axes)
+        cb = fig.colorbar(ret, ax=axes, use_gridspec=True)
 
         cb.set_label(zlabel)
         axes.set_title(title)
