@@ -10,7 +10,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT #as NavigationToolbar
 from matplotlib.widgets import RectangleSelector
 from pyfdd.datapattern.CustomWidgets import AngleMeasure
-#import matplotlib.pyplot as plt  # do not use pyplot
+import matplotlib.pyplot as plt  # do not use pyplot
 import matplotlib as mpl
 import seaborn as sns
 import numpy as np
@@ -83,10 +83,10 @@ class SetLabels_dialog(QtWidgets.QDialog, Ui_SetLabelsDialog):
         self.le_z_axis.editingFinished.connect(self.call_le_z_axis)
 
     def _init_le_string(self):
-        '''
+        """
         Instatiate the initial values of the line edit boxes
         :return:
-        '''
+        """
         self.le_title.setText(self.new_labels['title'])
         self.le_x_axis.setText(self.new_labels['xlabel'])
         self.le_y_axis.setText(self.new_labels['ylabel'])
@@ -301,10 +301,6 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
 
         return dp_menu
 
-    def clicked_connect(self, widget, callfun):
-        callback = lambda: callfun(widget)
-        widget.clicked.connect(callback)
-
 
 class DataPatternControler:
     """ Data pattern controler class"""
@@ -339,6 +335,7 @@ class DataPatternControler:
         mpl_bkg = mpl.colors.rgb2hex(pyqt_bkg)
 
         # self.pltfig = plt.figure() # don't use pyplot
+        #print(dir(mpl.figure))
         self.pltfig = mpl.figure.Figure()
         self.pltfig.set_facecolor(mpl_bkg)
         self.plot_ax = self.pltfig.add_subplot(111)
@@ -365,10 +362,10 @@ class DataPatternControler:
         self.mpl_canvas.mpl_connect('motion_notify_event', self.on_move)
 
     def open_dp_call(self):
-        '''
+        """
         Open a json datapattern file
         :return:
-        '''
+        """
         filename = QtWidgets.QFileDialog.getOpenFileName(self.parent_widget, 'Open DataPattern', filter='DataPattern (*.json)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if filename == ('', ''):  # Cancel
@@ -381,13 +378,13 @@ class DataPatternControler:
         self.update_infotext()
 
     def openadd_dp_call(self):
-        '''
+        """
         Open a json datapattern file
         :return:
-        '''
+        """
         filename = QtWidgets.QFileDialog.getOpenFileNames(self.parent_widget, 'Add DataPatterns', filter='DataPattern (*.json)',
                                                           options=QtWidgets.QFileDialog.DontUseNativeDialog)
-        if filename == ('', ''):  # Cancel
+        if filename == ([], ''):  # Cancel (first is an empty list)
             return
 
         for each in filename[0]:
@@ -401,10 +398,10 @@ class DataPatternControler:
         self.update_infotext()
 
     def save_dp_call(self):
-        '''
+        """
         Save the current json file
         :return:
-        '''
+        """
         if not self.datapattern_exits():
             return
 
@@ -621,10 +618,11 @@ class DataPatternControler:
         if self.pb_maskrectangle.isChecked():
             rectprops = dict(facecolor='red', edgecolor='black',
                              alpha=0.8, fill=True)
-            # useblit=True is necessary for PyQt
             self.rselect_mpl = RectangleSelector(self.plot_ax, self.on_rectangleselect, drawtype='box', useblit=True,
                                                  interactive=False,
                                                  rectprops=rectprops)
+            # need to update canvas for RS to work properly
+            self.mpl_canvas.draw()
             self.use_crosscursor_in_axes(True)
         else:
             self.rselect_mpl = None
@@ -809,11 +807,13 @@ class DataPatternControler:
             pass
             # print('Cancelled')
 
-
-if __name__ == '__main__':
+def main():
     app = QtWidgets.QApplication(sys.argv)
-    #window = DataPattern_widget()
+    # window = DataPattern_widget()
     window = DataPattern_window()
     window.show()
     print(window.size())
     sys.exit(app.exec())
+
+if __name__ == '__main__':
+    main()

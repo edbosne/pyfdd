@@ -1,7 +1,7 @@
 __author__ = 'E. David-Bosne'
 
 
-from matplotlib.widgets import *
+from matplotlib.widgets import AxesWidget
 import matplotlib.axes
 import math
 

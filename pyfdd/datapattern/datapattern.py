@@ -4,7 +4,9 @@
 #sys.path.append('/home/eric/ericathome/home/eric/PycharmProjects/CustomWidgets')
 #print(sys.path)
 
-from .CustomWidgets import AngleMeasure, RectangleSelector
+from pyfdd.datapattern.CustomWidgets import AngleMeasure
+from matplotlib.widgets import RectangleSelector
+
 
 import numpy as np
 import numpy.ma as ma
@@ -674,7 +676,6 @@ class DataPattern:
         # calculate final shape
         (ny, nx) = self.matrixCurrent.shape
 
-        rm_edge_pix = int(rm_edge_pix)
         final_size = [int((ny - rm_edge_pix * 2) / factor), int((nx - rm_edge_pix * 2) / factor)]
         if self.verbose >= 1:
             print('final_size', final_size)
@@ -683,16 +684,19 @@ class DataPattern:
         self.zero_central_pix(rm_central_pix + (self.real_size - 1))
 
         # Reshaping the matrix
-        retrnArr = self.matrixCurrent.data[rm_edge_pix:ny-rm_edge_pix,rm_edge_pix:nx-rm_edge_pix]\
+        yslice = slice(int(np.floor(rm_edge_pix)), ny-int(np.ceil(rm_edge_pix)))
+        xslice = slice(int(np.floor(rm_edge_pix)), nx-int(np.ceil(rm_edge_pix)))
+
+        retrnArr = self.matrixCurrent.data[yslice, xslice]\
                        .reshape([final_size[0], factor, final_size[1], factor]).sum(3).sum(1)
-        retrnMa = self.matrixCurrent.mask[rm_edge_pix:ny - rm_edge_pix, rm_edge_pix:nx - rm_edge_pix] \
+        retrnMa = self.matrixCurrent.mask[yslice, xslice] \
                         .reshape([final_size[0], factor, final_size[1], factor]).sum(3).sum(1)
         self.matrixCurrent = ma.array(data=retrnArr, mask=(retrnMa>=1))
 
         # Update mesh
-        self.xmesh = self.xmesh[rm_edge_pix:ny - rm_edge_pix, rm_edge_pix:nx - rm_edge_pix] \
+        self.xmesh = self.xmesh[yslice, xslice] \
                         .reshape([final_size[0], factor, final_size[1], factor]).mean(3).mean(1)
-        self.ymesh = self.ymesh[rm_edge_pix:ny - rm_edge_pix, rm_edge_pix:nx - rm_edge_pix] \
+        self.ymesh = self.ymesh[yslice, xslice] \
             .reshape([final_size[0], factor, final_size[1], factor]).mean(3).mean(1)
         if self.pixel_size_mm is not None:
             self.pixel_size_mm *= factor

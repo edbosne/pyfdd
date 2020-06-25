@@ -3,6 +3,7 @@ __*/
 *.png
 my_scripts/
 gui/*.json
+*.2db
 =======
 # Byte-compiled / optimized / DLL files
 __pycache__/

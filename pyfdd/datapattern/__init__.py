@@ -1,3 +1,3 @@
 
 
-from .datapattern import DataPattern
+from pyfdd.datapattern.datapattern import DataPattern

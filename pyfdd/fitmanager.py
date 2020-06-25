@@ -7,10 +7,10 @@ Fit manager is the kernel class for fitting.
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
-from .lib2dl import Lib2dl
-from .patterncreator import PatternCreator, create_detector_mesh
-from .datapattern import DataPattern
-from .fit import Fit
+from pyfdd.lib2dl import Lib2dl
+from pyfdd.patterncreator import PatternCreator, create_detector_mesh
+from pyfdd.datapattern import DataPattern
+from pyfdd.fit import Fit
 
 import pandas as pd
 import os
