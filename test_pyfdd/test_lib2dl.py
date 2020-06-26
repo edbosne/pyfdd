@@ -3,10 +3,14 @@
 from pyfdd import Lib2dl
 
 import matplotlib.pyplot as plt
+import time
 
 
 def test_lib2dl(path):
+    start = time.time()
     lib = Lib2dl(path)
+    total_time = time.time() - start
+    print(f'loading the library took {total_time*1000}ms')
 
     print_init_values(lib)
 
@@ -40,9 +44,7 @@ def print_init_values(lib):
 
 
 if __name__ == '__main__':
-    path = "/home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/FDD_libraries/GaN_89Sr/ue488g34.2dl"  # 89Sr [0001]
-    # path = "/home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/FDD_libraries/GaN_89Sr/ue567g54.2dl" #89Sr [-1102]
-    # path = /home/eric/cernbox/University/CERN-projects/Betapix/Analysis/Channeling_analysis/FDD_libraries/GaN_89Sr/ue646g53.2dl" #89Sr [-1101]
+    path = "/home/eric/Desktop/last files/Janni/Eric/nc111cf.2dl"  # 89Sr [0001]
 
     test_lib2dl(path)
 

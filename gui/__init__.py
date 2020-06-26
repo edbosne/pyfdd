@@ -1,1 +1,1 @@
-from gui.datapattern_interfaces import *
+from gui.datapattern_interface import *

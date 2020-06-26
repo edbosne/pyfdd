@@ -246,10 +246,10 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         self.pb_removecentral.clicked.connect(self.dpcontroler.call_pb_removecentral)
         self.pb_loadmask.clicked.connect(self.dpcontroler.call_pb_loadmask)
         self.pb_savemask.clicked.connect(self.dpcontroler.call_pb_savemask)
-        self.pb_setlabels.clicked.connect(self.dpcontroler.call_pb_setlabels)
 
         # Pattern visualization
         self.pb_colorscale.clicked.connect(self.dpcontroler.call_pb_colorscale)
+        self.pb_setlabels.clicked.connect(self.dpcontroler.call_pb_setlabels)
 
     def setup_menu(self):
         dp_menu = self.menubar.addMenu('&Data Pattern')
@@ -361,6 +361,18 @@ class DataPatternControler:
         # connect status bar coordinates display
         self.mpl_canvas.mpl_connect('motion_notify_event', self.on_move)
 
+    def set_datapattern(self, datapattern):
+        if not isinstance(datapattern, pyfdd.DataPattern):
+            raise ValueError('input was not of the pyfdd.DataPattern type')
+        self.datapattern = datapattern
+
+        # Draw pattern and update info text
+        self.draw_new_datapattern()
+        self.update_infotext()
+
+    def get_datapattern(self):
+        return self.datapattern.copy()
+
     def open_dp_call(self):
         """
         Open a json datapattern file
@@ -407,6 +419,9 @@ class DataPatternControler:
 
         filename = QtWidgets.QFileDialog.getSaveFileName(self.parent_widget, 'Save DataPattern', filter='DataPattern (*.json)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
+        if filename == ('', ''):  # Cancel
+            return
+
         self.datapattern.io_save_json(filename[0])
 
     def import_dp_call(self):
@@ -437,6 +452,9 @@ class DataPatternControler:
 
         filename = QtWidgets.QFileDialog.getSaveFileName(self.parent_widget, 'Export DataPattern', filter='ASCII (*.txt)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
+        if filename == ('', ''):  # Cancel
+            return
+
         self.datapattern.io_save_ascii(filename[0])
 
     def exportorigin_dp_call(self):
@@ -445,6 +463,9 @@ class DataPatternControler:
 
         filename = QtWidgets.QFileDialog.getSaveFileName(self.parent_widget, 'Export DataPattern', filter='Binary (*.2db)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
+        if filename == ('', ''):  # Cancel
+            return
+
         self.datapattern.io_save_origin(filename[0])
 
     def saveasimage_dp_call(self):
@@ -455,6 +476,9 @@ class DataPatternControler:
             getSaveFileName(self.parent_widget, 'Export DataPattern',
                             filter='image (*emf *eps *.pdf *.png *.ps *.raw *.rgba *.svg *.svgz)',
                             options=QtWidgets.QFileDialog.DontUseNativeDialog)
+
+        if filename == ('', ''):  # Cancel
+            return
 
         # Save with a white background
         # self.pltfig.set_facecolor('white')
@@ -502,7 +526,7 @@ class DataPatternControler:
 
     def update_infotext(self):
         if self.infotext is None:
-            raise warnings.warn('Info text box is not set')
+            #raise warnings.warn('Info text box is not set')
             return
 
         base_text = 'Total counts: {:.1f}; Valid: {:.1f}\n' \

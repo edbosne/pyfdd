@@ -255,6 +255,9 @@ class DataPattern:
 
         return new_mm
 
+    def copy(self):
+        return copy.deepcopy(self)
+
     def get_matrix(self):
         return self.matrixCurrent.copy()
 

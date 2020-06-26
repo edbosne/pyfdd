@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'libexplorer_widget.ui'
+# Form implementation generated from reading ui file 'simexplorer_widget.ui'
 #
 # Created by: PyQt5 UI code generator 5.14.0
 #
@@ -10,18 +10,18 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Ui_DataPatternWidget(object):
-    def setupUi(self, DataPatternWidget):
-        DataPatternWidget.setObjectName("DataPatternWidget")
-        DataPatternWidget.resize(1150, 670)
+class Ui_SimExplorerWidget(object):
+    def setupUi(self, SimExplorerWidget):
+        SimExplorerWidget.setObjectName("SimExplorerWidget")
+        SimExplorerWidget.resize(1150, 670)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(DataPatternWidget.sizePolicy().hasHeightForWidth())
-        DataPatternWidget.setSizePolicy(sizePolicy)
-        self.horizontalLayout = QtWidgets.QHBoxLayout(DataPatternWidget)
+        sizePolicy.setHeightForWidth(SimExplorerWidget.sizePolicy().hasHeightForWidth())
+        SimExplorerWidget.setSizePolicy(sizePolicy)
+        self.horizontalLayout = QtWidgets.QHBoxLayout(SimExplorerWidget)
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.mplwindow = QtWidgets.QWidget(DataPatternWidget)
+        self.mplwindow = QtWidgets.QWidget(SimExplorerWidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -37,7 +37,7 @@ class Ui_DataPatternWidget(object):
         self.mplvl.setSpacing(6)
         self.mplvl.setObjectName("mplvl")
         self.horizontalLayout.addWidget(self.mplwindow)
-        self.widget_2 = QtWidgets.QWidget(DataPatternWidget)
+        self.widget_2 = QtWidgets.QWidget(SimExplorerWidget)
         self.widget_2.setMaximumSize(QtCore.QSize(340, 16777215))
         self.widget_2.setObjectName("widget_2")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.widget_2)
@@ -67,9 +67,9 @@ class Ui_DataPatternWidget(object):
         self.groupBox.setObjectName("groupBox")
         self.verticalLayout_4 = QtWidgets.QVBoxLayout(self.groupBox)
         self.verticalLayout_4.setObjectName("verticalLayout_4")
-        self.listWidget = QtWidgets.QListWidget(self.groupBox)
-        self.listWidget.setObjectName("listWidget")
-        self.verticalLayout_4.addWidget(self.listWidget)
+        self.simlist = QtWidgets.QListWidget(self.groupBox)
+        self.simlist.setObjectName("simlist")
+        self.verticalLayout_4.addWidget(self.simlist)
         self.verticalLayout_2.addWidget(self.groupBox)
         self.pb_setticks = QtWidgets.QGroupBox(self.widget_2)
         self.pb_setticks.setObjectName("pb_setticks")
@@ -84,14 +84,14 @@ class Ui_DataPatternWidget(object):
         self.verticalLayout_2.addWidget(self.pb_setticks)
         self.horizontalLayout.addWidget(self.widget_2)
 
-        self.retranslateUi(DataPatternWidget)
-        QtCore.QMetaObject.connectSlotsByName(DataPatternWidget)
+        self.retranslateUi(SimExplorerWidget)
+        QtCore.QMetaObject.connectSlotsByName(SimExplorerWidget)
 
-    def retranslateUi(self, DataPatternWidget):
+    def retranslateUi(self, SimExplorerWidget):
         _translate = QtCore.QCoreApplication.translate
-        DataPatternWidget.setWindowTitle(_translate("DataPatternWidget", "Form"))
-        self.info_groupBox.setTitle(_translate("DataPatternWidget", "Info"))
-        self.infotext.setHtml(_translate("DataPatternWidget", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+        SimExplorerWidget.setWindowTitle(_translate("SimExplorerWidget", "Form"))
+        self.info_groupBox.setTitle(_translate("SimExplorerWidget", "Info"))
+        self.infotext.setHtml(_translate("SimExplorerWidget", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
 "</style></head><body style=\" font-family:\'Ubuntu\'; font-size:9pt; font-weight:400; font-style:normal;\">\n"
@@ -99,7 +99,7 @@ class Ui_DataPatternWidget(object):
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\';\">Angular step (x, y): 0, 0</span></p>\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\';\">Angular range (x, y): 0, 0</span></p>\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Number of simulations: 0</p></body></html>"))
-        self.groupBox.setTitle(_translate("DataPatternWidget", "Simulations"))
-        self.pb_setticks.setTitle(_translate("DataPatternWidget", "Pattern Visualization"))
-        self.pb_colorscale.setText(_translate("DataPatternWidget", "Edit Color Scale"))
-        self.pb_setlabels.setText(_translate("DataPatternWidget", "Set Labels"))
+        self.groupBox.setTitle(_translate("SimExplorerWidget", "Simulations"))
+        self.pb_setticks.setTitle(_translate("SimExplorerWidget", "Pattern Visualization"))
+        self.pb_colorscale.setText(_translate("SimExplorerWidget", "Edit Color Scale"))
+        self.pb_setlabels.setText(_translate("SimExplorerWidget", "Set Labels"))

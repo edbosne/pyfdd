@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>DataPatternWidget</class>
- <widget class="QWidget" name="DataPatternWidget">
+ <class>SimExplorerWidget</class>
+ <widget class="QWidget" name="SimExplorerWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -127,7 +127,7 @@ p, li { white-space: pre-wrap; }
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_4">
          <item>
-          <widget class="QListWidget" name="listWidget"/>
+          <widget class="QListWidget" name="simlist"/>
          </item>
         </layout>
        </widget>
