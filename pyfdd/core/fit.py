@@ -7,9 +7,9 @@ The Fit object gets access to a Lib2dl object and performs Fit and statistical t
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
-from pyfdd.lib2dl import Lib2dl
-from pyfdd.patterncreator import PatternCreator, create_detector_mesh
-from pyfdd.datapattern import DataPattern
+from pyfdd.core.lib2dl import Lib2dl
+from pyfdd.core.patterncreator import PatternCreator, create_detector_mesh
+from pyfdd.core.datapattern import DataPattern
 
 
 import numpy as np

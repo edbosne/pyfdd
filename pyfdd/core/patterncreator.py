@@ -4,8 +4,8 @@ __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
 
 
-from pyfdd.lib2dl import Lib2dl
-from pyfdd.datapattern import DataPattern
+from pyfdd.core.lib2dl import Lib2dl
+from pyfdd.core.datapattern import DataPattern
 
 import numpy as np
 import numpy.ma as ma

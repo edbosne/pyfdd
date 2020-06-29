@@ -17,7 +17,7 @@ import warnings
 
 import numpy as np
 
-from pyfdd.datapattern import DataPattern
+from pyfdd.core.datapattern import DataPattern
 
 
 class Lib2dl:

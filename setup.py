@@ -11,10 +11,11 @@ __version__ = re.search(
 setup(
     name='pyfdd',
     version=__version__,
-    packages=['pyfdd', 'pyfdd.lib2dl', 'pyfdd.datapattern', 'pyfdd.datapattern.CustomWidgets', 'examples',
-             'ecsli_tools'],
+    packages=['pyfdd', 'pyfdd.core', 'pyfdd.core.lib2dl', 'pyfdd.core.datapattern', 'examples',
+              'ecsli_tools'],
     install_requires=[
-          'numpy', 'matplotlib', 'scipy', 'numdifftools', 'pandas'],
+          'numpy', 'matplotlib', 'scipy', 'numdifftools', 'pandas', 'seaborn'],
+    python_requires='>=3',
     url='https://github.com/eric-presbitero/pyfdd',
     license='GPL-3.0',
     author='E David-Bosne',

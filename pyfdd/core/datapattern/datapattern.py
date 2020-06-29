@@ -4,7 +4,7 @@
 #sys.path.append('/home/eric/ericathome/home/eric/PycharmProjects/CustomWidgets')
 #print(sys.path)
 
-from pyfdd.datapattern.CustomWidgets import AngleMeasure
+from pyfdd.core.datapattern.CustomWidgets import AngleMeasure
 from matplotlib.widgets import RectangleSelector
 
 
