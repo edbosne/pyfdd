@@ -12,7 +12,7 @@ __version__ = re.search(
 setup(
     name='pyfdd',
     version=__version__,
-    packages=['pyfdd', 'pyfdd.core', 'pyfdd.core.lib2dl', 'pyfdd.core.datapattern', 'examples',
+    packages=['pyfdd', 'pyfdd.core', 'pyfdd.core.lib2dl', 'pyfdd.core.datapattern', 'pyfdd.gui', 'pyfdd.qt_designer','examples',
               'ecsli_tools'],
     install_requires=[
           'numpy', 'matplotlib', 'scipy', 'numdifftools', 'pandas', 'seaborn', 'PyQt5'],
