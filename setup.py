@@ -15,7 +15,7 @@ setup(
     packages=['pyfdd', 'pyfdd.core', 'pyfdd.core.lib2dl', 'pyfdd.core.datapattern', 'examples',
               'ecsli_tools'],
     install_requires=[
-          'numpy', 'matplotlib', 'scipy', 'numdifftools', 'pandas', 'seaborn', 'PyQt5==5.9.2'],
+          'numpy', 'matplotlib', 'scipy', 'numdifftools', 'pandas', 'seaborn', 'PyQt5'],
     python_requires='>=3',
     url='https://github.com/eric-presbitero/pyfdd',
     license='GPL-3.0',
