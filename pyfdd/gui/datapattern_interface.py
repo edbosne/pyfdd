@@ -21,10 +21,10 @@ import pyfdd
 # First, convert .ui file to .py with,
 # pyuic5 datapattern_widget.ui -o datapattern_widget.py
 # import with absolute import locations
-from gui.qt_designer.datapattern_widget import Ui_DataPatternWidget
-from gui.qt_designer.buildmesh_dialog import Ui_BuildMeshDialog
-from gui.qt_designer.colorscale_dialog import Ui_ColorScaleDialog
-from gui.qt_designer.setlabels_dialog import Ui_SetLabelsDialog
+from pyfdd.gui.qt_designer.datapattern_widget import Ui_DataPatternWidget
+from pyfdd.gui.qt_designer.buildmesh_dialog import Ui_BuildMeshDialog
+from pyfdd.gui.qt_designer.colorscale_dialog import Ui_ColorScaleDialog
+from pyfdd.gui.qt_designer.setlabels_dialog import Ui_SetLabelsDialog
 
 
 # Set style
@@ -360,6 +360,15 @@ class DataPatternControler:
 
         # connect status bar coordinates display
         self.mpl_canvas.mpl_connect('motion_notify_event', self.on_move)
+
+    def refresh_mpl_color(self, new_mpl_bkg=None):
+        # get background color from color from widget and convert it to RBG
+        if new_mpl_bkg is None:
+            pyqt_bkg = self.mpl_toolbar.palette().color(QtGui.QPalette.Background).getRgbF()
+            mpl_bkg = mpl.colors.rgb2hex(pyqt_bkg)
+        else:
+            mpl_bkg = new_mpl_bkg
+        self.pltfig.set_facecolor(mpl_bkg)
 
     def set_datapattern(self, datapattern):
         if not isinstance(datapattern, pyfdd.DataPattern):

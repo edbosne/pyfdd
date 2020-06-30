@@ -21,8 +21,8 @@ import pyfdd
 # First, convert .ui file to .py with,
 # pyuic5 datapattern_widget.ui -o datapattern_widget.py
 # import with absolute import locations
-from gui.qt_designer.simexplorer_widget import Ui_SimExplorerWidget
-from gui.datapattern_interface import DataPatternControler
+from pyfdd.gui.qt_designer.simexplorer_widget import Ui_SimExplorerWidget
+from pyfdd.gui.datapattern_interface import DataPatternControler
 
 
 class SimExplorer_window(QtWidgets.QMainWindow):

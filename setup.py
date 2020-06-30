@@ -1,5 +1,6 @@
+import io
+import re
 from distutils.core import setup
-import re, io
 
 # https://stackoverflow.com/a/17638236/2707733
 
@@ -14,7 +15,7 @@ setup(
     packages=['pyfdd', 'pyfdd.core', 'pyfdd.core.lib2dl', 'pyfdd.core.datapattern', 'examples',
               'ecsli_tools'],
     install_requires=[
-          'numpy', 'matplotlib', 'scipy', 'numdifftools', 'pandas', 'seaborn'],
+          'numpy', 'matplotlib', 'scipy', 'numdifftools', 'pandas', 'seaborn', 'PyQt5==5.9.2'],
     python_requires='>=3',
     url='https://github.com/eric-presbitero/pyfdd',
     license='GPL-3.0',
