@@ -41,12 +41,12 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         self.maintabs.addTab(self.dp_w, 'Data Pattern')
         self.maintabs.addTab(self.se_w, 'Simulations Library')
 
-        pyqt_bkg = self.maintabs.palette().color(QtGui.QPalette.Base).getRgbF()
-        mpl_bkg = mpl.colors.rgb2hex(pyqt_bkg)
-        mpl_bkg = '#fcfcfc' # couldn't get the exact color so I got this value by hand
+        #pyqt_bkg = self.maintabs.palette().color(QtGui.QPalette.Window).getRgbF()
+        #mpl_bkg = mpl.colors.rgb2hex(pyqt_bkg)
+        #mpl_bkg = '#fcfcfc' # couldn't get the exact color so I got this value by hand
 
-        self.dp_w.dpcontroler.refresh_mpl_color(new_mpl_bkg=mpl_bkg)
-        self.se_w.dpcontroler.refresh_mpl_color(new_mpl_bkg=mpl_bkg)
+        #self.dp_w.dpcontroler.refresh_mpl_color(new_mpl_bkg=mpl_bkg)
+        #self.se_w.dpcontroler.refresh_mpl_color(new_mpl_bkg=mpl_bkg)
 
 
 def run():

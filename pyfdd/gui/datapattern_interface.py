@@ -223,6 +223,9 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         self.setupUi(self)
         self.mainwindow = mainwindow
 
+        # set the mpl widget background colour
+        self.mplwindow.setStyleSheet('background: palette(window);')
+
         # Instantiate datapattern controler
         self.dpcontroler = DataPatternControler(parent_widget=self, mpl_layout=self.mplvl, infotext_box=self.infotext)
 
@@ -331,7 +334,7 @@ class DataPatternControler:
 
         # Set up matplotlib canvas
         # get background color from color from widget and convert it to RBG
-        pyqt_bkg = self.parent_widget.palette().color(QtGui.QPalette.Background).getRgbF()
+        pyqt_bkg = self.parent_widget.mainwindow.palette().color(QtGui.QPalette.Background).getRgbF()
         mpl_bkg = mpl.colors.rgb2hex(pyqt_bkg)
 
         # self.pltfig = plt.figure() # don't use pyplot

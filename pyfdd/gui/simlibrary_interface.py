@@ -59,6 +59,9 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
         self.setupUi(self)
         self.mainwindow = mainwindow
 
+        # set the mpl widget background colour
+        self.mplwindow.setStyleSheet('background: palette(window);')
+
         # Instantiate datapattern controler
         self.dpcontroler = DataPatternControler(parent_widget=self, mpl_layout=self.mplvl, infotext_box=None)
         self.dpcontroler.percentiles = [0, 1]
