@@ -2,11 +2,13 @@
 
 # Form implementation generated from reading ui file 'buildmesh_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.5.1
+# Created by: PyQt5 UI code generator 5.14.0
 #
 # WARNING! All changes made in this file will be lost!
 
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 class Ui_BuildMeshDialog(object):
     def setupUi(self, BuildMeshDialog):
@@ -90,4 +92,3 @@ class Ui_BuildMeshDialog(object):
         self.label_5.setText(_translate("BuildMeshDialog", "Angular step (degrees)"))
         self.le_angstep.setText(_translate("BuildMeshDialog", "0.1"))
         self.rb_step.setText(_translate("BuildMeshDialog", "Selected"))
-

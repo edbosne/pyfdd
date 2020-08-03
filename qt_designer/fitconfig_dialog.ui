@@ -18,7 +18,7 @@
     <widget class="QWidget" name="widget" native="true">
      <layout class="QGridLayout" name="gridLayout">
       <item row="4" column="1">
-       <widget class="QComboBox" name="comboBox_2">
+       <widget class="QComboBox" name="cb_profile">
         <property name="currentIndex">
          <number>1</number>
         </property>
@@ -39,7 +39,7 @@
         </item>
         <item>
          <property name="text">
-          <string>user defined</string>
+          <string>custom</string>
          </property>
         </item>
        </widget>
@@ -47,7 +47,7 @@
       <item row="4" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
-         <string>TextLabel</string>
+         <string>Min. profile</string>
         </property>
        </widget>
       </item>
@@ -66,7 +66,7 @@
        </widget>
       </item>
       <item row="3" column="1">
-       <widget class="QSpinBox" name="spinBox_2">
+       <widget class="QSpinBox" name="sb_subpixels">
         <property name="minimum">
          <number>1</number>
         </property>
@@ -76,7 +76,7 @@
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QSpinBox" name="spinBox">
+       <widget class="QSpinBox" name="sb_numsites">
         <property name="minimum">
          <number>1</number>
         </property>
@@ -93,7 +93,10 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QComboBox" name="comboBox">
+       <widget class="QComboBox" name="cb_costfunc">
+        <property name="currentIndex">
+         <number>0</number>
+        </property>
         <item>
          <property name="text">
           <string>Chi-square</string>
@@ -114,7 +117,10 @@
        </widget>
       </item>
       <item row="5" column="1">
-       <widget class="QLineEdit" name="lineEdit">
+       <widget class="QLineEdit" name="le_profile">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
         <property name="text">
          <string/>
         </property>
@@ -124,7 +130,7 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QCheckBox" name="checkBox">
+       <widget class="QCheckBox" name="ckb_geterrors">
         <property name="text">
          <string/>
         </property>

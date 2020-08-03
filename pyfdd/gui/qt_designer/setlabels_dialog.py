@@ -2,11 +2,13 @@
 
 # Form implementation generated from reading ui file 'setlabels_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.5.1
+# Created by: PyQt5 UI code generator 5.14.0
 #
 # WARNING! All changes made in this file will be lost!
 
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 class Ui_SetLabelsDialog(object):
     def setupUi(self, SetLabelsDialog):
@@ -56,4 +58,3 @@ class Ui_SetLabelsDialog(object):
         self.label_2.setText(_translate("SetLabelsDialog", "x-axis label"))
         self.label_3.setText(_translate("SetLabelsDialog", "y-axis label"))
         self.label_4.setText(_translate("SetLabelsDialog", "z-axis label"))
-

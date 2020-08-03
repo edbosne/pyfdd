@@ -2,11 +2,13 @@
 
 # Form implementation generated from reading ui file 'datapattern_widget.ui'
 #
-# Created by: PyQt5 UI code generator 5.5.1
+# Created by: PyQt5 UI code generator 5.14.0
 #
 # WARNING! All changes made in this file will be lost!
 
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 class Ui_DataPatternWidget(object):
     def setupUi(self, DataPatternWidget):
@@ -19,7 +21,7 @@ class Ui_DataPatternWidget(object):
         DataPatternWidget.setSizePolicy(sizePolicy)
         self.horizontalLayout = QtWidgets.QHBoxLayout(DataPatternWidget)
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.mplwindow = QtWidgets.QWidget(DataPatternWidget)
+        self.mplwindow = QtWidgets.QFrame(DataPatternWidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -29,6 +31,8 @@ class Ui_DataPatternWidget(object):
         self.mplwindow.setMaximumSize(QtCore.QSize(6000, 6000))
         self.mplwindow.setLayoutDirection(QtCore.Qt.RightToLeft)
         self.mplwindow.setAutoFillBackground(False)
+        self.mplwindow.setFrameShape(QtWidgets.QFrame.Box)
+        self.mplwindow.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.mplwindow.setObjectName("mplwindow")
         self.mplvl = QtWidgets.QHBoxLayout(self.mplwindow)
         self.mplvl.setContentsMargins(9, 9, 9, 9)
@@ -135,11 +139,11 @@ class Ui_DataPatternWidget(object):
         self.infotext.setHtml(_translate("DataPatternWidget", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'Noto Sans\'; font-size:9pt; font-weight:400; font-style:normal;\">\n"
-"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Total counts: 0; Valid: 0</p>\n"
-"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Active pixels: 0; Masked: 0</p>\n"
-"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Angular range (x, y): 0, 0</p>\n"
-"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Pattern orientation (x, y, phi): 0, 0, 0</p></body></html>"))
+"</style></head><body style=\" font-family:\'Ubuntu\'; font-size:9pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\';\">Total counts: 0; Valid: 0</span></p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\';\">Active pixels: 0; Masked: 0</span></p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\';\">Angular range (x, y): 0, 0</span></p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\';\">Pattern orientation (x, y, phi): 0, 0, 0</span></p></body></html>"))
         self.mask_groupBox.setTitle(_translate("DataPatternWidget", "Mask"))
         self.pb_maskpixel.setText(_translate("DataPatternWidget", "Mask Individual Pixels"))
         self.pb_maskrectangle.setText(_translate("DataPatternWidget", "Mask Rectangle"))
@@ -157,4 +161,3 @@ class Ui_DataPatternWidget(object):
         self.pb_setticks.setTitle(_translate("DataPatternWidget", "Pattern Visualization"))
         self.pb_colorscale.setText(_translate("DataPatternWidget", "Edit Color Scale"))
         self.pb_setlabels.setText(_translate("DataPatternWidget", "Set Labels"))
-

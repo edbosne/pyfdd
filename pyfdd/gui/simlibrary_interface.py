@@ -31,7 +31,7 @@ class SimExplorer_window(QtWidgets.QMainWindow):
         super(SimExplorer_window, self).__init__(*args, **kwargs)
 
         # Setup the window
-        self.setWindowTitle("Data Pattern")
+        self.setWindowTitle("Simulations Explorer")
         self.statusBar()
 
         # Set a DataPattern widget as central widget

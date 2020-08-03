@@ -31,7 +31,7 @@ class FitManager:
     '''
 
     # settings methods
-    def __init__(self,*, cost_function='chi2', n_sites, sub_pixels=1):
+    def __init__(self, *, cost_function='chi2', n_sites, sub_pixels=1):
         '''
         FitManager is a helper class for using Fit in pyfdd.
         :param cost_function: The type of cost function to use. Possible values are 'chi2' for chi-square
@@ -68,6 +68,22 @@ class FitManager:
         self._fit_options = {}
         self._fit_options_profile = 'default'
         self._minimization_method = 'L-BFGS-B'
+        self.profiles_fit_options = {
+            # likelihood values are orders of mag bigger than chi2, so they need smaller ftol
+            # real eps is the eps in fit options times the parameter scale
+            'coarse': {'ml': {'disp': False, 'maxiter': 10, 'maxfun': 200, 'ftol': 1e-7, 'maxls': 50,
+                              'maxcor': 10, 'eps': 1e-8},
+                       'chi2': {'disp': False, 'maxiter': 10, 'maxfun': 200, 'ftol': 1e-6, 'maxls': 50,
+                                'maxcor': 10, 'eps': 1e-8}},
+            'default': {'ml': {'disp': False, 'maxiter': 20, 'maxfun': 200, 'ftol': 1e-9, 'maxls': 100,
+                               'maxcor': 10, 'eps': 1e-8},  # maxfun to 200 prevents memory problems,
+                        'chi2': {'disp': False, 'maxiter': 20, 'maxfun': 300, 'ftol': 1e-6, 'maxls': 100,
+                                 'maxcor': 10, 'eps': 1e-8}},
+            'fine': {'ml': {'disp': False, 'maxiter': 60, 'maxfun': 1200, 'ftol': 1e-12, 'maxls': 100,
+                            'maxcor': 10, 'eps': 1e-8},
+                     'chi2': {'disp': False, 'maxiter': 60, 'maxfun': 1200, 'ftol': 1e-9, 'maxls': 100,
+                              'maxcor': 10, 'eps': 1e-8}}
+        }
         self.set_minimization_settings()
         self._sub_pixels = sub_pixels
         # total_cts is overwriten with values from the data pattern
@@ -249,6 +265,9 @@ class FitManager:
         if not isinstance(min_method, str):
             raise ValueError('min_method must be of type str.')
 
+        if profile not in ('coarse', 'default', 'fine'):
+            raise ValueError('profile value should be set to: coarse, default or fine.')
+
         self._minimization_method = min_method
 
         if len(options) > 0:
@@ -256,35 +275,8 @@ class FitManager:
             self._fit_options_profile = 'user'
 
         elif min_method == 'L-BFGS-B':
-            ml_fit_options = {}
-            chi2_fit_options = {}
-
-            if profile == 'coarse':
-                # likelihood values are orders of mag bigger than chi2, so they need smaller ftol
-                # real eps is the eps in fit options times the parameter scale
-                ml_fit_options =   {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-7,'maxls':50,
-                                    'maxcor':10, 'eps':1e-8}
-                chi2_fit_options = {'disp':False, 'maxiter':10, 'maxfun':200, 'ftol':1e-6,'maxls':50,
-                                    'maxcor':10, 'eps':1e-8}
-            elif profile == 'default':
-                ml_fit_options =   {'disp':False, 'maxiter':20, 'maxfun':200, 'ftol':1e-9,'maxls':100,
-                                    'maxcor':10, 'eps':1e-8} #maxfun to 200 prevents memory problems
-                chi2_fit_options = {'disp':False, 'maxiter':20, 'maxfun':300, 'ftol':1e-6,'maxls':100,
-                                    'maxcor':10, 'eps':1e-8}
-            elif profile == 'fine':
-                ml_fit_options =   {'disp':False, 'maxiter':60, 'maxfun':1200, 'ftol':1e-12,'maxls':100,
-                                    'maxcor':10, 'eps':1e-8}
-                chi2_fit_options = {'disp':False, 'maxiter':60, 'maxfun':1200, 'ftol':1e-9, 'maxls':100,
-                                    'maxcor':10, 'eps':1e-8}
-            else:
-                raise ValueError('profile value should be set to: coarse, default or fine.')
-
             self._fit_options_profile = profile
-
-            if self._cost_function == 'chi2':
-                self._fit_options = chi2_fit_options
-            elif self._cost_function == 'ml':
-                self._fit_options = ml_fit_options
+            self._fit_options = self.profiles_fit_options[profile][self._cost_function]
 
         else:
             warnings.warn('No profile for method {} and no options provided. Using library defaults'.format(min_method))

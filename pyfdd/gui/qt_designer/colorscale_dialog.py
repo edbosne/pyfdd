@@ -2,11 +2,13 @@
 
 # Form implementation generated from reading ui file 'colorscale_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.5.1
+# Created by: PyQt5 UI code generator 5.14.0
 #
 # WARNING! All changes made in this file will be lost!
 
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 class Ui_ColorScaleDialog(object):
     def setupUi(self, ColorScaleDialog):
@@ -101,4 +103,3 @@ class Ui_ColorScaleDialog(object):
         self.label_4.setText(_translate("ColorScaleDialog", "Ticks"))
         self.label.setText(_translate("ColorScaleDialog", "Min"))
         self.label_2.setText(_translate("ColorScaleDialog", "Max"))
-

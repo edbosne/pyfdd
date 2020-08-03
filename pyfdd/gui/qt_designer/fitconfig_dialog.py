@@ -1,0 +1,98 @@
+# -*- coding: utf-8 -*-
+
+# Form implementation generated from reading ui file 'fitconfig_dialog.ui'
+#
+# Created by: PyQt5 UI code generator 5.14.0
+#
+# WARNING! All changes made in this file will be lost!
+
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+
+class Ui_FitConfigDialog(object):
+    def setupUi(self, FitConfigDialog):
+        FitConfigDialog.setObjectName("FitConfigDialog")
+        FitConfigDialog.resize(400, 300)
+        self.verticalLayout = QtWidgets.QVBoxLayout(FitConfigDialog)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.widget = QtWidgets.QWidget(FitConfigDialog)
+        self.widget.setObjectName("widget")
+        self.gridLayout = QtWidgets.QGridLayout(self.widget)
+        self.gridLayout.setObjectName("gridLayout")
+        self.cb_profile = QtWidgets.QComboBox(self.widget)
+        self.cb_profile.setObjectName("cb_profile")
+        self.cb_profile.addItem("")
+        self.cb_profile.addItem("")
+        self.cb_profile.addItem("")
+        self.cb_profile.addItem("")
+        self.gridLayout.addWidget(self.cb_profile, 4, 1, 1, 1)
+        self.label_5 = QtWidgets.QLabel(self.widget)
+        self.label_5.setObjectName("label_5")
+        self.gridLayout.addWidget(self.label_5, 4, 0, 1, 1)
+        self.label_3 = QtWidgets.QLabel(self.widget)
+        self.label_3.setObjectName("label_3")
+        self.gridLayout.addWidget(self.label_3, 2, 0, 1, 1)
+        self.label_2 = QtWidgets.QLabel(self.widget)
+        self.label_2.setObjectName("label_2")
+        self.gridLayout.addWidget(self.label_2, 1, 0, 1, 1)
+        self.sb_subpixels = QtWidgets.QSpinBox(self.widget)
+        self.sb_subpixels.setMinimum(1)
+        self.sb_subpixels.setMaximum(999)
+        self.sb_subpixels.setObjectName("sb_subpixels")
+        self.gridLayout.addWidget(self.sb_subpixels, 3, 1, 1, 1)
+        self.sb_numsites = QtWidgets.QSpinBox(self.widget)
+        self.sb_numsites.setMinimum(1)
+        self.sb_numsites.setMaximum(999)
+        self.sb_numsites.setObjectName("sb_numsites")
+        self.gridLayout.addWidget(self.sb_numsites, 2, 1, 1, 1)
+        self.label = QtWidgets.QLabel(self.widget)
+        self.label.setObjectName("label")
+        self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
+        self.cb_costfunc = QtWidgets.QComboBox(self.widget)
+        self.cb_costfunc.setObjectName("cb_costfunc")
+        self.cb_costfunc.addItem("")
+        self.cb_costfunc.addItem("")
+        self.gridLayout.addWidget(self.cb_costfunc, 0, 1, 1, 1)
+        self.label_4 = QtWidgets.QLabel(self.widget)
+        self.label_4.setObjectName("label_4")
+        self.gridLayout.addWidget(self.label_4, 3, 0, 1, 1)
+        self.le_profile = QtWidgets.QLineEdit(self.widget)
+        self.le_profile.setEnabled(True)
+        self.le_profile.setText("")
+        self.le_profile.setReadOnly(True)
+        self.le_profile.setObjectName("le_profile")
+        self.gridLayout.addWidget(self.le_profile, 5, 1, 1, 1)
+        self.ckb_geterrors = QtWidgets.QCheckBox(self.widget)
+        self.ckb_geterrors.setText("")
+        self.ckb_geterrors.setChecked(True)
+        self.ckb_geterrors.setObjectName("ckb_geterrors")
+        self.gridLayout.addWidget(self.ckb_geterrors, 1, 1, 1, 1)
+        self.verticalLayout.addWidget(self.widget)
+        self.buttonBox = QtWidgets.QDialogButtonBox(FitConfigDialog)
+        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
+        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.setObjectName("buttonBox")
+        self.verticalLayout.addWidget(self.buttonBox)
+
+        self.retranslateUi(FitConfigDialog)
+        self.cb_profile.setCurrentIndex(1)
+        self.cb_costfunc.setCurrentIndex(0)
+        self.buttonBox.accepted.connect(FitConfigDialog.accept)
+        self.buttonBox.rejected.connect(FitConfigDialog.reject)
+        QtCore.QMetaObject.connectSlotsByName(FitConfigDialog)
+
+    def retranslateUi(self, FitConfigDialog):
+        _translate = QtCore.QCoreApplication.translate
+        FitConfigDialog.setWindowTitle(_translate("FitConfigDialog", "Dialog"))
+        self.cb_profile.setItemText(0, _translate("FitConfigDialog", "coarse"))
+        self.cb_profile.setItemText(1, _translate("FitConfigDialog", "default"))
+        self.cb_profile.setItemText(2, _translate("FitConfigDialog", "fine"))
+        self.cb_profile.setItemText(3, _translate("FitConfigDialog", "custom"))
+        self.label_5.setText(_translate("FitConfigDialog", "Min. profile"))
+        self.label_3.setText(_translate("FitConfigDialog", "Num. sites"))
+        self.label_2.setText(_translate("FitConfigDialog", "Get errors"))
+        self.label.setText(_translate("FitConfigDialog", "Cost function"))
+        self.cb_costfunc.setItemText(0, _translate("FitConfigDialog", "Chi-square"))
+        self.cb_costfunc.setItemText(1, _translate("FitConfigDialog", "Neg. log likelihood"))
+        self.label_4.setText(_translate("FitConfigDialog", "Sub-pixels"))
