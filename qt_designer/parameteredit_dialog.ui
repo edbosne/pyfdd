@@ -46,31 +46,31 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLineEdit" name="lineEdit"/>
+       <widget class="QLineEdit" name="le_initial_value"/>
       </item>
       <item row="4" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
-         <string>Optimize</string>
+         <string>Fixed</string>
         </property>
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QLineEdit" name="lineEdit_2"/>
+       <widget class="QLineEdit" name="le_range_min"/>
       </item>
       <item row="2" column="1">
-       <widget class="QLineEdit" name="lineEdit_3"/>
+       <widget class="QLineEdit" name="le_range_max"/>
       </item>
       <item row="3" column="1">
-       <widget class="QLineEdit" name="lineEdit_4"/>
+       <widget class="QLineEdit" name="le_step_mod"/>
       </item>
       <item row="4" column="1">
-       <widget class="QCheckBox" name="checkBox">
+       <widget class="QCheckBox" name="cb_fixed">
         <property name="text">
-         <string>CheckBox</string>
+         <string/>
         </property>
         <property name="checked">
-         <bool>true</bool>
+         <bool>false</bool>
         </property>
        </widget>
       </item>

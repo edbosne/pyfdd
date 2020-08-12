@@ -3,8 +3,10 @@ import sys
 import os
 import warnings
 from enum import Enum, IntEnum
+import numpy as np
 
-from PyQt5 import QtCore, QtGui, QtWidgets, uic
+
+from PyQt5 import QtCore, QtGui, QtWidgets, uic, sip
 # from PySide2 import QtCore, QtGui, QtWidgets, uic
 
 import pyfdd
@@ -68,11 +70,11 @@ class FitConfig_dialog(QtWidgets.QDialog, Ui_FitConfigDialog):
 
     def get_config(self):
         self.new_config = {
-            'cost_func':CostFunc(self.cb_costfunc.currentIndex()),
-            'get_errors':self.ckb_geterrors.isChecked(),
-            'n_sites':self.sb_numsites.value(),
-            'sub_pixels':self.sb_subpixels.value(),
-            'min_profile':Profile(self.cb_profile.currentIndex())}
+            'cost_func': CostFunc(self.cb_costfunc.currentIndex()),
+            'get_errors': self.ckb_geterrors.isChecked(),
+            'n_sites': self.sb_numsites.value(),
+            'sub_pixels': self.sb_subpixels.value(),
+            'min_profile': Profile(self.cb_profile.currentIndex())}
 
         if self.new_config['min_profile'] is Profile.custom:
             self.new_config['custom'] = self.le_profile.text()
@@ -80,6 +82,128 @@ class FitConfig_dialog(QtWidgets.QDialog, Ui_FitConfigDialog):
             self.new_config['custom'] = ''
 
         return self.new_config
+
+
+class ParameterEdit_dialog(QtWidgets.QDialog, Ui_ParameterEditDialog):
+    def __init__(self, parent_widget, parameter):
+        assert isinstance(parameter, Parameter)
+        super(ParameterEdit_dialog, self).__init__(parent_widget)
+        self.setupUi(self)
+
+        self.le_initial_value.setText(str(parameter.initial_value))
+        self.le_range_min.setText(str(parameter.bounds[0]))
+        self.le_range_max.setText(str(parameter.bounds[1]))
+        self.le_step_mod.setText(str(parameter.step_modifier))
+        self.cb_fixed.setChecked(parameter.fixed)
+
+    def get_initial_value(self):
+        try:
+            val = float(self.le_initial_value.text())
+        except ValueError:
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'Initial value must be a float.')
+        else:
+            return val
+
+    def get_bounds(self):
+        try:
+            text = self.le_range_min.text()
+            val_min = None if text == 'None' else float(text)
+            text = self.le_range_max.text()
+            val_max = None if text == 'None' else float(text)
+        except ValueError:
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'Range must be a float or None.')
+        else:
+            return [val_min, val_max]
+
+    def get_step_modifier(self):
+        try:
+            val = float(self.le_step_mod.text())
+        except ValueError:
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'Step modifier must be a float.')
+        else:
+            return val
+
+    def get_fixed(self):
+        return self.cb_fixed.isChecked()
+
+
+class Parameter:
+    def __init__(self, parent_widget, key='', name='par', initial_value=0, bounds=[None, None],
+                 step_modifier=1, fixed=False, pb_edit=None, le_name=None, le_description=None):
+        self.parent = parent_widget
+        self.key = key
+        self.name = name
+        self.initial_value = initial_value
+        self.bounds = bounds
+        self.step_modifier = step_modifier
+        self.fixed = fixed
+        if pb_edit is not None:
+            self.pb_edit = pb_edit
+        else:
+            self.pb_edit = QtWidgets.QPushButton(parent=parent_widget, text='Edit')
+
+        if le_name is not None:
+            self.le_name = le_name
+        else:
+            self.le_name = QtWidgets.QLineEdit(parent=parent_widget, contents=name)
+
+        if le_description is not None:
+            self.le_description = le_description
+        else:
+            self.le_description = QtWidgets.QLineEdit(parent=parent_widget, contents='')
+        self.update_description()
+
+        # Connect signals
+        self.pb_edit.clicked.connect(self.call_pb_edit)
+
+    def update_description(self):
+        # Print a '-' if there is no bound
+        bounds = [a if a is not None else '-' for a in self.bounds]
+        text = '{:.2f}; [{}, {}]; {:.2f}; {}'.format(self.initial_value,
+                                                     *bounds,
+                                                     self.step_modifier,
+                                                     self.fixed)
+        self.le_description.setText(text)
+
+    def call_pb_edit(self):
+        edit_dialog = ParameterEdit_dialog(parent_widget=self.parent, parameter=self)
+        if edit_dialog.exec_() == QtWidgets.QDialog.Accepted:
+            # only apply new value if it is not None
+            value = edit_dialog.get_initial_value()
+            self.initial_value = value if value is not None else self.initial_value
+            value = edit_dialog.get_bounds()
+            self.bounds = value if value is not None else self.bounds
+            value = edit_dialog.get_step_modifier()
+            self.step_modifier = value if value is not None else self.step_modifier
+            self.fixed = edit_dialog.get_fixed()
+            self.update_description()
+        else:
+            # Canceled
+            pass
+
+    def add_to_gridlayout(self, layout, row_num):
+        assert isinstance(layout, QtWidgets.QGridLayout)
+        layout.addWidget(self.le_name, row_num, 0)
+        layout.addWidget(self.le_description, row_num, 1)
+        layout.addWidget(self.pb_edit, row_num, 2)
+
+    def __del__(self):
+        """ Delete the parameter widgets once the last reference to the parameter instance is lost. """
+        if not sip.isdeleted(self.le_name):
+            self.le_name.deleteLater()
+            self.le_name = None
+        if not sip.isdeleted(self.le_description):
+            self.le_description.deleteLater()
+            self.le_description = None
+        if not sip.isdeleted(self.pb_edit):
+            self.pb_edit.deleteLater()
+            self.pb_edit = None
+
+
+class site_range:
+    # https://www.geeksforgeeks.org/python-convert-string-ranges-to-list/
+    pass
+
 
 
 class FitManager_window(QtWidgets.QMainWindow):
@@ -120,6 +244,11 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.menubar = self.mainwindow.menuBar()
         self.dp_menu = self.setup_menu()
 
+        # Dinamic widgets
+        self.n_sites_widget_stack = []
+        self.fractions_widget_stack = []
+        self.n_sites_in_stack = 0
+
         # Variables
         self.tr_costfunc = {'chi2': 'Chi-square',
                             'ml': 'Neg. log likelihood'}
@@ -137,9 +266,13 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
                           'min_profile': Profile.default,
                           'custom_profile': ''}
         self.update_fitman()
+        # Set a dummy pattern to correctly get the default fit parameters
+        self.fitman.dp_pattern = self.make_dummy_pattern()
 
         # Parameters
         # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
+        self.parameters = []
+        self.init_parameters()
         self.parameter_keys = ()
         self.initial_values = dict()
         self.bounds = dict()
@@ -155,6 +288,51 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
     def setup_menu(self):
         # nothing to do here at the moment
         return None
+
+    def make_dummy_pattern(self):
+        pattern = np.random.poisson(1000, (22, 22))
+        dp = pyfdd.DataPattern(pattern_array=pattern)
+        dp.manip_create_mesh(pixel_size=1.3, distance=300)
+        return dp
+
+    def init_parameters(self):
+        # Parameters
+        # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
+        # dx
+        par = Parameter(parent_widget=self, key='dx', name='dx', initial_value=0, bounds=[None, None],
+                        step_modifier=1, fixed=False, pb_edit=self.pb_dx, le_name=self.lb_dx_name,
+                        le_description=self.lb_dx)
+        self.parameters.append(par)
+        # dy
+        par = Parameter(parent_widget=self, key='dy', name='dy', initial_value=0, bounds=[None, None],
+                        step_modifier=1, fixed=False, pb_edit=self.pb_dy, le_name=self.lb_dy_name,
+                        le_description=self.lb_dy)
+        self.parameters.append(par)
+        # phi
+        par = Parameter(parent_widget=self, key='phi', name='phi', initial_value=0, bounds=[None, None],
+                        step_modifier=1, fixed=False, pb_edit=self.pb_phi, le_name=self.lb_phi_name,
+                        le_description=self.lb_phi)
+        self.parameters.append(par)
+        # total_cts
+        par = Parameter(parent_widget=self, key='total_cts', name='total cts', initial_value=0, bounds=[None, None],
+                        step_modifier=1, fixed=False, pb_edit=self.pb_total_cts, le_name=self.lb_total_cts_name,
+                        le_description=self.lb_total_cts)
+        self.parameters.append(par)
+        # sigma
+        par = Parameter(parent_widget=self, key='sigma', name='sigma', initial_value=0, bounds=[None, None],
+                        step_modifier=1, fixed=False, pb_edit=self.pb_sigma, le_name=self.lb_sigma_name,
+                        le_description=self.lb_sigma)
+        self.parameters.append(par)
+        # f_p1
+        par = Parameter(parent_widget=self, key='f_p1', name='fraction #1', initial_value=0, bounds=[None, None],
+                        step_modifier=1, fixed=False, pb_edit=self.pb_f1, le_name=self.lb_f1_name,
+                        le_description=self.lb_f1)
+        self.parameters.append(par)
+
+    def refresh_parameters(self):
+        self.update_fitman()
+        # TODO
+
 
     def update_infotext(self):
 
@@ -211,6 +389,28 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.fitman = pyfdd.FitManager(cost_function=cost_function,
                                        n_sites=n_sites,
                                        sub_pixels=sub_pixels)
+        # TODO add dp and lib
+
+    def update_n_sites_widgets(self):
+        if self.fitconfig['n_sites'] > self.n_sites_in_stack:
+            # add widgets
+            while self.fitconfig['n_sites'] > self.n_sites_in_stack:
+                pass
+
+        if self.fitconfig['n_sites'] < self.n_sites_in_stack:
+            pass
+        # TODO
+
+    def add_sites_row(self):
+        # sites range
+        label_name = 'Site #{}'.format(self.n_sites_in_stack + 1)
+        label_nsites = '1'
+        #pb_edit = Qt
+        self.sitesrange_layout
+
+        # parameters
+        self.parameters_layout
+        # TODO
 
 
 def main():

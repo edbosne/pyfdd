@@ -206,10 +206,10 @@ class FitManager:
                       '\n Valid keys are, \'dx\',\'dy\',\'phi\',\'total_cts\',\'sigma\',\'f_p1\',\'f_p2\',\'f_p3\'')
 
     def set_fixed_values(self, **kwargs):
-        '''
+        """
         Fix a parameter to a value. Overwrites initial value
         :param kwargs: possible arguments are 'dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3'
-        '''
+        """
         #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         for key in kwargs.keys():
             if key in self.parameter_keys:

@@ -182,7 +182,7 @@ p, li { white-space: pre-wrap; }
               <height>73</height>
              </rect>
             </property>
-            <layout class="QGridLayout" name="gridLayout_3">
+            <layout class="QGridLayout" name="sitesrange_layout">
              <item row="0" column="0">
               <widget class="QLabel" name="label_7">
                <property name="sizePolicy">
@@ -271,14 +271,14 @@ p, li { white-space: pre-wrap; }
             <property name="geometry">
              <rect>
               <x>0</x>
-              <y>0</y>
+              <y>-69</y>
               <width>281</width>
               <height>216</height>
              </rect>
             </property>
-            <layout class="QGridLayout" name="gridLayout_2">
+            <layout class="QGridLayout" name="parameters_layout">
              <item row="0" column="1">
-              <widget class="QLabel" name="label">
+              <widget class="QLabel" name="lb_dx_name">
                <property name="maximumSize">
                 <size>
                  <width>70</width>
@@ -342,7 +342,7 @@ p, li { white-space: pre-wrap; }
               </widget>
              </item>
              <item row="4" column="1">
-              <widget class="QLabel" name="label_5">
+              <widget class="QLabel" name="lb_total_cts_name">
                <property name="maximumSize">
                 <size>
                  <width>70</width>
@@ -413,7 +413,7 @@ p, li { white-space: pre-wrap; }
               </widget>
              </item>
              <item row="2" column="1">
-              <widget class="QLabel" name="label_3">
+              <widget class="QLabel" name="lb_phi_name">
                <property name="maximumSize">
                 <size>
                  <width>70</width>
@@ -426,7 +426,7 @@ p, li { white-space: pre-wrap; }
               </widget>
              </item>
              <item row="3" column="1">
-              <widget class="QLabel" name="label_4">
+              <widget class="QLabel" name="lb_sigma_name">
                <property name="maximumSize">
                 <size>
                  <width>70</width>
@@ -439,7 +439,7 @@ p, li { white-space: pre-wrap; }
               </widget>
              </item>
              <item row="1" column="1">
-              <widget class="QLabel" name="label_2">
+              <widget class="QLabel" name="lb_dy_name">
                <property name="maximumSize">
                 <size>
                  <width>70</width>
@@ -509,7 +509,7 @@ p, li { white-space: pre-wrap; }
               </widget>
              </item>
              <item row="5" column="1">
-              <widget class="QLabel" name="label_6">
+              <widget class="QLabel" name="lb_f1_name">
                <property name="maximumSize">
                 <size>
                  <width>70</width>
