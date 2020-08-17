@@ -62,7 +62,7 @@ class FitConfig_dialog(QtWidgets.QDialog, Ui_FitConfigDialog):
         profile = Profile(self.cb_profile.currentIndex())
         cost_func = CostFunc(self.cb_costfunc.currentIndex())
         if profile is not Profile.custom:
-            fit_options = self.fitman.profiles_fit_options[profile.name][cost_func.name]
+            fit_options = self.fitman._profiles_fit_options[profile.name][cost_func.name]
             self.le_profile.setText(str(fit_options))
             self.le_profile.setReadOnly(True)
         else:
@@ -129,7 +129,7 @@ class ParameterEdit_dialog(QtWidgets.QDialog, Ui_ParameterEditDialog):
 
 class Parameter:
     def __init__(self, parent_widget, key='', name='par', initial_value=0, bounds=[None, None],
-                 step_modifier=1, fixed=False, pb_edit=None, le_name=None, le_description=None):
+                 step_modifier=1, fixed=False, pb_edit=None, lb_name=None, lb_description=None):
         self.parent = parent_widget
         self.key = key
         self.name = name
@@ -137,33 +137,57 @@ class Parameter:
         self.bounds = bounds
         self.step_modifier = step_modifier
         self.fixed = fixed
+        self.was_changed = False
         if pb_edit is not None:
             self.pb_edit = pb_edit
         else:
             self.pb_edit = QtWidgets.QPushButton(parent=parent_widget, text='Edit')
+            self.pb_edit.setMaximumSize(QtCore.QSize(50, 16777215))
 
-        if le_name is not None:
-            self.le_name = le_name
+        if lb_name is not None:
+            self.lb_name = lb_name
         else:
-            self.le_name = QtWidgets.QLineEdit(parent=parent_widget, contents=name)
+            self.lb_name = QtWidgets.QLabel(parent=parent_widget)
+            self.lb_name.setText(name)
+            #self.lb_name.setMaximumSize(QtCore.QSize(70, 16777215))
 
-        if le_description is not None:
-            self.le_description = le_description
+        if lb_description is not None:
+            self.lb_description = lb_description
         else:
-            self.le_description = QtWidgets.QLineEdit(parent=parent_widget, contents='')
+            self.lb_description = QtWidgets.QLabel(parent=parent_widget)
+            self.lb_description.setText('')
         self.update_description()
 
         # Connect signals
         self.pb_edit.clicked.connect(self.call_pb_edit)
 
+    def reset_values_to(self, initial_value=0, bounds=[None, None], step_modifier=1, fixed=False):
+        self.initial_value = initial_value
+        self.bounds = bounds
+        self.step_modifier = step_modifier
+        self.fixed = fixed
+        self.was_changed = False
+        self.update_description()
+
     def update_description(self):
         # Print a '-' if there is no bound
         bounds = [a if a is not None else '-' for a in self.bounds]
-        text = '{:.2f}; [{}, {}]; {:.2f}; {}'.format(self.initial_value,
-                                                     *bounds,
-                                                     self.step_modifier,
-                                                     self.fixed)
-        self.le_description.setText(text)
+        fixed = 'F' if self.fixed else ''
+        if self.initial_value < 100:
+            base_text = '{:.2f}; [{}, {}]; {:.2f}; {}'
+        else:
+            base_text = '{:.1e}; [{}, {}]; {:.2f}; {}'
+        text = base_text.format(self.initial_value,
+                                *bounds,
+                                self.step_modifier,
+                                fixed)
+        self.lb_description.setText(text)
+
+        if self.was_changed:
+            self.lb_name.setStyleSheet("background-color:green;")
+        else:
+            # back to default
+            self.lb_name.setStyleSheet('')
 
     def call_pb_edit(self):
         edit_dialog = ParameterEdit_dialog(parent_widget=self.parent, parameter=self)
@@ -176,6 +200,7 @@ class Parameter:
             value = edit_dialog.get_step_modifier()
             self.step_modifier = value if value is not None else self.step_modifier
             self.fixed = edit_dialog.get_fixed()
+            self.was_changed = True
             self.update_description()
         else:
             # Canceled
@@ -183,18 +208,18 @@ class Parameter:
 
     def add_to_gridlayout(self, layout, row_num):
         assert isinstance(layout, QtWidgets.QGridLayout)
-        layout.addWidget(self.le_name, row_num, 0)
-        layout.addWidget(self.le_description, row_num, 1)
-        layout.addWidget(self.pb_edit, row_num, 2)
+        layout.addWidget(self.lb_name, row_num, 1)
+        layout.addWidget(self.lb_description, row_num, 2)
+        layout.addWidget(self.pb_edit, row_num, 3)
 
     def __del__(self):
         """ Delete the parameter widgets once the last reference to the parameter instance is lost. """
-        if not sip.isdeleted(self.le_name):
-            self.le_name.deleteLater()
-            self.le_name = None
-        if not sip.isdeleted(self.le_description):
-            self.le_description.deleteLater()
-            self.le_description = None
+        if not sip.isdeleted(self.lb_name):
+            self.lb_name.deleteLater()
+            self.lb_name = None
+        if not sip.isdeleted(self.lb_description):
+            self.lb_description.deleteLater()
+            self.lb_description = None
         if not sip.isdeleted(self.pb_edit):
             self.pb_edit.deleteLater()
             self.pb_edit = None
@@ -202,6 +227,7 @@ class Parameter:
 
 class site_range:
     # https://www.geeksforgeeks.org/python-convert-string-ranges-to-list/
+    # TODO
     pass
 
 
@@ -247,7 +273,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         # Dinamic widgets
         self.n_sites_widget_stack = []
         self.fractions_widget_stack = []
-        self.n_sites_in_stack = 0
+        self.n_sites_in_stack = 1
 
         # Variables
         self.tr_costfunc = {'chi2': 'Chi-square',
@@ -271,17 +297,19 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
 
         # Parameters
         # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
-        self.parameters = []
-        self.init_parameters()
+        self.parameter_objects = []
         self.parameter_keys = ()
         self.initial_values = dict()
         self.bounds = dict()
         self.step_modifier = dict()
         self.fixed = dict()
         self.sites_range = ()
+        self.init_parameters()
+        self.refresh_parameters()
 
         # Connect signals
         self.pb_fitconfig.clicked.connect(self.call_pb_fitconfig)
+        self.pb_reset.clicked.connect(self.reset_parameters)
 
         self.update_infotext()
 
@@ -300,39 +328,59 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         # dx
         par = Parameter(parent_widget=self, key='dx', name='dx', initial_value=0, bounds=[None, None],
-                        step_modifier=1, fixed=False, pb_edit=self.pb_dx, le_name=self.lb_dx_name,
-                        le_description=self.lb_dx)
-        self.parameters.append(par)
+                        step_modifier=1, fixed=False, pb_edit=self.pb_dx, lb_name=self.lb_dx_name,
+                        lb_description=self.lb_dx)
+        self.parameter_objects.append(par)
         # dy
         par = Parameter(parent_widget=self, key='dy', name='dy', initial_value=0, bounds=[None, None],
-                        step_modifier=1, fixed=False, pb_edit=self.pb_dy, le_name=self.lb_dy_name,
-                        le_description=self.lb_dy)
-        self.parameters.append(par)
+                        step_modifier=1, fixed=False, pb_edit=self.pb_dy, lb_name=self.lb_dy_name,
+                        lb_description=self.lb_dy)
+        self.parameter_objects.append(par)
         # phi
         par = Parameter(parent_widget=self, key='phi', name='phi', initial_value=0, bounds=[None, None],
-                        step_modifier=1, fixed=False, pb_edit=self.pb_phi, le_name=self.lb_phi_name,
-                        le_description=self.lb_phi)
-        self.parameters.append(par)
+                        step_modifier=1, fixed=False, pb_edit=self.pb_phi, lb_name=self.lb_phi_name,
+                        lb_description=self.lb_phi)
+        self.parameter_objects.append(par)
         # total_cts
         par = Parameter(parent_widget=self, key='total_cts', name='total cts', initial_value=0, bounds=[None, None],
-                        step_modifier=1, fixed=False, pb_edit=self.pb_total_cts, le_name=self.lb_total_cts_name,
-                        le_description=self.lb_total_cts)
-        self.parameters.append(par)
+                        step_modifier=1, fixed=False, pb_edit=self.pb_total_cts, lb_name=self.lb_total_cts_name,
+                        lb_description=self.lb_total_cts)
+        self.parameter_objects.append(par)
         # sigma
         par = Parameter(parent_widget=self, key='sigma', name='sigma', initial_value=0, bounds=[None, None],
-                        step_modifier=1, fixed=False, pb_edit=self.pb_sigma, le_name=self.lb_sigma_name,
-                        le_description=self.lb_sigma)
-        self.parameters.append(par)
+                        step_modifier=1, fixed=False, pb_edit=self.pb_sigma, lb_name=self.lb_sigma_name,
+                        lb_description=self.lb_sigma)
+        self.parameter_objects.append(par)
         # f_p1
         par = Parameter(parent_widget=self, key='f_p1', name='fraction #1', initial_value=0, bounds=[None, None],
-                        step_modifier=1, fixed=False, pb_edit=self.pb_f1, le_name=self.lb_f1_name,
-                        le_description=self.lb_f1)
-        self.parameters.append(par)
+                        step_modifier=1, fixed=False, pb_edit=self.pb_f1, lb_name=self.lb_f1_name,
+                        lb_description=self.lb_f1)
+        self.parameter_objects.append(par)
 
-    def refresh_parameters(self):
-        self.update_fitman()
-        # TODO
+    def refresh_parameters(self, reset=False):
+        self.parameter_keys = self.fitman.parameter_keys
+        temp_init_values, temp_fixed_values = self.fitman._get_initial_values()  # fitman needs a dp to get the ini v
+        self.initial_values = dict()
+        self.fixed = dict()
+        for key, value in zip(self.parameter_keys, temp_init_values):
+            self.initial_values[key] = value
+        for key, value in zip(self.parameter_keys, temp_fixed_values):
+            self.fixed[key] = value
+        self.bounds = self.fitman._bounds
+        self.step_modifier = self.fitman._scale
 
+        for key, parameter in zip(self.parameter_keys, self.parameter_objects):
+            assert parameter.key == key
+            if not reset and parameter.was_changed:
+                # keep the value introduced by the user
+                continue
+            parameter.reset_values_to(initial_value=self.initial_values[key],
+                                      bounds=self.bounds[key],
+                                      step_modifier=self.step_modifier[key],
+                                      fixed=self.fixed[key])
+
+    def reset_parameters(self):
+        self.refresh_parameters(reset=True)
 
     def update_infotext(self):
 
@@ -378,6 +426,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
             self.fitconfig = fitconfig_dialog.get_config()
             self.update_infotext()
             self.update_fitman()
+            self.update_n_sites_widgets()
         else:
             # Canceled
             pass
@@ -389,17 +438,36 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.fitman = pyfdd.FitManager(cost_function=cost_function,
                                        n_sites=n_sites,
                                        sub_pixels=sub_pixels)
-        # TODO add dp and lib
+        if self.datapattern is not None:
+            self.fitman.dp_pattern = self.datapattern
+        else:
+            self.fitman.dp_pattern = self.make_dummy_pattern()
+        if self.simlibrary is not None:
+            self.fitman.lib = self.simlibrary
 
     def update_n_sites_widgets(self):
+        self.parameters_layout.removeWidget(self.pb_reset)
         if self.fitconfig['n_sites'] > self.n_sites_in_stack:
             # add widgets
             while self.fitconfig['n_sites'] > self.n_sites_in_stack:
-                pass
+                self.n_sites_in_stack += 1
+                key = 'f_p' + str(self.n_sites_in_stack)
+                # f_px
+                fraction_name = 'fraction #' + str(self.n_sites_in_stack)
+                par = Parameter(parent_widget=self, key=key, name=fraction_name, initial_value=0,
+                                bounds=[None, None],
+                                step_modifier=1, fixed=False)
+                par.add_to_gridlayout(self.parameters_layout, row_num = 5 + self.n_sites_in_stack)
+                self.parameter_objects.append(par)
+            self.refresh_parameters()
 
         if self.fitconfig['n_sites'] < self.n_sites_in_stack:
-            pass
-        # TODO
+            while self.fitconfig['n_sites'] < self.n_sites_in_stack:
+                self.n_sites_in_stack -= 1
+                self.parameter_objects.pop()
+        # TODO do the same for site ranges
+        self.parameters_layout.addWidget(self.pb_reset, 5 + 1 + self.n_sites_in_stack, 3)
+
 
     def add_sites_row(self):
         # sites range

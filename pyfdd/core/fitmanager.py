@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-'''
+"""
 Fit manager is the kernel class for fitting.
-'''
+"""
 
 __author__ = 'E. David-Bosne'
 __email__ = 'eric.bosne@cern.ch'
@@ -24,20 +24,43 @@ import copy
 
 
 class FitManager:
-    '''
+    """
     The class FitManager is a helper class for using Fit in pyfdd.
     You should be able to do all standard routine analysis from FitManager.
     It also help in creating graphs, using fit options and saving results.
-    '''
+    """
+
+    default_parameter_keys = ['dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_px']
+    default_profiles_fit_options = {
+            # likelihood values are orders of mag bigger than chi2, so they need smaller ftol
+            # real eps is the eps in fit options times the parameter scale
+            'coarse': {'ml': {'disp': False, 'maxiter': 10, 'maxfun': 200, 'ftol': 1e-7, 'maxls': 50,
+                              'maxcor': 10, 'eps': 1e-8},
+                       'chi2': {'disp': False, 'maxiter': 10, 'maxfun': 200, 'ftol': 1e-6, 'maxls': 50,
+                                'maxcor': 10, 'eps': 1e-8}},
+            'default': {'ml': {'disp': False, 'maxiter': 20, 'maxfun': 200, 'ftol': 1e-9, 'maxls': 100,
+                               'maxcor': 10, 'eps': 1e-8},  # maxfun to 200 prevents memory problems,
+                        'chi2': {'disp': False, 'maxiter': 20, 'maxfun': 300, 'ftol': 1e-6, 'maxls': 100,
+                                 'maxcor': 10, 'eps': 1e-8}},
+            'fine': {'ml': {'disp': False, 'maxiter': 60, 'maxfun': 1200, 'ftol': 1e-12, 'maxls': 100,
+                            'maxcor': 10, 'eps': 1e-8},
+                     'chi2': {'disp': False, 'maxiter': 60, 'maxfun': 1200, 'ftol': 1e-9, 'maxls': 100,
+                              'maxcor': 10, 'eps': 1e-8}}
+    }
+    # total_cts is overwriten with values from the data pattern
+    default_scale = {'dx': .01, 'dy': .01, 'phi': 0.10, 'total_cts': 0.01,
+                     'sigma': .001, 'f_px': 0.01}
+    default_bounds = {'dx': (-3, +3), 'dy': (-3, +3), 'phi': (None, None), 'total_cts': (1, None),
+                      'sigma': (0.01, None),  'f_px': (0, 1)}
 
     # settings methods
     def __init__(self, *, cost_function='chi2', n_sites, sub_pixels=1):
-        '''
+        """
         FitManager is a helper class for using Fit in pyfdd.
         :param cost_function: The type of cost function to use. Possible values are 'chi2' for chi-square
         and 'ml' for maximum likelihood.
         :param sub_pixels: The number of subpixels to integrate during fit in x and y.
-        '''
+        """
 
         if cost_function not in ('chi2', 'ml'):
             raise ValueError('cost_function not valid. Use chi2 or ml')
@@ -60,50 +83,33 @@ class FitManager:
 
         # Fit settings
         self._n_sites = n_sites
-        self.parameter_keys = ('dx', 'dy', 'phi', 'total_cts', 'sigma')
-        for i in range(self._n_sites):
-            fraction_key = 'f_p' + str(i+1)  # 'f_p1', 'f_p2', 'f_p3',...
-            self.parameter_keys += (fraction_key,)
+        self._sub_pixels = sub_pixels
         self._cost_function = cost_function
         self._fit_options = {}
         self._fit_options_profile = 'default'
         self._minimization_method = 'L-BFGS-B'
-        self.profiles_fit_options = {
-            # likelihood values are orders of mag bigger than chi2, so they need smaller ftol
-            # real eps is the eps in fit options times the parameter scale
-            'coarse': {'ml': {'disp': False, 'maxiter': 10, 'maxfun': 200, 'ftol': 1e-7, 'maxls': 50,
-                              'maxcor': 10, 'eps': 1e-8},
-                       'chi2': {'disp': False, 'maxiter': 10, 'maxfun': 200, 'ftol': 1e-6, 'maxls': 50,
-                                'maxcor': 10, 'eps': 1e-8}},
-            'default': {'ml': {'disp': False, 'maxiter': 20, 'maxfun': 200, 'ftol': 1e-9, 'maxls': 100,
-                               'maxcor': 10, 'eps': 1e-8},  # maxfun to 200 prevents memory problems,
-                        'chi2': {'disp': False, 'maxiter': 20, 'maxfun': 300, 'ftol': 1e-6, 'maxls': 100,
-                                 'maxcor': 10, 'eps': 1e-8}},
-            'fine': {'ml': {'disp': False, 'maxiter': 60, 'maxfun': 1200, 'ftol': 1e-12, 'maxls': 100,
-                            'maxcor': 10, 'eps': 1e-8},
-                     'chi2': {'disp': False, 'maxiter': 60, 'maxfun': 1200, 'ftol': 1e-9, 'maxls': 100,
-                              'maxcor': 10, 'eps': 1e-8}}
-        }
+        self._profiles_fit_options = FitManager.default_profiles_fit_options.copy()
         self.set_minimization_settings()
-        self._sub_pixels = sub_pixels
-        # total_cts is overwriten with values from the data pattern
-        self._scale = {'dx':.01, 'dy':.01, 'phi':0.10, 'total_cts':0.01,
-                       'sigma':.001}
-        self._bounds = {'dx': (-3, +3), 'dy': (-3, +3), 'phi': (None, None), 'total_cts': (1, None),
-                         'sigma': (0.01, None)}
-        scale_temp = {}
-        bounds_temp = {}
+
+        # Parameter settings
+        self.parameter_keys = FitManager.default_parameter_keys.copy()
+        self.parameter_keys.pop()  # remove 'f_px'
         for i in range(self._n_sites):
             fraction_key = 'f_p' + str(i+1)  # 'f_p1', 'f_p2', 'f_p3',...
-            # scale
-            # 'f_p1':.01, 'f_p2':.01, 'f_p3':.01}
-            scale_temp[fraction_key] = 0.01
-            bounds_temp[fraction_key] = (0, 1)
-        self._scale = {**self._scale, **scale_temp}
+            self.parameter_keys.append(fraction_key)
+        self._scale = FitManager.default_scale.copy()
+        self._bounds = FitManager.default_bounds.copy()
+        fraction_scale = self._scale.pop('f_px')  # remove 'f_px'
+        fraction_bounds = self._bounds.pop('f_px')  # remove 'f_px'
+        scale_temp = dict()
+        bounds_temp = dict()
+        for i in range(self._n_sites):
+            fraction_key = 'f_p' + str(i+1)  # 'f_p1', 'f_p2', 'f_p3',...
+            scale_temp[fraction_key] = fraction_scale
+            bounds_temp[fraction_key] = fraction_bounds
+        self._scale = {**self._scale, **scale_temp}  # Join dictionaries
         self._bounds = {**self._bounds, **bounds_temp}
 
-
-        # Fit parameters settings
         # overwrite defaults from Fit
         self.p_initial_values = {}
         self.p_fixed_values = {}
@@ -116,14 +122,15 @@ class FitManager:
             ('site{:d} n', 'p{:d}', 'site{:d} description', 'site{:d} factor', 'site{:d} u1',
              'site{:d} fraction', 'fraction{:d}_err')
         for i in range(self._n_sites):
-             for k in self.columns_template:
-                 self.columns_horizontal += (k.format(i + 1),)
+            for k in self.columns_template:
+                self.columns_horizontal += (k.format(i + 1),)
         self.columns_horizontal += ('success', 'orientation gradient')
 
         self.columns_vertical = \
             ('value', 'D.O.F.', 'x', 'x_err', 'y', 'y_err', 'phi', 'phi_err',
              'counts', 'counts_err', 'sigma', 'sigma_err')
-        self.columns_vertical += ('site n', 'p', 'site description', 'site factor', 'site u1',
+        self.columns_vertical += \
+            ('site n', 'p', 'site description', 'site factor', 'site u1',
              'site fraction', 'fraction_err')
         self.columns_vertical += ('success', 'orientation gradient')
 
@@ -131,11 +138,11 @@ class FitManager:
         self.df_vertical = pd.DataFrame(data=None)#, columns=self.columns_vertical) # columns are set during filling
 
     def set_pattern(self, data_pattern, library):
-        '''
+        """
         Set the pattern to fit.
         :param data_pattern: path or DataPattern
         :param library: path or Lib2dl
-        '''
+        """
         if isinstance(data_pattern, DataPattern):
             # all good
             self.dp_pattern = data_pattern
@@ -158,16 +165,16 @@ class FitManager:
         else:
             ValueError('data_pattern input error')
 
-        print('\nMedipix pattern added')
+        print('\nData pattern added')
         print('Inicial orientation (x, y, phi) is (',
               self.dp_pattern.center[0], ', ', self.dp_pattern.center[1], ',',
               self.dp_pattern.angle, ')')
 
     def _print_settings(self, ft):
-        '''
+        """
         prints the settings that are in use during fit
         :param ft: Fit object
-        '''
+        """
         assert isinstance(ft, Fit)
         print('\n')
         print('Fit settings')
@@ -193,10 +200,10 @@ class FitManager:
         self.done_param_verbose = True
 
     def set_initial_values(self, **kwargs):
-        '''
+        """
         Set the initial values for a parameter. It might be overwriten if pass_results option is used
         :param kwargs: possible arguments are 'dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3'
-        '''
+        """
         #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         for key in kwargs.keys():
             if key in self.parameter_keys:
@@ -219,10 +226,10 @@ class FitManager:
                        '\n Valid keys are, \'dx\',\'dy\',\'phi\',\'total_cts\',\'sigma\',\'f_p1\',\'f_p2\',\'f_p3\'')
 
     def set_bounds(self, **kwargs):
-        '''
+        """
         Set bounds to a paramater. Bounds are a tuple with two values, for example, (0, None).
         :param kwargs: possible arguments are 'dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3'
-        '''
+        """
         #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         for key in kwargs.keys():
             if key in self.parameter_keys:
@@ -234,13 +241,13 @@ class FitManager:
                        '\n Valid keys are, \'dx\',\'dy\',\'phi\',\'total_cts\',\'sigma\',\'f_p1\',\'f_p2\',\'f_p3\'')
 
     def set_step_modifier(self, **kwargs):
-        '''
+        """
         Set a step modifier value for a parameter.
         If a modifier of 10 is used for parameter P the fit will try step 10x the default step.
         For the L-BFGS-B minimization method the default steps are 1 for each value exept for the total counts
         that is the order of magnitude of the counts in the data pattern
         :param kwargs: possible arguments are 'dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3'
-        '''
+        """
         #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         for key in kwargs.keys():
             if key in self.parameter_keys:
@@ -250,12 +257,12 @@ class FitManager:
                        '\n Valid keys are, \'dx\',\'dy\',\'phi\',\'total_cts\',\'sigma\',\'f_p1\',\'f_p2\',\'f_p3\'')
 
     def set_minimization_settings(self, profile='default', min_method='L-BFGS-B', options={}):
-        '''
+        """
         Set the options for the minimization.
         :param profile: choose between 'coarse', 'default' and 'fine', predefined options.
         :param min_method: minimization algorith to use.
         :param options: python dict with options to use. overwrites profile.
-        '''
+        """
         # Using a coarse profile will lead to faster results but less optimized.
         # Using a fine profile can lead to rounding errors and jumping to other minima which causes artifacts
         # scipy default eps is 1e-8 this, sometimes, is too small to correctly get the derivative of phi
@@ -276,17 +283,17 @@ class FitManager:
 
         elif min_method == 'L-BFGS-B':
             self._fit_options_profile = profile
-            self._fit_options = self.profiles_fit_options[profile][self._cost_function]
+            self._fit_options = self._profiles_fit_options[profile][self._cost_function]
 
         else:
             warnings.warn('No profile for method {} and no options provided. Using library defaults'.format(min_method))
 
     def get_pattern_counts(self, ignore_masked=True):
-        '''
+        """
         Get the total counts of the pattern to be fit
         :param ignore_masked:
         :return:
-        '''
+        """
 
         if not isinstance(ignore_masked, bool):
             raise ValueError('ignore_masked must be of type bool.')
@@ -301,31 +308,36 @@ class FitManager:
         return total_cts
 
     def _get_initial_values(self, pass_results=False):
-        '''
+        """
         Get the initial values for the next fit
         :param pass_results: Use the previous fit results
         :return p0, p_fix: initial values and tuple of bools indicating if it is fixed
-        '''
-        #('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
+        """
+        # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         p0 = ()
         p_fix = ()
+
         # decide if using last fit results
         p0_pass = pass_results \
-                  and self.last_fit is not None \
-                  and self.last_fit.results['success']
+            and self.last_fit is not None \
+            and self.last_fit.results['success']
+
         # starting too close from a minimum can cause errors so 1e-5 is added
         p0_last = self.last_fit.results['x'] + 1e-5 if p0_pass else None
-        #print('p0_last', p0_last)
+        # print('p0_last', p0_last)
         p0_last_i = 0
+
         for key in self.parameter_keys:
             # Use user defined fixed value
             if key in self.p_fixed_values:
                 p0 += (self.p_fixed_values[key],)
                 p_fix += (True,)
+
             # Use user defined initial value
             elif key in self.p_initial_values:
                 p0 += (self.p_initial_values[key],)
                 p_fix += (False,)
+
             # Use FitManager choice
             else:
                 if key == 'dx':
@@ -336,19 +348,19 @@ class FitManager:
                     p0 += (p0_last[p0_last_i],) if p0_pass else (self.dp_pattern.angle,)
                 elif key == 'total_cts':
                     patt = self.dp_pattern.matrixOriginal.copy()
-                    #counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
-                    counts= patt.sum()
+                    # counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
+                    counts = patt.sum()
                     p0 += (counts,)
                 elif key == 'sigma':
                     p0 += (p0_last[p0_last_i],) if p0_pass else (0.1,)
                 else:
                     # assuming a pattern fraction
-                    p0 += (p0_last[p0_last_i],) if p0_pass and p0_last_i<len(p0_last) \
-                        else (min(0.15,0.5/self._n_sites),)
+                    p0 += (p0_last[p0_last_i],) if p0_pass and p0_last_i < len(p0_last) \
+                        else (min(0.15, 0.5/self._n_sites),)
                 p_fix += (False,)
                 if p0_pass:
                     p0_last_i += 1
-        #print('p0',p0,'\np_fix', p_fix)
+        # print('p0',p0,'\np_fix', p_fix)
         return p0, p_fix
 
     def _get_scale_values(self):
@@ -368,7 +380,7 @@ class FitManager:
         return scale
 
     def _build_fits_obj(self, sites, verbose_graphics=False, pass_results=False):
-        '''
+        """
         Builds a Fit object
         :param p1: pattern 1
         :param p2: pattern 2
@@ -376,7 +388,7 @@ class FitManager:
         :param verbose_graphics: plot pattern as it is being fit
         :param pass_results: argument for _get_initial_values
         :return: Fit object
-        '''
+        """
 
         ft = Fit(self.lib, sites, verbose_graphics)
 
@@ -539,13 +551,13 @@ class FitManager:
         self.df_vertical = self.df_vertical[list(self.columns_vertical)]
 
     def run_fits(self, *args, pass_results=False, verbose=1, get_errors=False):
-        '''
+        """
         Run Fit for a list of sites.
         :param args: list of patterns for each site. Up to tree sites are possible
         :param pass_results: Use the last fit parameter results as input for the next.
         :param verbose: 0 silent, 1 default and 2 max verbose
         :return:
-        '''
+        """
 
         self.done_param_verbose = False
 
