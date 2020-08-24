@@ -149,7 +149,7 @@ class Parameter:
         else:
             self.lb_name = QtWidgets.QLabel(parent=parent_widget)
             self.lb_name.setText(name)
-            #self.lb_name.setMaximumSize(QtCore.QSize(70, 16777215))
+            # self.lb_name.setMaximumSize(QtCore.QSize(70, 16777215)) #double digit names need more space
 
         if lb_description is not None:
             self.lb_description = lb_description
@@ -208,9 +208,9 @@ class Parameter:
 
     def add_to_gridlayout(self, layout, row_num):
         assert isinstance(layout, QtWidgets.QGridLayout)
-        layout.addWidget(self.lb_name, row_num, 1)
-        layout.addWidget(self.lb_description, row_num, 2)
-        layout.addWidget(self.pb_edit, row_num, 3)
+        layout.addWidget(self.lb_name, row_num, 0)
+        layout.addWidget(self.lb_description, row_num, 1)
+        layout.addWidget(self.pb_edit, row_num, 2)
 
     def __del__(self):
         """ Delete the parameter widgets once the last reference to the parameter instance is lost. """
@@ -225,11 +225,58 @@ class Parameter:
             self.pb_edit = None
 
 
-class site_range:
-    # https://www.geeksforgeeks.org/python-convert-string-ranges-to-list/
-    # TODO
-    pass
+class SiteRange:
+    def __init__(self, parent_widget, key='', name='par', str_value='1',
+                 lb_name=None, le_siterange=None):
+        self.parent = parent_widget
+        self.key = key
+        self.name = name
 
+        if lb_name is not None:
+            self.lb_name = lb_name
+        else:
+            self.lb_name = QtWidgets.QLabel(parent=parent_widget)
+            self.lb_name.setText(name)
+            self.lb_name.setMaximumSize(QtCore.QSize(70, 16777215)) #double digit names need more space
+
+        if le_siterange is not None:
+            self.le_siterange = le_siterange
+        else:
+            self.le_siterange = QtWidgets.QLineEdit(parent=parent_widget)
+            self.le_siterange.setText(str_value)
+
+        # set regular expression validator
+        reg_ex = QtCore.QRegExp(
+            r'^(\s*\d+\s*(-\s*\d+\s*)?)(,\s*\d+\s*(-\s*\d+\s*)?)*$')  # accepts ranges ex.: 1,2,3, 6-9
+        input_validator = QtGui.QRegExpValidator(reg_ex, parent=self.le_siterange)
+        self.le_siterange.setValidator(input_validator)
+
+    def add_to_gridlayout(self, layout, row_num):
+        assert isinstance(layout, QtWidgets.QGridLayout)
+        layout.addWidget(self.lb_name, row_num, 0)
+        layout.addWidget(self.le_siterange, row_num, 1)
+
+    def __del__(self):
+        """ Delete the parameter widgets once the last reference to the parameter instance is lost. """
+        if not sip.isdeleted(self.lb_name):
+            self.lb_name.deleteLater()
+            self.lb_name = None
+        if not sip.isdeleted(self.le_siterange):
+            self.le_siterange.deleteLater()
+            self.le_siterange = None
+
+    def get_range_as_list(self):
+        result = []
+        text = self.le_siterange.text()
+        for part in text.split(','):
+            if '-' in part:
+                a, b = part.split('-')
+                a, b = int(a), int(b)
+                result.extend(range(a, b + 1))
+            else:
+                a = int(part)
+                result.append(a)
+        return result
 
 
 class FitManager_window(QtWidgets.QMainWindow):
@@ -295,6 +342,10 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         # Set a dummy pattern to correctly get the default fit parameters
         self.fitman.dp_pattern = self.make_dummy_pattern()
 
+        # Sites ranges
+        self.sites_ranges_objects = []
+        self.init_sites_ranges()
+
         # Parameters
         # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         self.parameter_objects = []
@@ -303,7 +354,6 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.bounds = dict()
         self.step_modifier = dict()
         self.fixed = dict()
-        self.sites_range = ()
         self.init_parameters()
         self.refresh_parameters()
 
@@ -382,6 +432,12 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
     def reset_parameters(self):
         self.refresh_parameters(reset=True)
 
+    def init_sites_ranges(self):
+        srange = SiteRange(parent_widget=self, key='sr1', name='Site #1',
+                           lb_name=self.lb_f1_name,
+                           le_siterange=self.le_site1)
+        self.sites_ranges_objects.append(srange)
+
     def update_infotext(self):
 
         base_text = 'Data pattern set: {}; Library set: {}\n' \
@@ -451,34 +507,32 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
             # add widgets
             while self.fitconfig['n_sites'] > self.n_sites_in_stack:
                 self.n_sites_in_stack += 1
-                key = 'f_p' + str(self.n_sites_in_stack)
+                # Sites ranges
+                srkey = 'sr' + str(self.n_sites_in_stack)
+                # srx
+                site_name = 'Site #{}'.format(self.n_sites_in_stack)
+                srange = SiteRange(parent_widget=self, key=srkey, name=site_name)
+                srange.add_to_gridlayout(self.sitesrange_layout, row_num=1 + self.n_sites_in_stack)
+                self.sites_ranges_objects.append(srange)
+
+                # Parameters
+                pkey = 'f_p' + str(self.n_sites_in_stack)
                 # f_px
-                fraction_name = 'fraction #' + str(self.n_sites_in_stack)
-                par = Parameter(parent_widget=self, key=key, name=fraction_name, initial_value=0,
+                fraction_name = 'fraction #{}'.format(self.n_sites_in_stack)
+                par = Parameter(parent_widget=self, key=pkey, name=fraction_name, initial_value=0,
                                 bounds=[None, None],
                                 step_modifier=1, fixed=False)
-                par.add_to_gridlayout(self.parameters_layout, row_num = 5 + self.n_sites_in_stack)
+                par.add_to_gridlayout(self.parameters_layout, row_num=5 + self.n_sites_in_stack)
                 self.parameter_objects.append(par)
             self.refresh_parameters()
 
         if self.fitconfig['n_sites'] < self.n_sites_in_stack:
             while self.fitconfig['n_sites'] < self.n_sites_in_stack:
                 self.n_sites_in_stack -= 1
+                self.sites_ranges_objects.pop()
                 self.parameter_objects.pop()
-        # TODO do the same for site ranges
-        self.parameters_layout.addWidget(self.pb_reset, 5 + 1 + self.n_sites_in_stack, 3)
 
-
-    def add_sites_row(self):
-        # sites range
-        label_name = 'Site #{}'.format(self.n_sites_in_stack + 1)
-        label_nsites = '1'
-        #pb_edit = Qt
-        self.sitesrange_layout
-
-        # parameters
-        self.parameters_layout
-        # TODO
+        self.parameters_layout.addWidget(self.pb_reset, 5 + 1 + self.n_sites_in_stack, 2)
 
 
 def main():
