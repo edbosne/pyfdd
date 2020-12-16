@@ -147,6 +147,9 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
         self.infotext.setText(text)
 
     def update_simlist(self):
+        # Disconnect signal to make changes and reconect after.
+        self.simlist.currentItemChanged.disconnect()
+        self.simlist.clear()
         baseline_string = '{:>3} - {:25}, f: {:}, u1: {:}, s:{:}'
         for line in self.simlib.get_simulations_list():
             # columns, ["Spectrum number", "Spectrum_description", "factor", "u1", "sigma"]
@@ -156,6 +159,7 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
 
         self.current_row = 1
         self.simlist.setCurrentRow(self.current_row - 1)
+        self.simlist.currentItemChanged.connect(self.update_datapattern)
 
     def update_datapattern(self):
         self.current_row = self.simlist.currentRow() + 1
