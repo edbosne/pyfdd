@@ -288,8 +288,6 @@ class FitManawerWorker(QtCore.QObject):
     def __init__(self, datapattern, simlibrary, fitconfig, parameter_objects, sites_range_objects):
         super(FitManawerWorker, self).__init__()
 
-        print('PyFDD version', pyfdd.__version__)
-
         self._isRunning = True
 
         # Define variables for creating a fitman
@@ -301,6 +299,10 @@ class FitManawerWorker(QtCore.QObject):
         self.fitman = pyfdd.FitManager(cost_function=cost_function,
                                        n_sites=n_sites,
                                        sub_pixels=sub_pixels)
+
+        # Replace fitman print function
+        self.fitman.print = self.new_print
+
 
         # Set the pattern and library to fit with
         self.fitman.set_pattern(datapattern, simlibrary)
@@ -346,6 +348,9 @@ class FitManawerWorker(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def run(self):
+
+        self.new_print('PyFDD version {}'.format(pyfdd.__version__))
+
         # Run fits
         # remember to set get_errors to True if you want them. This increases the fit time.
         self.fitman.run_fits(*self.sites_to_fit, get_errors=True)
@@ -354,6 +359,9 @@ class FitManawerWorker(QtCore.QObject):
         # Emit fitman for output
         self.output_fitman.emit(self.fitman)
 
+        # Add a few blank lines for aestetics
+        self.new_print('\n\n\n')
+
         # Finish
         self.finished.emit()
 
@@ -361,6 +369,13 @@ class FitManawerWorker(QtCore.QObject):
     def stop(self):
         self._isRunning = False
         self.fitman.stop_current_fit()
+
+    def new_print(self, *msg):
+        msg_str = [str(s) for s in msg]
+        message = ' '.join(msg_str)
+        # message = message + '\n'
+        print(message)
+        self.progress_msg.emit(message)
 
 
 class FitManager_window(QtWidgets.QMainWindow):
@@ -396,6 +411,9 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
 
         self.setupUi(self)
         self.mainwindow = mainwindow
+
+        # Configure text browser font
+        self.tb_fit_report.setFontFamily("monospace")
 
         # Create a menubar entry for the datapattern
         self.menubar = self.mainwindow.menuBar()
@@ -589,6 +607,9 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
 
     def call_pb_runfits(self):
 
+        # Clear text box
+        self.tb_fit_report.clear()
+
         # Create a QThread object
         self.fitman_thread = QtCore.QThread()
 
@@ -605,7 +626,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.fitman_worker.finished.connect(self.fitman_thread.quit)
         self.fitman_worker.finished.connect(self.fitman_worker.deleteLater)
         self.fitman_thread.finished.connect(self.fitman_thread.deleteLater)
-        # self.fitman_worker.progress_msg.connect(self.reportProgress)
+        self.fitman_worker.progress_msg.connect(self.report_fit_progress)
         # output signal
         self.fitman_worker.output_fitman.connect(self.call_store_output)
 
@@ -623,6 +644,9 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
 
         # Start the thread
         self.fitman_thread.start()
+
+    def report_fit_progress(self, msg):
+        self.tb_fit_report.append(msg)
 
     def call_pb_abortfits(self):
 

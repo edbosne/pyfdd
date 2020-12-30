@@ -22,6 +22,7 @@ class Ui_ViewResultsWidget(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.mplframe.sizePolicy().hasHeightForWidth())
         self.mplframe.setSizePolicy(sizePolicy)
+        self.mplframe.setMinimumSize(QtCore.QSize(0, 250))
         self.mplframe.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.mplframe.setFrameShadow(QtWidgets.QFrame.Raised)
         self.mplframe.setObjectName("mplframe")
@@ -37,4 +38,4 @@ class Ui_ViewResultsWidget(object):
 
     def retranslateUi(self, ViewResultsWidget):
         _translate = QtCore.QCoreApplication.translate
-        ViewResultsWidget.setWindowTitle(_translate("ViewResultsWidget", "Form"))
+        ViewResultsWidget.setWindowTitle(_translate("ViewResultsWidget", "Results"))

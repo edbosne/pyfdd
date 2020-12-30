@@ -36,12 +36,12 @@ class Ui_FitManagerWidget(object):
         self.mplvl.setContentsMargins(9, 9, 9, 9)
         self.mplvl.setSpacing(6)
         self.mplvl.setObjectName("mplvl")
-        self.textBrowser = QtWidgets.QTextBrowser(self.mplwindow)
-        self.textBrowser.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.textBrowser.setAutoFillBackground(False)
-        self.textBrowser.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustIgnored)
-        self.textBrowser.setObjectName("textBrowser")
-        self.mplvl.addWidget(self.textBrowser)
+        self.tb_fit_report = QtWidgets.QTextBrowser(self.mplwindow)
+        self.tb_fit_report.setLayoutDirection(QtCore.Qt.LeftToRight)
+        self.tb_fit_report.setAutoFillBackground(False)
+        self.tb_fit_report.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustIgnored)
+        self.tb_fit_report.setObjectName("tb_fit_report")
+        self.mplvl.addWidget(self.tb_fit_report)
         self.horizontalLayout.addWidget(self.mplwindow)
         self.widget_2 = QtWidgets.QWidget(FitManagerWidget)
         self.widget_2.setMaximumSize(QtCore.QSize(340, 16777215))
@@ -283,7 +283,7 @@ class Ui_FitManagerWidget(object):
     def retranslateUi(self, FitManagerWidget):
         _translate = QtCore.QCoreApplication.translate
         FitManagerWidget.setWindowTitle(_translate("FitManagerWidget", "Form"))
-        self.textBrowser.setHtml(_translate("FitManagerWidget", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+        self.tb_fit_report.setHtml(_translate("FitManagerWidget", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
 "</style></head><body style=\" font-family:\'Ubuntu\'; font-size:10pt; font-weight:400; font-style:normal;\">\n"

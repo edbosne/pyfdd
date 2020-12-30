@@ -138,6 +138,14 @@ class FitManager:
         self.df_horizontal = pd.DataFrame(data=None, columns=self.columns_horizontal)
         self.df_vertical = pd.DataFrame(data=None)#, columns=self.columns_vertical) # columns are set during filling
 
+    def print(self, *msg):
+        """
+        This method is overwriten on the GUI to print to the message box
+        :param msg:
+        :return:
+        """
+        print(*msg)
+
     def set_pattern(self, data_pattern, library):
         """
         Set the pattern to fit.
@@ -166,8 +174,8 @@ class FitManager:
         else:
             ValueError('data_pattern input error')
 
-        print('\nData pattern added')
-        print('Inicial orientation (x, y, phi) is (',
+        self.print('\nData pattern added')
+        self.print('Inicial orientation (x, y, phi) is (',
               self.dp_pattern.center[0], ', ', self.dp_pattern.center[1], ',',
               self.dp_pattern.angle, ')')
 
@@ -177,26 +185,26 @@ class FitManager:
         :param ft: Fit object
         """
         assert isinstance(ft, Fit)
-        print('\n')
-        print('Fit settings')
-        print('Cost function       -', self._cost_function)
-        print('Minimization method -', self._minimization_method)
-        print('Fit option profile  -', self._fit_options_profile)
-        print('Fit options         -', self._fit_options)
-        print('Sub pixels          -', self._sub_pixels)
-        print('\nParameter settings')
-        print('{:<16}{:<16}{:<16}{:<16}{:<16}'.format('Name', 'Inicial Value', 'Fixed', 'Bounds', 'Scale'))
+        self.print('\n')
+        self.print('Fit settings')
+        self.print('Cost function       -', self._cost_function)
+        self.print('Minimization method -', self._minimization_method)
+        self.print('Fit option profile  -', self._fit_options_profile)
+        self.print('Fit options         -', self._fit_options)
+        self.print('Sub pixels          -', self._sub_pixels)
+        self.print('\nParameter settings')
+        self.print('{:<16}{:<16}{:<16}{:<16}{:<16}'.format('Name', 'Inicial Value', 'Fixed', 'Bounds', 'Scale'))
         string_temp = '{:<16}{:<16.2f}{:<16}{:<16}{:<16}'
         for key in self.parameter_keys:
             # {'p0':None, 'value':None, 'use':False, 'std':None, 'scale':1, 'bounds':(None,None)}
-            print(string_temp.format(
+            self.print(string_temp.format(
                 key,
                 ft._parameters_dict[key]['p0'],
                 ft._parameters_dict[key]['use'] == False,
                 '({},{})'.format(ft._parameters_dict[key]['bounds'][0],ft._parameters_dict[key]['bounds'][1]),
                 ft._parameters_dict[key]['scale']
             ))
-        print('\n')
+        self.print('\n')
 
         self.done_param_verbose = True
 
@@ -637,7 +645,7 @@ class FitManager:
             self._print_settings(self.current_fit_obj)
 
         if verbose > 0:
-            print('Sites (P1, P2, ...) - ', sites)
+            self.print('Sites (P1, P2, ...) - ', sites)
 
         self.current_fit_obj.minimize_cost_function(self._cost_function)
 

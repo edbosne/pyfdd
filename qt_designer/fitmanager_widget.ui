@@ -63,7 +63,7 @@
        <number>9</number>
       </property>
       <item>
-       <widget class="QTextBrowser" name="textBrowser">
+       <widget class="QTextBrowser" name="tb_fit_report">
         <property name="layoutDirection">
          <enum>Qt::LeftToRight</enum>
         </property>
