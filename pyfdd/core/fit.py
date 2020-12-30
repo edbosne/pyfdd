@@ -23,7 +23,9 @@ from scipy.ndimage import gaussian_filter
 import collections
 import warnings
 
-
+class StopFit(Exception):
+    """ Raise this exeption to stop the fit """
+    pass
 
 class Fit:
     def __init__(self, lib, sites, verbose_graphics=False):
@@ -69,7 +71,7 @@ class Fit:
         self._pattern_keys = None
         self._init_parameters_variables()
         self.previous_cost_value = None
-
+        self.fitrunning = True
 
         # minimization default options
         self._fit_options = {'disp': False, 'maxiter': 30, 'maxfun': 300, 'ftol': 1e-8, 'maxcor': 100}
@@ -450,12 +452,15 @@ class Fit:
 
     def minimize_cost_function(self, cost_func='chi2'):
 
-        if not cost_func in ('ml', 'chi2'):
+        if cost_func not in ('ml', 'chi2'):
             raise ValueError('cost function should be \'chi2\' or \'ml\'')
 
         if cost_func == 'ml':
             # total counts is not used in maximum likelyhood
             self._parameters_dict['total_cts']['use'] = False
+
+        # Fit running
+        self.fitrunning = True
 
         # set duplicated sites to zero
         self._fix_duplicated_sites()
@@ -492,7 +497,7 @@ class Fit:
 
         # select method
         res = op.minimize(function, p0, args=True, method=self._minimization_method, bounds=bnds, \
-                          options=self._fit_options)  # 'eps': 0.0001, L-BFGS-B
+                          options=self._fit_options, callback=self.fitstep_callback)  # 'eps': 0.0001, L-BFGS-B
         if self._fit_options['disp']:
             print(res)
         # minimization with cobyla also seems to be a good option with {'rhobeg':1e-1/1e-2} . but it is unconstrained
@@ -517,6 +522,13 @@ class Fit:
                 self._parameters_dict[key]['value'] = self._parameters_dict[key]['p0']
         res['orientation jac'] = orientation_jac
         self.results = res
+
+    def fitstep_callback(self, x):
+        if not self.fitrunning:
+            raise StopFit
+
+    def stop_current_fit(self):
+        self.fitrunning = False
 
     def log_likelihood_call_explicit(self, dx, dy, phi, sigma, **kwargs):
         fractions_sims = ()

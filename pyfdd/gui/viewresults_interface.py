@@ -66,8 +66,8 @@ class ViewResults_widget(QtWidgets.QWidget, Ui_ViewResultsWidget):
         self.mpl_hlayout.addWidget(self.mpl_canvas_fractions)
         self.mpl_canvas_fractions.draw()
 
-        self.show_plots()
         self.show_table()
+        self.show_plots()
 
     def show_plots(self):
         # value

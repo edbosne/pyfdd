@@ -360,6 +360,7 @@ class FitManawerWorker(QtCore.QObject):
     @QtCore.pyqtSlot()
     def stop(self):
         self._isRunning = False
+        self.fitman.stop_current_fit()
 
 
 class FitManager_window(QtWidgets.QMainWindow):
@@ -629,7 +630,6 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
                                               QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
 
         if resp == QtWidgets.QMessageBox.Yes:
-            print('yes')
             if self.fitman_worker is not None:
                 self.fitman_worker.stop()
 

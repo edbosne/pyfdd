@@ -80,6 +80,7 @@ class FitManager:
         self.last_fit = None
         self.dp_pattern = None
         self.lib = None
+        self.current_fit_obj = None
 
         # Fit settings
         self._n_sites = n_sites
@@ -577,8 +578,11 @@ class FitManager:
             else:
                 # visualization is by default off in run_fits
                 self._single_fit(sites, verbose=verbose, pass_results=pass_results, get_errors=get_errors)
-
-        recursive_call(patterns_list)
+        try:
+            recursive_call(patterns_list)
+        except:
+            # Reset current fit object
+            self.current_fit_obj = None
 
     def run_single_fit(self, *args, verbose=1,
                        verbose_graphics=False, get_errors=False):
@@ -596,8 +600,12 @@ class FitManager:
 
         self.done_param_verbose = False
 
-        self._single_fit(sites, get_errors=get_errors, pass_results=False,
+        try:
+            self._single_fit(sites, get_errors=get_errors, pass_results=False,
                          verbose=verbose, verbose_graphics=verbose_graphics)
+        except:
+            # Reset current fit object
+            self.current_fit_obj = None
 
     def _single_fit(self, sites, get_errors=False, pass_results=False,
                     verbose=1, verbose_graphics=False):
@@ -623,34 +631,41 @@ class FitManager:
         assert isinstance(get_errors, bool)
         assert isinstance(self.dp_pattern, DataPattern)
 
-        ft = self._build_fits_obj(sites, verbose_graphics, pass_results=pass_results)
+        self.current_fit_obj = self._build_fits_obj(sites, verbose_graphics, pass_results=pass_results)
 
         if verbose > 0 and self.done_param_verbose is False:
-            self._print_settings(ft)
+            self._print_settings(self.current_fit_obj)
 
         if verbose > 0:
             print('Sites (P1, P2, ...) - ', sites)
 
-        ft.minimize_cost_function(self._cost_function)
+        self.current_fit_obj.minimize_cost_function(self._cost_function)
 
         if verbose > 1:
-            print(ft.results)
+            print(self.current_fit_obj.results)
 
         if get_errors:
-            ft.get_std_from_hessian(ft.results['x'], enable_scale=True, func=self._cost_function)
+            self.current_fit_obj.get_std_from_hessian(self.current_fit_obj.results['x'], enable_scale=True, func=self._cost_function)
 
-        self._fill_horizontal_results_dict(ft, get_errors, sites)
-        self._fill_vertical_results_dict(ft, get_errors, sites)
+        self._fill_horizontal_results_dict(self.current_fit_obj, get_errors, sites)
+        self._fill_vertical_results_dict(self.current_fit_obj, get_errors, sites)
 
         # Keep best fit
         if self.min_value is None:
-            self.best_fit = ft
-            self.min_value = ft.results['fun']
-        elif ft.results['fun'] < self.min_value:
-           self.best_fit = ft
-           self.min_value = ft.results['fun']
+            self.best_fit = self.current_fit_obj
+            self.min_value = self.current_fit_obj.results['fun']
+        elif self.current_fit_obj.results['fun'] < self.min_value:
+           self.best_fit = self.current_fit_obj
+           self.min_value = self.current_fit_obj.results['fun']
 
-        self.last_fit = ft
+        self.last_fit = self.current_fit_obj
+
+        # Reset current fit object
+        self.current_fit_obj = None
+
+    def stop_current_fit(self):
+        if self.current_fit_obj is not None:
+            self.current_fit_obj.stop_current_fit()
 
     # results and output methods
     def save_output(self, filename, layout='horizontal', save_figure=False):
