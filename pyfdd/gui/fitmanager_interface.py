@@ -18,6 +18,7 @@ import pyfdd
 from pyfdd.gui.qt_designer.fitmanager_widget import Ui_FitManagerWidget
 from pyfdd.gui.qt_designer.fitconfig_dialog import Ui_FitConfigDialog
 from pyfdd.gui.qt_designer.parameteredit_dialog import Ui_ParameterEditDialog
+from pyfdd.gui.viewresults_interface import ViewResults_widget
 
 
 class Profile(IntEnum):
@@ -279,6 +280,88 @@ class SiteRange:
         return result
 
 
+class FitManawerWorker(QtCore.QObject):
+    finished = QtCore.pyqtSignal()
+    progress_msg = QtCore.pyqtSignal(str)
+    output_fitman = QtCore.pyqtSignal(pyfdd.FitManager)
+
+    def __init__(self, datapattern, simlibrary, fitconfig, parameter_objects, sites_range_objects):
+        super(FitManawerWorker, self).__init__()
+
+        print('PyFDD version', pyfdd.__version__)
+
+        self._isRunning = True
+
+        # Define variables for creating a fitman
+        cost_function = fitconfig['cost_func'].name
+        n_sites = fitconfig['n_sites']
+        sub_pixels = fitconfig['sub_pixels']
+
+        # Create a fit manager
+        self.fitman = pyfdd.FitManager(cost_function=cost_function,
+                                       n_sites=n_sites,
+                                       sub_pixels=sub_pixels)
+
+        # Set the pattern and library to fit with
+        self.fitman.set_pattern(datapattern, simlibrary)
+
+        parameter_keys = self.fitman.parameter_keys
+
+        # Verify all keys match
+        for key, parameter in zip(parameter_keys, parameter_objects):
+            assert parameter.key == key
+
+        # Set a fixed value if needed
+        fixed_values = {}
+        for key, parameter in zip(parameter_keys, parameter_objects):
+            if parameter.fixed:
+                fixed_values[key] = parameter.initial_value
+        self.fitman.set_fixed_values(**fixed_values)
+
+        # Change default bounds
+        bounds = {key: parameter.bounds
+                  for key, parameter in zip(parameter_keys, parameter_objects)}
+        self.fitman.set_bounds(**bounds)
+
+        # Change default step modifier
+        step_modifier = {key: parameter.step_modifier
+                         for key, parameter in zip(parameter_keys, parameter_objects)}
+        self.fitman.set_step_modifier(**step_modifier)
+
+        # Change initial values
+        initial_values = {key: parameter.initial_value
+                          for key, parameter in zip(parameter_keys, parameter_objects)}
+        self.fitman.set_initial_values(**initial_values)
+
+        # Set a minization profile
+        if fitconfig['min_profile'] is Profile.custom:
+            min_profile = fitconfig['custom_profile']
+        else:
+            min_profile = fitconfig['min_profile'].name
+
+        self.fitman.set_minimization_settings(profile=min_profile)
+
+        # Set a pattern or range of patterns to fit
+        self.sites_to_fit = [site_range.get_range_as_list() for site_range in sites_range_objects]
+
+    @QtCore.pyqtSlot()
+    def run(self):
+        # Run fits
+        # remember to set get_errors to True if you want them. This increases the fit time.
+        self.fitman.run_fits(*self.sites_to_fit, get_errors=True)
+        self.fitman.save_output("test.csv", save_figure=False)
+
+        # Emit fitman for output
+        self.output_fitman.emit(self.fitman)
+
+        # Finish
+        self.finished.emit()
+
+    @QtCore.pyqtSlot()
+    def stop(self):
+        self._isRunning = False
+
+
 class FitManager_window(QtWidgets.QMainWindow):
     """ Class to use the data pattern widget in a separate window"""
     def __init__(self, *args, **kwargs):
@@ -322,6 +405,9 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.fractions_widget_stack = []
         self.n_sites_in_stack = 1
 
+        # Popup widgets
+        self.viewresults_window = None
+
         # Variables
         self.tr_costfunc = {'chi2': 'Chi-square',
                             'ml': 'Neg. log likelihood'}
@@ -331,19 +417,23 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.get_simlibrary()
         self.fitman = None
 
-        # Fit config
+        # Fitman thread variables
+        self.fitman_thread = None
+        self.fitman_worker = None
+        self.fitman_output = None
+
+        # Fit configuration
         self.fitconfig = {'cost_func': CostFunc.chi2,
                           'get_errors': True,
                           'n_sites': 1,
                           'sub_pixels': 1,
                           'min_profile': Profile.default,
                           'custom_profile': ''}
+        # Create a dummy fitmanager to correctly get the default fit parameters
         self.update_fitman()
-        # Set a dummy pattern to correctly get the default fit parameters
-        self.fitman.dp_pattern = self.make_dummy_pattern()
 
         # Sites ranges
-        self.sites_ranges_objects = []
+        self.sites_range_objects = []
         self.init_sites_ranges()
 
         # Parameters
@@ -360,6 +450,10 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         # Connect signals
         self.pb_fitconfig.clicked.connect(self.call_pb_fitconfig)
         self.pb_reset.clicked.connect(self.reset_parameters)
+        self.pb_abortfits.setEnabled(False)
+        self.pb_runfits.clicked.connect(self.call_pb_runfits)
+        self.pb_abortfits.clicked.connect(self.call_pb_abortfits)
+        self.pb_viewresults.clicked.connect(self.call_pb_viewresults)
 
         self.update_infotext()
 
@@ -433,10 +527,11 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.refresh_parameters(reset=True)
 
     def init_sites_ranges(self):
+        """ Create the first site range widget"""
         srange = SiteRange(parent_widget=self, key='sr1', name='Site #1',
                            lb_name=self.lb_f1_name,
                            le_siterange=self.le_site1)
-        self.sites_ranges_objects.append(srange)
+        self.sites_range_objects.append(srange)
 
     def update_infotext(self):
 
@@ -466,6 +561,8 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         else:
             # TODO
             pass
+        self.datapattern = pyfdd.DataPattern(
+            '/home/eric/cernbox/PyCharm/PyFDD/test_pyfdd/test_files/pad_dp_2M.json')
 
     def get_simlibrary(self):
 
@@ -474,6 +571,8 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         else:
             # TODO
             pass
+        self.simlibrary = pyfdd.Lib2dl(
+            '/home/eric/cernbox/PyCharm/PyFDD/test_pyfdd/test_files/sb600g05.2dl')
 
     def call_pb_fitconfig(self):
 
@@ -486,6 +585,66 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         else:
             # Canceled
             pass
+
+    def call_pb_runfits(self):
+
+        # Create a QThread object
+        self.fitman_thread = QtCore.QThread()
+
+        # Step 3: Create a worker object
+        self.fitman_worker = FitManawerWorker(self.datapattern, self.simlibrary,
+                                         self.fitconfig, self.parameter_objects,
+                                         self.sites_range_objects)
+
+        # Move worker to the thread
+        self.fitman_worker.moveToThread(self.fitman_thread)
+
+        # Connect signals and slots
+        self.fitman_thread.started.connect(self.fitman_worker.run)
+        self.fitman_worker.finished.connect(self.fitman_thread.quit)
+        self.fitman_worker.finished.connect(self.fitman_worker.deleteLater)
+        self.fitman_thread.finished.connect(self.fitman_thread.deleteLater)
+        # self.fitman_worker.progress_msg.connect(self.reportProgress)
+        # output signal
+        self.fitman_worker.output_fitman.connect(self.call_store_output)
+
+        # Manage buttons
+        # Activate - Deactivate abort button
+        self.pb_abortfits.setEnabled(True)
+        self.fitman_thread.finished.connect(
+            lambda: self.pb_abortfits.setEnabled(False)
+        )
+        # Deactivate - Activate runfits button
+        self.pb_runfits.setEnabled(False)
+        self.fitman_thread.finished.connect(
+            lambda: self.pb_runfits.setEnabled(True)
+        )
+
+        # Start the thread
+        self.fitman_thread.start()
+
+    def call_pb_abortfits(self):
+
+        resp = QtWidgets.QMessageBox.question(self, 'Warning', "Do you want to abort?",
+                                              QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+
+        if resp == QtWidgets.QMessageBox.Yes:
+            print('yes')
+            if self.fitman_worker is not None:
+                self.fitman_worker.stop()
+
+    def call_store_output(self, fitman):
+        self.fitman_output = fitman
+
+    def call_pb_viewresults(self):
+
+        if self.fitman_output is not None:
+            self.viewresults_window = ViewResults_widget(results_df=self.fitman_output.df_horizontal,
+                                                    parent_widget=self)
+            self.viewresults_window.show()
+        else:
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'Results are not ready.')
+
 
     def update_fitman(self):
         cost_function = self.fitconfig['cost_func'].name
@@ -513,7 +672,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
                 site_name = 'Site #{}'.format(self.n_sites_in_stack)
                 srange = SiteRange(parent_widget=self, key=srkey, name=site_name)
                 srange.add_to_gridlayout(self.sitesrange_layout, row_num=1 + self.n_sites_in_stack)
-                self.sites_ranges_objects.append(srange)
+                self.sites_range_objects.append(srange)
 
                 # Parameters
                 pkey = 'f_p' + str(self.n_sites_in_stack)
@@ -529,7 +688,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         if self.fitconfig['n_sites'] < self.n_sites_in_stack:
             while self.fitconfig['n_sites'] < self.n_sites_in_stack:
                 self.n_sites_in_stack -= 1
-                self.sites_ranges_objects.pop()
+                self.sites_range_objects.pop()
                 self.parameter_objects.pop()
 
         self.parameters_layout.addWidget(self.pb_reset, 5 + 1 + self.n_sites_in_stack, 2)
