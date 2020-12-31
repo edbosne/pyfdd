@@ -210,6 +210,8 @@ class DataPattern_window(QtWidgets.QMainWindow):
 class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
     """ Data pattern widget class"""
 
+    datapattern_opened = QtCore.pyqtSignal()
+
     def __init__(self, *args, mainwindow=None, **kwargs):
         """
         Init method for the data pattern widget
@@ -231,6 +233,7 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
 
         # Instantiate datapattern controler
         self.dpcontroler = DataPatternControler(parent_widget=self, mpl_layout=self.mplvl, infotext_box=self.infotext)
+        self.dpcontroler.datapattern_opened.connect(self.datapattern_opened.emit)
 
         # Create a menubar entry for the datapattern
         self.menubar = self.mainwindow.menuBar()
@@ -314,10 +317,14 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         return self.dpcontroler.get_datapattern()
 
 
-class DataPatternControler:
+class DataPatternControler(QtCore.QObject):
     """ Data pattern controler class"""
 
+    datapattern_opened = QtCore.pyqtSignal()
+
     def __init__(self, parent_widget=None, mpl_layout=None, infotext_box=None):
+
+        super(DataPatternControler, self).__init__()
 
         self.parent_widget = parent_widget
         self.mainwindow = self.parent_widget.mainwindow
@@ -407,11 +414,16 @@ class DataPatternControler:
         if filename == ('', ''):  # Cancel
             return
 
-        self.datapattern = pyfdd.DataPattern(filename[0])
-
-        # Draw pattern and update info text
-        self.draw_new_datapattern()
-        self.update_infotext()
+        try:
+            self.datapattern = pyfdd.DataPattern(filename[0])
+        except:
+            QtWidgets.QMessageBox.warning(self.parent_widget, 'Warning message',
+                                          'Error while opening the data file.')
+        else:
+            # Draw pattern and update info text
+            self.draw_new_datapattern()
+            self.update_infotext()
+            self.datapattern_opened.emit()
 
     def openadd_dp_call(self):
         """
@@ -423,15 +435,22 @@ class DataPatternControler:
         if filename == ([], ''):  # Cancel (first is an empty list)
             return
 
-        for each in filename[0]:
-            if self.datapattern is None:
-                self.datapattern = pyfdd.DataPattern(each)
-            else:
-                self.datapattern = self.datapattern + pyfdd.DataPattern(each)
-
-        # Draw pattern and update info text
-        self.draw_new_datapattern()
-        self.update_infotext()
+        try:
+            new_datapattern = self.datapattern
+            for each in filename[0]:
+                if new_datapattern is None:
+                    new_datapattern = pyfdd.DataPattern(each)
+                else:
+                    new_datapattern = new_datapattern + pyfdd.DataPattern(each)
+        except:
+            QtWidgets.QMessageBox.warning(self.parent_widget, 'Warning message',
+                                          'Error while opening the data file.')
+        else:
+            self.datapattern = new_datapattern.copy()
+            # Draw pattern and update info text
+            self.draw_new_datapattern()
+            self.update_infotext()
+            self.datapattern_opened.emit()
 
     def save_dp_call(self):
         """

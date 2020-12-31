@@ -595,11 +595,9 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
     def get_datapattern(self):
 
         if self.mainwindow is None:
-            print('noo')
             self.datapattern = None
         else:
             self.datapattern = self.mainwindow.get_datapattern()
-            print(self.datapattern)
 
     def get_simlibrary(self):
 
@@ -717,7 +715,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
                 datapattern = self.fitman_output.get_pattern_from_last_fit( normalization=normalization)
                 new_dp_window = DataPattern_window()
                 new_dp_window.set_datapattern(datapattern)
-                new_dp_window.setWindowTitle('Last Fit Data Pattern')
+                new_dp_window.setWindowTitle('Last Fit Pattern')
                 new_dp_window.show()
                 self.dp_external.append(new_dp_window)
         else:
@@ -734,7 +732,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
                 datapattern_fit = self.fitman_output.get_pattern_from_last_fit(normalization=normalization)
                 new_dp_window = DataPattern_window()
                 new_dp_window.set_datapattern(datapattern_data - datapattern_fit)
-                new_dp_window.setWindowTitle('Last Fit Data Pattern')
+                new_dp_window.setWindowTitle('Data Pattern - Fit Pattern')
                 new_dp_window.show()
                 self.dp_external.append(new_dp_window)
         else:
@@ -755,7 +753,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
                                                                      substitute_masked_with=generator)
                     new_dp_window = DataPattern_window()
                     new_dp_window.set_datapattern(datapattern)
-                    new_dp_window.setWindowTitle('Last Fit Data Pattern')
+                    new_dp_window.setWindowTitle('Data Pattern with Replaced Masked Pixels')
                     new_dp_window.show()
                     self.dp_external.append(new_dp_window)
         else:

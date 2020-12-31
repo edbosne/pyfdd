@@ -819,7 +819,7 @@ class FitManager:
         else:
             raise ValueError('parameter fit must be either \'best\' or \'last\'')
 
-        dp_pattern = copy.deepcopy(self.dp_pattern)
+        dp_pattern = self.dp_pattern.copy()
 
         if substitute_masked_with is not None:
             sim_pattern = self._gen_detector_pattern_from_fit(fit_obj=fit_obj, generator=substitute_masked_with,
@@ -831,6 +831,7 @@ class FitManager:
 
             dp_pattern.matrixCurrent.data[substitute_matrix] = \
                 sim_pattern.data[substitute_matrix]
+            dp_pattern.matrixCurrent.mask = sim_pattern.mask
 
             #print('data\n', dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask])
 

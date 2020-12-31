@@ -45,13 +45,8 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         self.maintabs.addTab(self.fm_w, 'Fit Manager')
 
         self.maintabs.currentChanged.connect(self.update_fm)
-
-        #pyqt_bkg = self.maintabs.palette().color(QtGui.QPalette.Window).getRgbF()
-        #mpl_bkg = mpl.colors.rgb2hex(pyqt_bkg)
-        #mpl_bkg = '#fcfcfc' # couldn't get the exact color so I got this value by hand
-
-        #self.dp_w.dpcontroler.refresh_mpl_color(new_mpl_bkg=mpl_bkg)
-        #self.se_w.dpcontroler.refresh_mpl_color(new_mpl_bkg=mpl_bkg)
+        self.dp_w.datapattern_opened.connect(self.update_fm)
+        self.se_w.simlibrary_opened.connect(self.update_fm)
 
     def get_datapattern(self):
         datapattern = self.dp_w.get_datapattern()
@@ -61,17 +56,23 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         simlibrary = self.se_w.get_simlibrary()
         return simlibrary
 
-    def update_fm(self, tab):
-        if tab == 2: # Fit manager tab
+    def update_fm(self, tab=2):
+        if tab == 2:  # Fit manager tab
             self.fm_w.update_all()
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        """ close all windows when main is closed. """
+        event.accept()
+        sys.exit()
 
 
 def run():
     app = QtWidgets.QApplication(sys.argv)
     window = WindowedPyFDD()
     window.show()
-    print(window.size())
+    # print(window.size())
     sys.exit(app.exec())
+
 
 if __name__ == '__main__':
     run()

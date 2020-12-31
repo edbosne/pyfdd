@@ -43,6 +43,8 @@ class SimExplorer_window(QtWidgets.QMainWindow):
 class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
     """ Data pattern widget class"""
 
+    simlibrary_opened = QtCore.pyqtSignal()
+
     def __init__(self, *args, mainwindow=None, **kwargs):
         """
         Init method for the data pattern widget
@@ -118,12 +120,17 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
         if lib_path == ('', ''):  # Cancel
             return
 
-        self.simlib = pyfdd.Lib2dl(lib_path[0])
-
-        # update info text, simlist and datapattern
-        self.update_infotext()
-        self.update_simlist()
-        self.update_datapattern()
+        try:
+            self.simlib = pyfdd.Lib2dl(lib_path[0])
+        except:
+            QtWidgets.QMessageBox.warning(self.parent_widget, 'Warning message',
+                                          'Error while opening the library file.')
+        else:
+            # update info text, simlist and datapattern
+            self.update_infotext()
+            self.update_simlist()
+            self.update_datapattern()
+            self.simlibrary_opened.emit()
 
     def get_simlibrary(self):
         if self.simlib is not None:
