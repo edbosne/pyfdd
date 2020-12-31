@@ -199,9 +199,12 @@ class DataPattern_window(QtWidgets.QMainWindow):
         self.statusBar()
 
         # Set a DataPattern widget as central widget
-        dp_w = DataPattern_widget(mainwindow=self)
-        self.setCentralWidget(dp_w)
+        self.dp_w = DataPattern_widget(mainwindow=self)
+        self.setCentralWidget(self.dp_w)
         self.resize(1150, 670)
+
+    def set_datapattern(self, datapattern):
+        self.dp_w.set_datapattern(datapattern)
 
 
 class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
@@ -304,6 +307,12 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
 
         return dp_menu
 
+    def set_datapattern(self, datapattern):
+        self.dpcontroler.set_datapattern(datapattern)
+
+    def get_datapattern(self):
+        return self.dpcontroler.get_datapattern()
+
 
 class DataPatternControler:
     """ Data pattern controler class"""
@@ -383,7 +392,10 @@ class DataPatternControler:
         self.update_infotext()
 
     def get_datapattern(self):
-        return self.datapattern.copy()
+        if self.datapattern is not None:
+            return self.datapattern.copy()
+        else:
+            return None
 
     def open_dp_call(self):
         """

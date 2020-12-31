@@ -71,6 +71,7 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
         self.dp_menu = self.setup_menu()
 
         # Variables
+        self.simlib = None
         self.current_row = None
 
         # Connect signals
@@ -123,6 +124,12 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
         self.update_infotext()
         self.update_simlist()
         self.update_datapattern()
+
+    def get_simlibrary(self):
+        if self.simlib is not None:
+            return self.simlib.copy()
+        else:
+            return None
 
     def update_infotext(self):
         if self.infotext is None:

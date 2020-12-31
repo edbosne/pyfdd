@@ -14,6 +14,8 @@ import json
 import os
 import struct
 import warnings
+import copy
+
 
 import numpy as np
 
@@ -214,6 +216,9 @@ class Lib2dl:
         if self.ymirror:
             new_pattern = np.concatenate((np.flipud(new_pattern), new_pattern[1:,:]), 0)
         return new_pattern
+
+    def copy(self):
+        return copy.deepcopy(self)
 
     def get_dict(self):
         return self.dict_2dl.copy()

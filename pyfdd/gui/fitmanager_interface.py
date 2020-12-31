@@ -19,6 +19,7 @@ from pyfdd.gui.qt_designer.fitmanager_widget import Ui_FitManagerWidget
 from pyfdd.gui.qt_designer.fitconfig_dialog import Ui_FitConfigDialog
 from pyfdd.gui.qt_designer.parameteredit_dialog import Ui_ParameterEditDialog
 from pyfdd.gui.viewresults_interface import ViewResults_widget
+from pyfdd.gui.datapattern_interface import DataPattern_window
 
 
 class Profile(IntEnum):
@@ -294,6 +295,7 @@ class FitManawerWorker(QtCore.QObject):
         cost_function = fitconfig['cost_func'].name
         n_sites = fitconfig['n_sites']
         sub_pixels = fitconfig['sub_pixels']
+        self.get_errors = fitconfig['get_errors']
 
         # Create a fit manager
         self.fitman = pyfdd.FitManager(cost_function=cost_function,
@@ -348,13 +350,13 @@ class FitManawerWorker(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def run(self):
-
-        self.new_print('PyFDD version {}'.format(pyfdd.__version__))
+        self.new_print('*'*80)
+        self.new_print(' '*30 + 'PyFDD version {}'.format(pyfdd.__version__))
+        self.new_print('*' * 80)
 
         # Run fits
         # remember to set get_errors to True if you want them. This increases the fit time.
-        self.fitman.run_fits(*self.sites_to_fit, get_errors=True)
-        self.fitman.save_output("test.csv", save_figure=False)
+        self.fitman.run_fits(*self.sites_to_fit, get_errors=self.get_errors)
 
         # Emit fitman for output
         self.output_fitman.emit(self.fitman)
@@ -392,6 +394,18 @@ class FitManager_window(QtWidgets.QMainWindow):
         self.setCentralWidget(dp_w)
         self.resize(1150, 670)
 
+    @staticmethod
+    def get_datapattern():
+        datapattern = pyfdd.DataPattern(
+            '/home/eric/cernbox/PyCharm/PyFDD/test_pyfdd/test_files/pad_dp_2M.json')
+        return datapattern
+
+    @staticmethod
+    def get_simlibrary():
+        simlibrary = pyfdd.Lib2dl(
+            '/home/eric/cernbox/PyCharm/PyFDD/test_pyfdd/test_files/sb600g05.2dl')
+        return simlibrary
+
 
 class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
     """ Data pattern widget class"""
@@ -426,6 +440,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
 
         # Popup widgets
         self.viewresults_window = None
+        self.dp_external = []
 
         # Variables
         self.tr_costfunc = {'chi2': 'Chi-square',
@@ -473,6 +488,10 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.pb_runfits.clicked.connect(self.call_pb_runfits)
         self.pb_abortfits.clicked.connect(self.call_pb_abortfits)
         self.pb_viewresults.clicked.connect(self.call_pb_viewresults)
+        self.pb_savetable.clicked.connect(self.call_pb_savetable)
+        self.pb_viewfit.clicked.connect(self.call_pb_viewlastfit)
+        self.pb_viewfitdiff.clicked.connect(self.call_pb_viewfitdiff)
+        self.pb_filldata.clicked.connect(self.call_pb_filldata)
 
         self.update_infotext()
 
@@ -576,22 +595,18 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
     def get_datapattern(self):
 
         if self.mainwindow is None:
+            print('noo')
             self.datapattern = None
         else:
-            # TODO
-            pass
-        self.datapattern = pyfdd.DataPattern(
-            '/home/eric/cernbox/PyCharm/PyFDD/test_pyfdd/test_files/pad_dp_2M.json')
+            self.datapattern = self.mainwindow.get_datapattern()
+            print(self.datapattern)
 
     def get_simlibrary(self):
 
         if self.mainwindow is None:
             self.simlibrary = None
         else:
-            # TODO
-            pass
-        self.simlibrary = pyfdd.Lib2dl(
-            '/home/eric/cernbox/PyCharm/PyFDD/test_pyfdd/test_files/sb600g05.2dl')
+            self.simlibrary = self.mainwindow.get_simlibrary()
 
     def call_pb_fitconfig(self):
 
@@ -606,6 +621,14 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
             pass
 
     def call_pb_runfits(self):
+
+        if self.datapattern is None:
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'Data pattern is not set.')
+            return
+
+        if self.simlibrary is None:
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'Simulation library is not set.')
+            return
 
         # Clear text box
         self.tb_fit_report.clear()
@@ -669,6 +692,74 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         else:
             QtWidgets.QMessageBox.warning(self, 'Warning message', 'Results are not ready.')
 
+    def call_pb_savetable(self):
+
+        if self.fitman_output is not None:
+            filename = QtWidgets.QFileDialog. \
+                getSaveFileName(self, 'Export DataPattern',
+                                filter='data (*csv *txt)',
+                                options=QtWidgets.QFileDialog.DontUseNativeDialog)
+
+            if filename == ('', ''):  # Cancel
+                return
+
+            self.fitman_output.save_output(filename[0])
+        else:
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'Results are not ready.')
+
+    def call_pb_viewlastfit(self):
+
+        if self.fitman_output is not None:
+            items = ("counts", "yield", "probability")
+            normalization, ok = QtWidgets.QInputDialog.getItem(self, "Choose normalization",
+                                                   "Normalization:", items, 0, False)
+            if ok and normalization:
+                datapattern = self.fitman_output.get_pattern_from_last_fit( normalization=normalization)
+                new_dp_window = DataPattern_window()
+                new_dp_window.set_datapattern(datapattern)
+                new_dp_window.setWindowTitle('Last Fit Data Pattern')
+                new_dp_window.show()
+                self.dp_external.append(new_dp_window)
+        else:
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'Results are not ready.')
+
+    def call_pb_viewfitdiff(self):
+
+        if self.fitman_output is not None:
+            items = ("counts", "yield", "probability")
+            normalization, ok = QtWidgets.QInputDialog.getItem(self, "Choose normalization",
+                                                      "Normalization:", items, 0, False)
+            if ok and normalization:
+                datapattern_data = self.fitman_output.get_datapattern(normalization=normalization)
+                datapattern_fit = self.fitman_output.get_pattern_from_last_fit(normalization=normalization)
+                new_dp_window = DataPattern_window()
+                new_dp_window.set_datapattern(datapattern_data - datapattern_fit)
+                new_dp_window.setWindowTitle('Last Fit Data Pattern')
+                new_dp_window.show()
+                self.dp_external.append(new_dp_window)
+        else:
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'Results are not ready.')
+
+    def call_pb_filldata(self):
+
+        if self.fitman_output is not None:
+            items = ("counts", "yield", "probability")
+            normalization, ok = QtWidgets.QInputDialog.getItem(self, "Choose normalization",
+                                                      "Normalization:", items, 0, False)
+            if ok and normalization:
+                items = ('ideal', 'poisson', 'montecarlo')
+                generator, ok = QtWidgets.QInputDialog.getItem(self, "Choose generator",
+                                                                   "Generator:", items, 0, False)
+                if ok and generator:
+                    datapattern = self.fitman_output.get_datapattern(normalization=normalization,
+                                                                     substitute_masked_with=generator)
+                    new_dp_window = DataPattern_window()
+                    new_dp_window.set_datapattern(datapattern)
+                    new_dp_window.setWindowTitle('Last Fit Data Pattern')
+                    new_dp_window.show()
+                    self.dp_external.append(new_dp_window)
+        else:
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'Results are not ready.')
 
     def update_fitman(self):
         cost_function = self.fitconfig['cost_func'].name
@@ -683,6 +774,12 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
             self.fitman.dp_pattern = self.make_dummy_pattern()
         if self.simlibrary is not None:
             self.fitman.lib = self.simlibrary
+
+    def update_all(self):
+        self.get_datapattern()
+        self.get_simlibrary()
+        self.update_fitman()
+        self.update_infotext()
 
     def update_n_sites_widgets(self):
         self.parameters_layout.removeWidget(self.pb_reset)

@@ -194,11 +194,7 @@ class DataPattern:
         new_pattern = self.matrixCurrent.data + other.matrixCurrent.data
         new_pattern_mask = self.matrixCurrent.mask + other.matrixCurrent.mask
 
-        # do a deepcopy without the plot axes
-        temp_ax = self.ax
-        self.ax = None
-        new_mm = copy.deepcopy(self)
-        self.ax = temp_ax
+        new_mm = self.copy()
 
         new_mm.matrixOriginal = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
         new_mm.matrixCurrent = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
@@ -211,7 +207,7 @@ class DataPattern:
         new_pattern = self.matrixCurrent.data - other.matrixCurrent.data
         new_pattern_mask = self.matrixCurrent.mask + other.matrixCurrent.mask
 
-        new_mm = copy.deepcopy(self)
+        new_mm = self.copy()
 
         new_mm.matrixOriginal = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
         new_mm.matrixCurrent = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
@@ -231,7 +227,7 @@ class DataPattern:
         new_pattern = ma.masked_array(data=self.matrixCurrent.data * other, mask=self.matrixCurrent.mask)
 
         # Create new MM
-        new_mm = copy.deepcopy(self)
+        new_mm = self.copy()
 
         new_mm.matrixOriginal = new_pattern.copy()
         new_mm.matrixCurrent = new_pattern.copy()
@@ -248,7 +244,7 @@ class DataPattern:
         new_pattern = ma.masked_array(data=self.matrixCurrent.data / other, mask=self.matrixCurrent.mask)
 
         # Create new MM
-        new_mm = copy.deepcopy(self)
+        new_mm = self.copy()
 
         new_mm.matrixOriginal = copy.deepcopy(new_pattern)
         new_mm.matrixCurrent = copy.deepcopy(new_pattern)
@@ -256,7 +252,25 @@ class DataPattern:
         return new_mm
 
     def copy(self):
-        return copy.deepcopy(self)
+        # Draw variables should not be copied
+        temp_ax = self.ax
+        temp_ang_wid = self.ang_wid
+        temp_rectangle_limits= self.rectangle_limits
+        temp_RS = self.RS
+
+        self.ax = None
+        self.ang_wid = None
+        self.rectangle_limits = None
+        self.RS = None
+
+        new_dp = copy.deepcopy(self)
+
+        self.ax = temp_ax
+        self.ang_wid = temp_ang_wid
+        self.rectangle_limits = temp_rectangle_limits
+        self.RS = temp_RS
+
+        return new_dp
 
     def get_matrix(self):
         return self.matrixCurrent.copy()

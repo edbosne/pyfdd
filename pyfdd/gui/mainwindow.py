@@ -23,6 +23,7 @@ import pyfdd
 from pyfdd.gui.qt_designer.windowedpyfdd import Ui_WindowedPyFDD
 from pyfdd.gui.datapattern_interface import DataPattern_widget
 from pyfdd.gui.simlibrary_interface import SimExplorer_widget
+from pyfdd.gui.fitmanager_interface import FitManager_widget
 
 
 class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
@@ -37,9 +38,13 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         # Create pyfdd widgets
         self.dp_w = DataPattern_widget(self.maintabs, mainwindow=self)
         self.se_w = SimExplorer_widget(self.maintabs, mainwindow=self)
+        self.fm_w = FitManager_widget(self.maintabs, mainwindow=self)
 
         self.maintabs.addTab(self.dp_w, 'Data Pattern')
         self.maintabs.addTab(self.se_w, 'Simulations Library')
+        self.maintabs.addTab(self.fm_w, 'Fit Manager')
+
+        self.maintabs.currentChanged.connect(self.update_fm)
 
         #pyqt_bkg = self.maintabs.palette().color(QtGui.QPalette.Window).getRgbF()
         #mpl_bkg = mpl.colors.rgb2hex(pyqt_bkg)
@@ -47,6 +52,18 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
 
         #self.dp_w.dpcontroler.refresh_mpl_color(new_mpl_bkg=mpl_bkg)
         #self.se_w.dpcontroler.refresh_mpl_color(new_mpl_bkg=mpl_bkg)
+
+    def get_datapattern(self):
+        datapattern = self.dp_w.get_datapattern()
+        return datapattern
+
+    def get_simlibrary(self):
+        simlibrary = self.se_w.get_simlibrary()
+        return simlibrary
+
+    def update_fm(self, tab):
+        if tab == 2: # Fit manager tab
+            self.fm_w.update_all()
 
 
 def run():
