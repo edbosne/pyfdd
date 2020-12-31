@@ -249,10 +249,14 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         # Mask signals
         self.pb_maskpixel.clicked.connect(lambda: self.dpcontroler.call_pb_maskpixel(self.pb_maskpixel))
         self.pb_maskrectangle.clicked.connect(lambda: self.dpcontroler.call_pb_maskrectangle(self.pb_maskrectangle))
+        self.pb_maskpixel.clicked.connect(self.untoggle_pb_maskrectangle)
+        self.pb_maskrectangle.clicked.connect(self.untoggle_pb_maskpixel)
         self.pb_maskbelow.clicked.connect(self.dpcontroler.call_pb_maskbelow)
         self.pb_maskabove.clicked.connect(self.dpcontroler.call_pb_maskabove)
         self.pb_removeedge.clicked.connect(self.dpcontroler.call_pb_removeedge)
         self.pb_removecentral.clicked.connect(self.dpcontroler.call_pb_removecentral)
+        self.pb_expandmask.clicked.connect(self.dpcontroler.call_pb_expandmask)
+        self.pb_clearmask.clicked.connect(self.dpcontroler.call_pb_clearmask)
         self.pb_loadmask.clicked.connect(self.dpcontroler.call_pb_loadmask)
         self.pb_savemask.clicked.connect(self.dpcontroler.call_pb_savemask)
 
@@ -309,6 +313,17 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         dp_menu.addAction(saveimage_act)
 
         return dp_menu
+
+    def untoggle_pb_maskrectangle(self):
+        if self.pb_maskrectangle.isChecked():
+            self.pb_maskrectangle.setChecked(False)
+            self.dpcontroler.call_pb_maskrectangle(self.pb_maskrectangle)
+
+
+    def untoggle_pb_maskpixel(self):
+        if self.pb_maskpixel.isChecked():
+            self.pb_maskpixel.setChecked(False)
+            self.dpcontroler.call_pb_maskpixel(self.pb_maskpixel)
 
     def set_datapattern(self, datapattern):
         self.dpcontroler.set_datapattern(datapattern)
@@ -738,10 +753,35 @@ class DataPatternControler(QtCore.QObject):
         if not self.datapattern_exits():
             return
 
-        value, ok = QtWidgets.QInputDialog.getInt(self.parent_widget, 'Input value', 'Number of edge pixels to remove\t\t\t',  # 0,0)
+        value, ok = QtWidgets.QInputDialog.getInt(self.parent_widget, 'Input value',
+                                                  'Number of edge pixels to remove\t\t\t',  # 0,0)
                                                   value=0, min=0)
         if ok:
             self.datapattern.zero_central_pix(value)
+
+        # Draw pattern and update info text
+        self.draw_datapattern()
+        self.update_infotext()
+
+    def call_pb_expandmask(self):
+        if not self.datapattern_exits():
+            return
+
+        value, ok = QtWidgets.QInputDialog.getInt(self.parent_widget, 'Input value',
+                                                  'Mask pixels adjacent to already masked pixels by \t\t\t',  # 0,0)
+                                                  value=0, min=0)
+        if ok:
+            self.datapattern.expand_mask(value)
+
+        # Draw pattern and update info text
+        self.draw_datapattern()
+        self.update_infotext()
+
+    def call_pb_clearmask(self):
+        if not self.datapattern_exits():
+            return
+
+        self.datapattern.clear_mask()
 
         # Draw pattern and update info text
         self.draw_datapattern()

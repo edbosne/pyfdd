@@ -713,6 +713,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
                                                    "Normalization:", items, 0, False)
             if ok and normalization:
                 datapattern = self.fitman_output.get_pattern_from_last_fit( normalization=normalization)
+                datapattern.clear_mask()
                 new_dp_window = DataPattern_window()
                 new_dp_window.set_datapattern(datapattern)
                 new_dp_window.setWindowTitle('Last Fit Pattern')

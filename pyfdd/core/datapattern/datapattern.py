@@ -445,20 +445,23 @@ class DataPattern:
         mask = np.loadtxt(filename)
         if mask.shape != self.matrixCurrent.shape:
             raise ValueError('Shape of mask in file does not match the shape of DataPattern')
-        mask = self._espand_mask(mask, expand_by)
+        mask = self._expand_any_mask(mask, expand_by)
         self.matrixCurrent.mask = (mask == 0)
 
     def set_mask(self, mask, expand_by=0):
         mask = np.array(mask)
         if mask.shape != self.matrixCurrent.shape:
             raise ValueError('Shape of mask does not match the shape of DataPattern')
-        mask = self._espand_mask(mask, expand_by)
+        mask = self._expand_any_mask(mask, expand_by)
         self.matrixCurrent.mask = mask
 
     def save_mask(self, filename):
         np.savetxt(filename, self.matrixCurrent.mask == 0, fmt='%i')
 
-    def _espand_mask(self, mask, expand_by=0):
+    def expand_mask(self, expand_by=0):
+        self.matrixCurrent.mask = self._expand_any_mask(self.matrixCurrent.mask, expand_by)
+
+    def _expand_any_mask(self, mask, expand_by=0):
         '''
         masks pixels that are adjacent to masked pixels up to a distance of expand_by.
         :param mask:
@@ -508,8 +511,11 @@ class DataPattern:
         hist = MpxHist(self.matrixCurrent)
         condition = ((self.matrixCurrent <= hist.mean - std * hist.std) | \
                      (self.matrixCurrent >= hist.mean + std * hist.std))
-        mask = self._espand_mask(condition, expand_by)
+        mask = self._expand_any_mask(condition, expand_by)
         self.matrixCurrent = ma.masked_where(mask==1, self.matrixCurrent)
+
+    def clear_mask(self):
+        self.matrixCurrent.mask = False
 
     # ===== - Matrix Manipulation Methods - =====
 
