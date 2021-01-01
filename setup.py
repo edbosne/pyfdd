@@ -15,9 +15,9 @@ setup(
     packages=['pyfdd', 'pyfdd.core', 'pyfdd.core.lib2dl', 'pyfdd.core.datapattern', 'pyfdd.gui', 'pyfdd.gui.qt_designer','examples',
               'ecsli_tools'],
     install_requires=[
-          'numpy', 'matplotlib', 'scipy', 'numdifftools', 'pandas', 'seaborn', 'PyQt5'],
+          'numpy', 'matplotlib == 3.0.3', 'scipy', 'numdifftools', 'pandas', 'seaborn', 'PyQt5 == 5.14.0'],
     python_requires='>=3',
-    url='https://github.com/eric-presbitero/pyfdd',
+    url='https://github.com/edbosne/pyfdd',
     license='GPL-3.0',
     author='E David-Bosne',
     author_email='eric.bosne@cern.ch',
