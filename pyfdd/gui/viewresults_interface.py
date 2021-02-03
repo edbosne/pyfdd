@@ -81,7 +81,6 @@ class ViewResults_widget(QtWidgets.QWidget, Ui_ViewResultsWidget):
         for col in self.results_df.columns:
             if 'site' in col and 'fraction' in col:
                 columns.append(col)
-        print('columns', columns)
         self.results_df.plot(y=columns, ax=self.plot_ax_fractions, legend=True)
         self.plot_ax_fractions.set_xlabel('Fit number')
         self.plot_ax_fractions.set_ylabel('Fraction')

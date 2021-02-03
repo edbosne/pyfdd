@@ -500,7 +500,7 @@ class DataPattern:
         distance1 = np.abs(np.dot(xy, v1))
         distance2 = np.abs(np.dot(xy, v2))
 
-        if distance > 0:
+        if distance >= 0:
             condition = ((distance1 > distance) | (distance2 > distance))
         elif distance < 0:
             condition = ~((distance1 > -distance) | (distance2 > -distance))

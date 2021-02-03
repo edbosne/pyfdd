@@ -115,7 +115,7 @@ class ParameterEdit_dialog(QtWidgets.QDialog, Ui_ParameterEditDialog):
         except ValueError:
             QtWidgets.QMessageBox.warning(self, 'Warning message', 'Range must be a float or None.')
         else:
-            return [val_min, val_max]
+            return val_min, val_max
 
     def get_step_modifier(self):
         try:
@@ -130,7 +130,7 @@ class ParameterEdit_dialog(QtWidgets.QDialog, Ui_ParameterEditDialog):
 
 
 class Parameter:
-    def __init__(self, parent_widget, key='', name='par', initial_value=0, bounds=[None, None],
+    def __init__(self, parent_widget, key='', name='par', initial_value=0, bounds=(None, None),
                  step_modifier=1, fixed=False, pb_edit=None, lb_name=None, lb_description=None):
         self.parent = parent_widget
         self.key = key
@@ -163,7 +163,7 @@ class Parameter:
         # Connect signals
         self.pb_edit.clicked.connect(self.call_pb_edit)
 
-    def reset_values_to(self, initial_value=0, bounds=[None, None], step_modifier=1, fixed=False):
+    def reset_values_to(self, initial_value=0, bounds=(None, None), step_modifier=1, fixed=False):
         self.initial_value = initial_value
         self.bounds = bounds
         self.step_modifier = step_modifier
@@ -173,7 +173,7 @@ class Parameter:
 
     def update_description(self):
         # Print a '-' if there is no bound
-        bounds = [a if a is not None else '-' for a in self.bounds]
+        bounds = tuple([a if a is not None else '-' for a in self.bounds])
         fixed = 'F' if self.fixed else ''
         if self.initial_value < 100:
             base_text = '{:.2f}; [{}, {}]; {:.2f}; {}'
@@ -186,7 +186,7 @@ class Parameter:
         self.lb_description.setText(text)
 
         if self.was_changed:
-            self.lb_name.setStyleSheet("background-color:green;")
+            self.lb_name.setStyleSheet("background-color:gray;")
         else:
             # back to default
             self.lb_name.setStyleSheet('')
@@ -325,6 +325,7 @@ class FitManawerWorker(QtCore.QObject):
         # Change default bounds
         bounds = {key: parameter.bounds
                   for key, parameter in zip(parameter_keys, parameter_objects)}
+        print('bounds', bounds)
         self.fitman.set_bounds(**bounds)
 
         # Change default step modifier
@@ -362,7 +363,7 @@ class FitManawerWorker(QtCore.QObject):
         self.output_fitman.emit(self.fitman)
 
         # Add a few blank lines for aestetics
-        self.new_print('\n\n\n')
+        self.new_print('\n\nDone!\n\n\n')
 
         # Finish
         self.finished.emit()
@@ -386,13 +387,17 @@ class FitManager_window(QtWidgets.QMainWindow):
         super(FitManager_window, self).__init__(*args, **kwargs)
 
         # Setup the window
-        self.setWindowTitle("Fit Manager")
+        self.window_title = "Fit Manager"
+        self.setWindowTitle(self.window_title)
         self.statusBar()
 
         # Set a DataPattern widget as central widget
-        dp_w = FitManager_widget(mainwindow=self)
-        self.setCentralWidget(dp_w)
+        self.fm_w = FitManager_widget(mainwindow=self)
+        self.setCentralWidget(self.fm_w)
         self.resize(1150, 670)
+
+        # Connect
+        self.fm_w.fitresults_changed_or_saved.connect(self.title_update)
 
     @staticmethod
     def get_datapattern():
@@ -406,9 +411,22 @@ class FitManager_window(QtWidgets.QMainWindow):
             '/home/eric/cernbox/PyCharm/PyFDD/test_pyfdd/test_files/sb600g05.2dl')
         return simlibrary
 
+    def title_update(self):
+        if self.fm_w.are_changes_saved() is False:
+            if self.window_title[-1] == "*":
+                pass
+            else:
+                self.window_title = self.window_title + '*'
+        else:
+            if self.window_title[-1] == "*":
+                self.window_title = self.window_title[0:-1]
+        self.setWindowTitle(self.window_title)
+
 
 class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
     """ Data pattern widget class"""
+
+    fitresults_changed_or_saved = QtCore.pyqtSignal()
 
     def __init__(self, *args, mainwindow=None, **kwargs):
         """
@@ -450,6 +468,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.get_datapattern()
         self.get_simlibrary()
         self.fitman = None
+        self.changes_saved = True
 
         # Fitman thread variables
         self.fitman_thread = None
@@ -606,6 +625,9 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         else:
             self.simlibrary = self.mainwindow.get_simlibrary()
 
+    def are_changes_saved(self):
+        return self.changes_saved
+
     def call_pb_fitconfig(self):
 
         fitconfig_dialog = FitConfig_dialog(parent_widget=self, current_config=self.fitconfig, fitman=self.fitman)
@@ -680,6 +702,8 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
 
     def call_store_output(self, fitman):
         self.fitman_output = fitman
+        self.changes_saved = False
+        self.fitresults_changed_or_saved.emit()
 
     def call_pb_viewresults(self):
 
@@ -702,6 +726,8 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
                 return
 
             self.fitman_output.save_output(filename[0])
+            self.changes_saved = True
+            self.fitresults_changed_or_saved.emit()
         else:
             QtWidgets.QMessageBox.warning(self, 'Warning message', 'Results are not ready.')
 
@@ -799,7 +825,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
                 # f_px
                 fraction_name = 'fraction #{}'.format(self.n_sites_in_stack)
                 par = Parameter(parent_widget=self, key=pkey, name=fraction_name, initial_value=0,
-                                bounds=[None, None],
+                                bounds=(None, None),
                                 step_modifier=1, fixed=False)
                 par.add_to_gridlayout(self.parameters_layout, row_num=5 + self.n_sites_in_stack)
                 self.parameter_objects.append(par)
