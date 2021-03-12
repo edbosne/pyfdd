@@ -2,6 +2,7 @@
 import sys
 import os
 import warnings
+import json
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 # from PySide2 import QtCore, QtGui, QtWidgets, uic
@@ -25,6 +26,7 @@ from pyfdd.gui.qt_designer.datapattern_widget import Ui_DataPatternWidget
 from pyfdd.gui.qt_designer.buildmesh_dialog import Ui_BuildMeshDialog
 from pyfdd.gui.qt_designer.colorscale_dialog import Ui_ColorScaleDialog
 from pyfdd.gui.qt_designer.setlabels_dialog import Ui_SetLabelsDialog
+import pyfdd.gui.config as config
 
 
 # Set style
@@ -61,10 +63,14 @@ class SetLabels_dialog(QtWidgets.QDialog, Ui_SetLabelsDialog):
         self.dp_controler = dp_controler
         self.setupUi(self)
 
-        labels_suggestions = {'title': 'Channeling Pattern',
+        default_labels_suggestions = {'title': 'Channeling Pattern',
                               'xlabel': r'x-angle $\theta[°]$',
                               'ylabel': r'y-angle $\omega[°]$',
                               'zlabel': 'Counts'}
+
+        labels_suggestions = default_labels_suggestions if not \
+            config.parser.has_option('datapattern', 'labels_suggestions') else \
+            config.getdict('datapattern', 'labels_suggestions')
 
         self.new_labels = dict()
 
@@ -81,6 +87,7 @@ class SetLabels_dialog(QtWidgets.QDialog, Ui_SetLabelsDialog):
         self.le_x_axis.editingFinished.connect(self.call_le_x_axis)
         self.le_y_axis.editingFinished.connect(self.call_le_y_axis)
         self.le_z_axis.editingFinished.connect(self.call_le_z_axis)
+        self.accepted.connect(self.update_config)
 
     def _init_le_string(self):
         """
@@ -91,6 +98,10 @@ class SetLabels_dialog(QtWidgets.QDialog, Ui_SetLabelsDialog):
         self.le_x_axis.setText(self.new_labels['xlabel'])
         self.le_y_axis.setText(self.new_labels['ylabel'])
         self.le_z_axis.setText(self.new_labels['zlabel'])
+
+    def update_config(self):
+        # update config
+        config.parser['datapattern']['labels_suggestions'] = json.dumps(self.new_labels)
 
     def call_le_title(self):
         self.new_labels['title'] = self.le_title.text()
@@ -126,6 +137,11 @@ class ColorScale_dialog(QtWidgets.QDialog, Ui_ColorScaleDialog):
         self.sb_min_tick.valueChanged.connect(self.call_sb_min_tick)
         self.sb_max_percentile.valueChanged.connect(self.call_sb_max_percentile)
         self.sb_max_tick.valueChanged.connect(self.call_sb_max_tick)
+        self.accepted.connect(self.update_config)
+
+    def update_config(self):
+        # update config
+        config.parser['datapattern']['default_percentiles'] = json.dumps(self.dp_controler.percentiles)
 
     def update_plot(self):
         self.dp_controler.draw_datapattern()
@@ -162,10 +178,42 @@ class BuildMesh_dialog(QtWidgets.QDialog, Ui_BuildMeshDialog):
         self.dp_controler = dp_controler
         self.setupUi(self)
 
+        default_mesh_settings = {'pixel size': 0.055,
+                                 'distance': 315.0,
+                                 'angular step': 0.1,
+                                 'selected': 'detector'}
+
+        self.mesh_settings = default_mesh_settings if not \
+            config.parser.has_option('datapattern', 'mesh_settings') else \
+            config.getdict('datapattern', 'mesh_settings')
+
+        self.load_mesh_settings()
+
         # Connect signals
         self.le_pixelsize.textEdited.connect(self.set_detector_config)
         self.le_distance.textEdited.connect(self.set_detector_config)
         self.le_angstep.textEdited.connect(self.set_step_config)
+        self.accepted.connect(self.update_config)
+
+    def update_config(self):
+        # update config
+        config.parser['datapattern']['mesh_settings'] = json.dumps(self.get_settings())
+
+    def load_mesh_settings(self):
+
+        self.le_pixelsize.setText(str(self.mesh_settings['pixel size']))
+        self.le_distance.setText(str(self.mesh_settings['distance']))
+        self.le_angstep.setText(str(self.mesh_settings['angular step']))
+        if self.mesh_settings['selected'] == 'detector':
+            self.rb_detector.setChecked(True)
+            self.rb_step.setChecked(False)
+        elif self.mesh_settings['selected'] == 'step':
+            self.rb_detector.setChecked(False)
+            self.rb_step.setChecked(True)
+        else:  # default to detector
+            self.mesh_settings['selected'] = 'detector'
+            self.rb_detector.setChecked(True)
+            self.rb_step.setChecked(False)
 
     def get_settings(self):
         settings = dict()
@@ -335,7 +383,6 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
             self.pb_maskrectangle.setChecked(False)
             self.dpcontroler.call_pb_maskrectangle(self.pb_maskrectangle)
 
-
     def untoggle_pb_maskpixel(self):
         if self.pb_maskpixel.isChecked():
             self.pb_maskpixel.setChecked(False)
@@ -365,11 +412,17 @@ class DataPatternControler(QtCore.QObject):
         self.mainwindow = self.parent_widget.mainwindow
         self.infotext = infotext_box
 
+        # Set config section
+        if not config.parser.has_section('datapattern'):
+            config.parser.add_section('datapattern')
+
+        default_percentiles = [0.05, 0.99] if not config.parser.has_option('datapattern', 'default_percentiles') else \
+            config.getlist('datapattern', 'default_percentiles')
+
         # initiate variables
         self.datapattern = None
-        self.percentiles = [0.05, 0.99]
+        self.percentiles = default_percentiles
         self.ticks = None
-        self.angular_fit_range = 2.7
         self.changes_saved = True
 
         # mpl variables
@@ -448,7 +501,12 @@ class DataPatternControler(QtCore.QObject):
         Open a json datapattern file
         :return:
         """
-        filename = QtWidgets.QFileDialog.getOpenFileName(self.parent_widget, 'Open DataPattern', filter='DataPattern (*.json)',
+        open_path = '' if not config.parser.has_option('datapattern', 'open_path') else \
+            config.get('datapattern', 'open_path')
+        filename = QtWidgets.QFileDialog.getOpenFileName(self.parent_widget,
+                                                         'Open DataPattern',
+                                                         directory=open_path,
+                                                         filter='DataPattern (*.json)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if filename == ('', ''):  # Cancel
             return
@@ -466,12 +524,21 @@ class DataPatternControler(QtCore.QObject):
             self.changes_saved = True
             self.datapattern_changed_or_saved.emit()
 
+            # update config
+            open_path = os.path.dirname(filename[0])
+            config.parser['datapattern']['open_path'] = open_path
+
     def openadd_dp_call(self):
         """
         Open a json datapattern file
         :return:
         """
-        filename = QtWidgets.QFileDialog.getOpenFileNames(self.parent_widget, 'Add DataPatterns', filter='DataPattern (*.json)',
+        open_path = '' if not config.parser.has_option('datapattern', 'open_path') else \
+            config.get('datapattern', 'open_path')
+        filename = QtWidgets.QFileDialog.getOpenFileNames(self.parent_widget,
+                                                          'Add DataPatterns',
+                                                          directory=open_path,
+                                                          filter='DataPattern (*.json)',
                                                           options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if filename == ([], ''):  # Cancel (first is an empty list)
             return
@@ -495,6 +562,10 @@ class DataPatternControler(QtCore.QObject):
             self.changes_saved = True
             self.datapattern_changed_or_saved.emit()
 
+            # update config
+            open_path = os.path.dirname(filename[0])
+            config.parser['datapattern']['open_path'] = open_path
+
     def save_dp_call(self):
         """
         Save the current json file
@@ -503,7 +574,13 @@ class DataPatternControler(QtCore.QObject):
         if not self.datapattern_exits():
             return
 
-        filename = QtWidgets.QFileDialog.getSaveFileName(self.parent_widget, 'Save DataPattern', filter='DataPattern (*.json)',
+        save_path = '' if not config.parser.has_option('datapattern', 'save_path') else \
+            config.get('datapattern', 'save_path')
+
+        filename = QtWidgets.QFileDialog.getSaveFileName(self.parent_widget,
+                                                         'Save DataPattern',
+                                                         directory=save_path,
+                                                         filter='DataPattern (*.json)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if filename == ('', ''):  # Cancel
             return
@@ -512,8 +589,16 @@ class DataPatternControler(QtCore.QObject):
         self.changes_saved = True
         self.datapattern_changed_or_saved.emit()
 
+        # update config
+        save_path = os.path.dirname(filename[0])
+        config.parser['datapattern']['save_path'] = save_path
+
     def import_dp_call(self):
-        filename = QtWidgets.QFileDialog.getOpenFileName(self.parent_widget, 'Import matrix file',
+        open_path = '' if not config.parser.has_option('datapattern', 'open_path') else \
+            config.get('datapattern', 'open_path')
+        filename = QtWidgets.QFileDialog.getOpenFileName(self.parent_widget,
+                                                         'Import matrix file',
+                                                         directory=open_path,
                                                          filter='Import matrix (*.txt *.csv *.2db)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if filename == ('', ''):  # Cancel
@@ -525,45 +610,80 @@ class DataPatternControler(QtCore.QObject):
 
         if not ok:
             return
-        elif item == 'Single chip':
-            self.datapattern = pyfdd.DataPattern(file_path=filename[0], nChipsX=1, nChipsY=1, real_size=1)
-        elif item == 'Timepix quad':
-            self.datapattern = pyfdd.DataPattern(file_path=filename[0], nChipsX=2, nChipsY=2, real_size=3)
 
-        # Draw pattern and update info text
-        self.draw_new_datapattern()
-        self.update_infotext()
-        self.changes_saved = True
-        self.datapattern_changed_or_saved.emit()
+        try:
+            # TODO do orientations
+            if item == 'Single chip':
+                self.datapattern = pyfdd.DataPattern(file_path=filename[0], nChipsX=1, nChipsY=1, real_size=1)
+            elif item == 'Timepix quad':
+                self.datapattern = pyfdd.DataPattern(file_path=filename[0], nChipsX=2, nChipsY=2, real_size=3)
+        except:
+            QtWidgets.QMessageBox.warning(self.parent_widget, 'Warning message',
+                                          'Error while importing the data.')
+        else:
+            # Draw pattern and update info text
+            self.draw_new_datapattern()
+            self.update_infotext()
+            self.changes_saved = True
+            self.datapattern_changed_or_saved.emit()
+
+            # update config
+            open_path = os.path.dirname(filename[0])
+            config.parser['datapattern']['open_path'] = open_path
 
     def exportascii_dp_call(self):
         if not self.datapattern_exits():
             return
 
-        filename = QtWidgets.QFileDialog.getSaveFileName(self.parent_widget, 'Export DataPattern', filter='ASCII (*.txt)',
+        save_path = '' if not config.parser.has_option('datapattern', 'save_path') else \
+            config.get('datapattern', 'save_path')
+
+        filename = QtWidgets.QFileDialog.getSaveFileName(self.parent_widget,
+                                                         'Export DataPattern',
+                                                         directory=save_path,
+                                                         filter='ASCII (*.txt)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if filename == ('', ''):  # Cancel
             return
 
         self.datapattern.io_save_ascii(filename[0])
 
+        # update config
+        save_path = os.path.dirname(filename[0])
+        config.parser['datapattern']['save_path'] = save_path
+
     def exportorigin_dp_call(self):
         if not self.datapattern_exits():
             return
 
-        filename = QtWidgets.QFileDialog.getSaveFileName(self.parent_widget, 'Export DataPattern', filter='Binary (*.2db)',
+        save_path = '' if not config.parser.has_option('datapattern', 'save_path') else \
+            config.get('datapattern', 'save_path')
+
+        filename = QtWidgets.QFileDialog.getSaveFileName(self.parent_widget,
+                                                         'Export DataPattern',
+                                                         directory=save_path,
+                                                         filter='Binary (*.2db)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if filename == ('', ''):  # Cancel
             return
 
         self.datapattern.io_save_origin(filename[0])
 
+        # update config
+        save_path = os.path.dirname(filename[0])
+        config.parser['datapattern']['save_path'] = save_path
+
     def saveasimage_dp_call(self):
         if not self.datapattern_exits():
             return
 
+        save_path = '' if not config.parser.has_option('datapattern', 'save_path') else \
+            config.get('datapattern', 'save_path')
+
         filename = QtWidgets.QFileDialog. \
-            getSaveFileName(self.parent_widget, 'Export DataPattern',
+            getSaveFileName(self.parent_widget,
+                            'Export DataPattern',
+                            directory=save_path,
                             filter='image (*emf *eps *.pdf *.png *.ps *.raw *.rgba *.svg *.svgz)',
                             options=QtWidgets.QFileDialog.DontUseNativeDialog)
 
@@ -575,6 +695,10 @@ class DataPatternControler(QtCore.QObject):
         self.pltfig.savefig(filename[0], dpi=600, facecolor='white')
         # self.pltfig.set_facecolor('#d7d6d5')
         # self.canvas.draw()
+
+        # update config
+        save_path = os.path.dirname(filename[0])
+        config.parser['datapattern']['save_path'] = save_path
 
     def datapattern_exits(self):
         """
@@ -753,24 +877,34 @@ class DataPatternControler(QtCore.QObject):
         if not self.datapattern_exits():
             return
 
+        mask_bellow = 0 if not config.parser.has_option('datapattern', 'mask_bellow') else \
+            config.getint('datapattern', 'mask_bellow')
+
         value, ok = QtWidgets.QInputDialog.getInt(self.parent_widget, 'Mask below',
                                                   'Mask pixels whose value is lower than or equal to\t\t\t',
-                                                  value=0, min=0)
+                                                  value=mask_bellow, min=0)
         if ok:
             self.datapattern.mask_below(value)
+
             # Draw pattern and update info text
             self.draw_datapattern()
             self.update_infotext()
             self.changes_saved = False
             self.datapattern_changed_or_saved.emit()
 
+            # update config
+            config.parser['datapattern']['mask_bellow'] = str(value)
+
     def call_pb_maskabove(self):
         if not self.datapattern_exits():
             return
 
+        mask_above = 9000 if not config.parser.has_option('datapattern', 'mask_above') else \
+            config.getint('datapattern', 'mask_above')
+
         value, ok = QtWidgets.QInputDialog.getInt(self.parent_widget, 'Mask above',
                                                   'Mask pixels whose value is higher than or equal to\t\t\t',
-                                                  value=9000, min=0)
+                                                  value=mask_above, min=0)
         if ok:
             self.datapattern.mask_above(value)
             # Draw pattern and update info text
@@ -779,52 +913,74 @@ class DataPatternControler(QtCore.QObject):
             self.changes_saved = False
             self.datapattern_changed_or_saved.emit()
 
+            # update config
+            config.parser['datapattern']['mask_above'] = str(value)
+
     def call_pb_removeedge(self):
         if not self.datapattern_exits():
             return
 
-        value, ok = QtWidgets.QInputDialog.getInt(self.parent_widget, 'Input value', 'Number of edge pixels to remove\t\t\t',  # 0,0)
-                                                  value=0, min=0)
+        remove_edge = 0 if not config.parser.has_option('datapattern', 'remove_edge') else \
+            config.getint('datapattern', 'remove_edge')
+
+        value, ok = QtWidgets.QInputDialog.getInt(self.parent_widget, 'Input value',
+                                                  'Number of edge pixels to remove\t\t\t',
+                                                  value=remove_edge, min=0)
         if ok:
             self.datapattern.remove_edge_pixel(value)
 
-        # Draw pattern and update info text
-        self.draw_datapattern()
-        self.update_infotext()
-        self.changes_saved = False
-        self.datapattern_changed_or_saved.emit()
+            # Draw pattern and update info text
+            self.draw_datapattern()
+            self.update_infotext()
+            self.changes_saved = False
+            self.datapattern_changed_or_saved.emit()
+
+            # update config
+            config.parser['datapattern']['remove_edge'] = str(value)
 
     def call_pb_removecentral(self):
         if not self.datapattern_exits():
             return
 
+        remove_central = 0 if not config.parser.has_option('datapattern', 'remove_central') else \
+            config.getint('datapattern', 'remove_central')
+
         value, ok = QtWidgets.QInputDialog.getInt(self.parent_widget, 'Input value',
-                                                  'Number of edge pixels to remove\t\t\t',  # 0,0)
-                                                  value=0, min=0)
+                                                  'Number of edge pixels to remove\t\t\t',
+                                                  value=remove_central, min=0)
         if ok:
             self.datapattern.zero_central_pix(value)
 
-        # Draw pattern and update info text
-        self.draw_datapattern()
-        self.update_infotext()
-        self.changes_saved = False
-        self.datapattern_changed_or_saved.emit()
+            # Draw pattern and update info text
+            self.draw_datapattern()
+            self.update_infotext()
+            self.changes_saved = False
+            self.datapattern_changed_or_saved.emit()
+
+            # update config
+            config.parser['datapattern']['remove_central'] = str(value)
 
     def call_pb_expandmask(self):
         if not self.datapattern_exits():
             return
 
+        expand_mask = 0 if not config.parser.has_option('datapattern', 'expand_mask') else \
+            config.getint('datapattern', 'expand_mask')
+
         value, ok = QtWidgets.QInputDialog.getInt(self.parent_widget, 'Input value',
                                                   'Mask pixels adjacent to already masked pixels by \t\t\t',  # 0,0)
-                                                  value=0, min=0)
+                                                  value=expand_mask, min=0)
         if ok:
             self.datapattern.expand_mask(value)
 
-        # Draw pattern and update info text
-        self.draw_datapattern()
-        self.update_infotext()
-        self.changes_saved = False
-        self.datapattern_changed_or_saved.emit()
+            # Draw pattern and update info text
+            self.draw_datapattern()
+            self.update_infotext()
+            self.changes_saved = False
+            self.datapattern_changed_or_saved.emit()
+
+            # update config
+            config.parser['datapattern']['expand_mask'] = str(value)
 
     def call_pb_clearmask(self):
         if not self.datapattern_exits():
@@ -842,12 +998,22 @@ class DataPatternControler(QtCore.QObject):
         if not self.datapattern_exits():
             return
 
-        filename = QtWidgets.QFileDialog.getOpenFileName(self.parent_widget, 'Open Mask', filter='Mask file (*.txt)',
+        mask_path = '' if not config.parser.has_option('datapattern', 'mask_path') else \
+            config.get('datapattern', 'mask_path')
+
+        filename = QtWidgets.QFileDialog.getOpenFileName(self.parent_widget,
+                                                         'Open Mask',
+                                                         directory=mask_path,
+                                                         filter='Mask file (*.txt)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if filename == ('', ''):  # Cancel
             return
 
         self.datapattern.load_mask(filename[0])
+
+        # update config
+        mask_path = os.path.dirname(filename[0])
+        config.parser['datapattern']['save_path'] = mask_path
 
         # Draw pattern and update info text
         self.draw_datapattern()
@@ -859,9 +1025,19 @@ class DataPatternControler(QtCore.QObject):
         if not self.datapattern_exits():
             return
 
-        filename = QtWidgets.QFileDialog.getSaveFileName(self.parent_widget, 'Save Mask', filter='Mask file (*.txt)',
+        mask_path = '' if not config.parser.has_option('datapattern', 'mask_path') else \
+            config.get('datapattern', 'mask_path')
+
+        filename = QtWidgets.QFileDialog.getSaveFileName(self.parent_widget,
+                                                         'Save Mask',
+                                                         directory=mask_path,
+                                                         filter='Mask file (*.txt)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
         self.datapattern.save_mask(filename[0])
+
+        # update config
+        mask_path = os.path.dirname(filename[0])
+        config.parser['datapattern']['save_path'] = mask_path
 
     def call_pb_buildmesh(self):
         if not self.datapattern_exits():
@@ -897,10 +1073,13 @@ class DataPatternControler(QtCore.QObject):
         if not self.datapattern_exits():
             return
 
+        compress_mesh = 2 if not config.parser.has_option('datapattern', 'compress_mesh') else \
+            config.getint('datapattern', 'compress_mesh')
+
         value, ok = QtWidgets.QInputDialog.getInt(self.parent_widget, 'Compress pixel mesh',
                                                   'Number of pixels to add together in each direction\t\t\t\n' \
                                                   '(may cause removal of extra pixels at the edges)',
-                                                  value=2, min=2)
+                                                  value=compress_mesh, min=2)
         if ok:
             self.datapattern.manip_compress(factor=value)
             # Draw pattern and update info text
@@ -908,6 +1087,9 @@ class DataPatternControler(QtCore.QObject):
             self.update_infotext()
             self.changes_saved = False
             self.datapattern_changed_or_saved.emit()
+
+            # update config
+            config.parser['datapattern']['compress_mesh'] = str(value)
 
     def callonangle(self, center, angle):
         self.datapattern.center = center
@@ -942,18 +1124,24 @@ class DataPatternControler(QtCore.QObject):
         x_orient, y_orient = self.datapattern.center
         phi = self.datapattern.angle
 
+        angular_fit_range = 2.7 if not config.parser.has_option('datapattern', 'angular_fit_range') else \
+            config.getfloat('datapattern', 'angular_fit_range')
+
         value, ok = QtWidgets.QInputDialog.getDouble(self.parent_widget, 'Set angular fit range',
                                                      'Set a valid angular range around the channeling axis\t\t\t\n' \
                                                      '(x={:.2f}, y={:.2f} ,phi={:.2f})'.format(x_orient, y_orient, phi),
-                                                     value=self.angular_fit_range, min=0)
+                                                     value=angular_fit_range, min=0)
         if ok:
             self.datapattern.set_fit_region(distance=value)
-            self.angular_fit_range = value
+
             # Draw pattern and update info text
             self.draw_datapattern()
             self.update_infotext()
             self.changes_saved = False
             self.datapattern_changed_or_saved.emit()
+
+            # update config
+            config.parser['datapattern']['angular_fit_range'] = str(value)
 
     def call_pb_colorscale(self):
         if not self.datapattern_exits():
@@ -969,6 +1157,7 @@ class DataPatternControler(QtCore.QObject):
         setlabels_dialog = SetLabels_dialog(parent_widget=self.parent_widget, dp_controler=self)
         if setlabels_dialog.exec_() == QtWidgets.QDialog.Accepted:
             self.plot_labels = setlabels_dialog.get_settings()
+            config.parser['datapattern']['plot_labels'] = json.dumps(self.plot_labels)
             # Draw pattern and update info text
             self.draw_datapattern()
             self.update_infotext()

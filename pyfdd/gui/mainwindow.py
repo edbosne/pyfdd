@@ -1,20 +1,19 @@
 import sys
-import os
-import warnings
+# import os
+# import warnings
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 # from PySide2 import QtCore, QtGui, QtWidgets, uic
 
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT #as NavigationToolbar
-from matplotlib.widgets import RectangleSelector
-from pyfdd.core.datapattern.CustomWidgets import AngleMeasure
-import matplotlib.pyplot as plt  # do not use pyplot
-import matplotlib as mpl
-import seaborn as sns
-import numpy as np
-
-import pyfdd
+# from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+# from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT #as NavigationToolbar
+# from matplotlib.widgets import RectangleSelector
+# from pyfdd.core.datapattern.CustomWidgets import AngleMeasure
+# import matplotlib.pyplot as plt  # do not use pyplot
+# import matplotlib as mpl
+# import seaborn as sns
+# import numpy as np
+import configparser
 
 # Load the ui created with PyQt creator
 # First, convert .ui file to .py with,
@@ -24,6 +23,7 @@ from pyfdd.gui.qt_designer.windowedpyfdd import Ui_WindowedPyFDD
 from pyfdd.gui.datapattern_interface import DataPattern_widget
 from pyfdd.gui.simlibrary_interface import SimExplorer_widget
 from pyfdd.gui.fitmanager_interface import FitManager_widget
+import pyfdd.gui.config as config
 
 
 class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
@@ -34,6 +34,10 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
 
         # Setup the window
         self.statusBar()
+
+        # load configuration
+        config.filename = 'pyfdd_config.ini'
+        self.config_load()
 
         # Create pyfdd widgets
         self.dp_w = DataPattern_widget(self.maintabs, mainwindow=self)
@@ -54,6 +58,10 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
 
         self.dp_w.datapattern_changed_or_saved.connect(self.dp_tab_title_update)
         self.fm_w.fitresults_changed_or_saved.connect(self.fm_tab_title_update)
+
+        # TODO remobe this nicely
+        # Reload config when other modules change it
+        # config.signals.updated.connect(self.config_load)
 
     def get_datapattern(self):
         datapattern = self.dp_w.get_datapattern()
@@ -108,10 +116,21 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
                                            quit_msg, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
 
         if reply == QtWidgets.QMessageBox.Yes:
+            config.write()
             event.accept()
             sys.exit()
         else:
             event.ignore()
+
+    def config_load(self):
+
+        config.read()
+
+        # Load variables
+        if 'pyfdd' not in config.parser:
+            config.parser['pyfdd'] = dict()
+
+        # At the moment the main window does not have any variables to load.
 
 
 def run():
