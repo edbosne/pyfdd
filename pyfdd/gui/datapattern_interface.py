@@ -26,6 +26,7 @@ from pyfdd.gui.qt_designer.datapattern_widget import Ui_DataPatternWidget
 from pyfdd.gui.qt_designer.buildmesh_dialog import Ui_BuildMeshDialog
 from pyfdd.gui.qt_designer.colorscale_dialog import Ui_ColorScaleDialog
 from pyfdd.gui.qt_designer.setlabels_dialog import Ui_SetLabelsDialog
+from pyfdd.gui.qt_designer.importsettings_dialog import Ui_ImportSettingsDialog
 import pyfdd.gui.config as config
 
 
@@ -235,6 +236,189 @@ class BuildMesh_dialog(QtWidgets.QDialog, Ui_BuildMeshDialog):
     def set_step_config(self):
         self.rb_detector.setChecked(False)
         self.rb_step.setChecked(True)
+
+
+class ImportSettings_dialog(QtWidgets.QDialog, Ui_ImportSettingsDialog):
+    def __init__(self, parent_widget):
+        super(ImportSettings_dialog, self).__init__(parent_widget)
+        self.parent_widget = parent_widget
+        self.setupUi(self)
+
+        dummy_configuration = {'label': 'name',
+                               'detector type': 'single',
+                               'orientation': ''}
+
+        self.default_config_labels = ['Single chip', 'New configuration']
+        self.default_import_config = [dummy_configuration.copy(), dummy_configuration.copy()]
+        self.default_import_config[0]['label'] = self.default_config_labels[0]
+        self.default_import_config[1]['label'] = self.default_config_labels[1]
+
+        self.import_labels = self.default_config_labels.copy() if not \
+            config.parser.has_option('datapattern', 'import_labels') else \
+            config.getlist('datapattern', 'import_labels')
+
+        self.import_config = self.default_import_config.copy() if not \
+            config.parser.has_option('datapattern', 'import_config') else \
+            config.getdict('datapattern', 'import_config')
+
+        self.selected_import = 0 if not \
+            config.parser.has_option('datapattern', 'selected_import') else \
+            config.getdict('datapattern', 'selected_import')
+
+        self.load_import_config()
+        self.refresh_editables()
+
+        # connect signalsload_import_config
+        self.cb_import_config.currentIndexChanged.connect(self.refresh_editables)
+        self.pb_delete_configuration.clicked.connect(self.delete_entry)
+        self.accepted.connect(self.update_config)
+
+        # set regular expression validator
+        reg_ex = QtCore.QRegExp(
+            r'^(\s*(rr|rl|mh|mv)\s*)(,\s*(rr|rl|mh|mv)\s*)*$')  # accepts commands like rr,rr,rl,mh,mv
+        input_validator = QtGui.QRegExpValidator(reg_ex, parent=self.le_orientation_commands)
+        self.le_orientation_commands.setValidator(input_validator)
+
+    def load_import_config(self):
+        """
+        Load the configurations into the widget
+        :return:
+        """
+
+        # Checks
+        current_keys = [entry['label'] for entry in self.import_config]
+        # Ensure labels and configs the same length
+        if len(self.import_labels) != len(self.import_config):
+            print(1)
+            self.load_defaut_config()
+            return
+        # Ensure the default single chip is there
+        if (self.import_labels[0] != 'Single chip') or\
+            ('Single chip' not in current_keys):
+            print(2)
+            self.load_defaut_config()
+            return
+        # Ensure a new configuration is possible
+        if (self.import_labels[-1] != 'New configuration') or\
+            ('New configuration' not in current_keys):
+            print(3)
+            self.load_defaut_config()
+            return
+
+        # Set combo box
+        self.cb_import_config.clear()
+        self.cb_import_config.addItems(self.import_labels)
+        self.cb_import_config.setCurrentIndex(self.selected_import)
+
+    def load_defaut_config(self):
+        """
+        If there is a problem with the configuration from the .ini file the defaults are loaded
+        :return:
+        """
+        warnings.warn('There was a problem with stored import configurations. Reseting to defaults.')
+        self.import_labels = self.default_config_labels
+        self.import_config = self.default_import_config
+        self.selected_import = 0
+
+        self.load_import_config()
+
+    def refresh_editables(self):
+        """
+        Refresh the editables with the right values and enable them if the 'New configuration' label is chosen.
+        :return:
+        """
+        # configuration keys {'label', 'detector type', 'orientation'}
+
+        self.selected_import = self.cb_import_config.currentIndex()
+
+        # Enable or disable all widgets
+        # Single chip state
+        if self.import_labels[self.selected_import] == 'Single chip' and \
+             self.selected_import == 0:
+            self.w_editables.setEnabled(False)
+            self.pb_delete_configuration.setEnabled(False)
+        # New configuration state
+        elif self.import_labels[self.selected_import] == 'New configuration' and \
+                self.selected_import == len(self.import_labels)-1:
+            self.w_editables.setEnabled(True)
+            self.pb_delete_configuration.setEnabled(False)
+        # User configurations
+        else:
+            self.w_editables.setEnabled(False)
+            self.pb_delete_configuration.setEnabled(True)
+
+        # Configuration label
+        self.le_config_label.setText(self.import_config[self.selected_import]['label'])
+
+        # Detector type radio buttons
+        if self.import_config[self.selected_import]['detector type'] == 'single':
+            self.rb_single_chip.setChecked(True)
+            self.rb_timepix_quad.setChecked(False)
+        elif self.import_config[self.selected_import]['detector type'] == 'quad':
+            self.rb_single_chip.setChecked(False)
+            self.rb_timepix_quad.setChecked(True)
+        else:
+            # default to single
+            self.rb_single_chip.setChecked(True)
+            self.rb_timepix_quad.setChecked(False)
+
+        # Orientation commands
+        self.le_orientation_commands.setText(self.import_config[self.selected_import]['orientation'])
+
+    def update_config(self):
+        """
+        update configs and register new config if needed
+        :return:
+        """
+
+        if self.selected_import == len(self.import_labels)-1:
+            # New configuration
+            new_config = {'label': self.le_config_label.text(),
+                          'detector type': 'single' if self.rb_single_chip.isChecked() else 'quad',
+                          'orientation': self.le_orientation_commands.text()}
+
+            # Ensure only one label named 'New configuration'
+            if new_config['label'] == 'New configuration':
+                i = 1
+                while new_config['label'] in self.import_labels:
+                    new_config['label'] = 'New configuration ({})'.format(i)
+                    i += 1
+
+            # If label exists overide
+            if new_config['label'] in self.import_labels:
+                idx = self.import_labels.index(new_config['label'])
+                self.import_config[idx] = new_config.copy()
+                self.selected_import = idx
+            # Else add to last position
+            else:
+                self.import_labels.insert(-1, new_config['label'])
+                self.import_config.insert(-1, new_config.copy())
+                self.selected_import = len(self.import_labels) - 2 # one before the last
+
+        # update config
+        config.parser['datapattern']['import_labels'] = json.dumps(self.import_labels)
+        config.parser['datapattern']['import_config'] = json.dumps(self.import_config)
+        config.parser['datapattern']['selected_import'] = json.dumps(self.selected_import)
+
+    def delete_entry(self):
+        """
+        Delete selected configuration entry
+        :return:
+        """
+        idx = self.selected_import
+        self.import_labels.pop(idx)
+        self.import_config.pop(idx)
+        # Reset combo box
+        self.cb_import_config.clear()
+        self.cb_import_config.addItems(self.import_labels)
+        self.cb_import_config.setCurrentIndex(0)
+
+    def get_settings(self):
+        """
+        Get settings from the selected configuration
+        :return:
+        """
+        return self.import_config[self.selected_import].copy()
 
 
 class DataPattern_window(QtWidgets.QMainWindow):
@@ -604,19 +788,22 @@ class DataPatternControler(QtCore.QObject):
         if filename == ('', ''):  # Cancel
             return
 
-        import_options = ('Single chip', 'Timepix quad')
-        item, ok = QtWidgets.QInputDialog.getItem(self.parent_widget, "Select import format",
-                                                  "Import format", import_options, 0, False)
+        importsettings_dialog = ImportSettings_dialog(parent_widget=self.parent_widget)
 
-        if not ok:
+        import_config = {}
+        if importsettings_dialog.exec_() == QtWidgets.QDialog.Accepted:
+            import_config = importsettings_dialog.get_settings()
+            # configuration keys {'label', 'detector type', 'orientation'}
+        else: # Canceled
             return
 
         try:
-            # TODO do orientations
-            if item == 'Single chip':
+            if import_config['detector type'] == 'single':
                 self.datapattern = pyfdd.DataPattern(file_path=filename[0], nChipsX=1, nChipsY=1, real_size=1)
-            elif item == 'Timepix quad':
+            elif import_config['detector type'] == 'quad':
                 self.datapattern = pyfdd.DataPattern(file_path=filename[0], nChipsX=2, nChipsY=2, real_size=3)
+            # Orient
+            self.datapattern.manip_orient(import_config['orientation'])
         except:
             QtWidgets.QMessageBox.warning(self.parent_widget, 'Warning message',
                                           'Error while importing the data.')

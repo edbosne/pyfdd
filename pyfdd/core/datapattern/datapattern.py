@@ -526,7 +526,8 @@ class DataPattern:
     def manip_orient(self, strg):
         assert isinstance(strg, str)
         temp_matrix = self.matrixCurrent
-        for cmd in strg.lower().split(','):
+        strg = strg.lower().replace(' ','').strip(',')
+        for cmd in strg.split(','):
             if cmd == 'rl':
                 # rotate left
                 temp_matrix = np.rot90(temp_matrix)
@@ -540,7 +541,7 @@ class DataPattern:
                 # horizontal mirror
                 temp_matrix = np.fliplr(temp_matrix)
             else:
-                print('Orientation command not understood')
+                print('Orientation command \'{}\'not understood'.format(cmd))
         self.matrixCurrent = temp_matrix
 
     def manip_smooth(self, fwhm, matrix='Current'):
