@@ -23,6 +23,7 @@ import pyfdd
 # import with absolute import locations
 from pyfdd.gui.qt_designer.simexplorer_widget import Ui_SimExplorerWidget
 from pyfdd.gui.datapattern_interface import DataPatternControler
+import pyfdd.gui.config as config
 
 
 class SimExplorer_window(QtWidgets.QMainWindow):
@@ -60,6 +61,10 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
 
         self.setupUi(self)
         self.mainwindow = mainwindow
+
+        # Set config section
+        if not config.parser.has_section('simexplorer'):
+            config.parser.add_section('simexplorer')
 
         # set the mpl widget background colour
         self.mplwindow.setStyleSheet('background: palette(window);')
@@ -115,7 +120,14 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
         Open a 2dl library file
         :return:
         """
-        lib_path = QtWidgets.QFileDialog.getOpenFileName(self, 'Open .2dl library', filter='library (*.2dl)',
+
+        open_path = '' if not config.parser.has_option('simexplorer', 'open_path') else \
+            config.get('simexplorer', 'open_path')
+
+        lib_path = QtWidgets.QFileDialog.getOpenFileName(self,
+                                                         'Open .2dl library',
+                                                         directory=open_path,
+                                                         filter='library (*.2dl)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if lib_path == ('', ''):  # Cancel
             return
@@ -132,6 +144,10 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
             self.update_datapattern()
             self.simlibrary_opened.emit()
 
+            # update config
+            open_path = os.path.dirname(lib_path[0])
+            config.parser['simexplorer']['open_path'] = open_path
+
     def get_simlibrary(self):
         if self.simlib is not None:
             return self.simlib.copy()
@@ -140,7 +156,7 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
 
     def update_infotext(self):
         if self.infotext is None:
-            #raise warnings.warn('Info text box is not set')
+            warnings.warn('Info text box is not set')
             return
 
         base_text = 'Pattern dimentions (nx, ny): {:d}, {:d}\n' \
@@ -168,7 +184,7 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
         for line in self.simlib.get_simulations_list():
             # columns, ["Spectrum number", "Spectrum_description", "factor", "u1", "sigma"]
             # strip white spaces from description
-            line_string = baseline_string.format(line[0],line[1].strip(),*line[2:])
+            line_string = baseline_string.format(line[0], line[1].strip(), *line[2:])
             self.simlist.addItem(line_string)
 
         self.current_row = 1
@@ -187,6 +203,7 @@ def main():
     window.show()
     print(window.size())
     sys.exit(app.exec())
+
 
 if __name__ == '__main__':
     main()

@@ -4,6 +4,7 @@ import os
 import warnings
 from enum import Enum, IntEnum
 import numpy as np
+import json
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic, sip
@@ -20,6 +21,7 @@ from pyfdd.gui.qt_designer.fitconfig_dialog import Ui_FitConfigDialog
 from pyfdd.gui.qt_designer.parameteredit_dialog import Ui_ParameterEditDialog
 from pyfdd.gui.viewresults_interface import ViewResults_widget
 from pyfdd.gui.datapattern_interface import DataPattern_window
+import pyfdd.gui.config as config
 
 
 class Profile(IntEnum):
@@ -444,6 +446,10 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.setupUi(self)
         self.mainwindow = mainwindow
 
+        # Set config section
+        if not config.parser.has_section('fitmanager'):
+            config.parser.add_section('fitmanager')
+
         # Configure text browser font
         self.tb_fit_report.setFontFamily("monospace")
 
@@ -476,12 +482,21 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.fitman_output = None
 
         # Fit configuration
-        self.fitconfig = {'cost_func': CostFunc.chi2,
-                          'get_errors': True,
-                          'n_sites': 1,
-                          'sub_pixels': 1,
-                          'min_profile': Profile.default,
-                          'custom_profile': ''}
+        default_fitconfig = {'cost_func': CostFunc.chi2,
+                             'get_errors': True,
+                             'n_sites': 1,
+                             'sub_pixels': 1,
+                             'min_profile': Profile.default,
+                             'custom_profile': ''}
+
+        if not config.parser.has_option('fitmanager', 'fitconfig'):
+            self.fitconfig = default_fitconfig.copy()
+        else:
+            self.fitconfig = config.getdict('fitmanager', 'fitconfig')
+            # convert ints to enum
+            self.fitconfig['cost_func'] = CostFunc(self.fitconfig['cost_func'])
+            self.fitconfig['min_profile'] = Profile(self.fitconfig['min_profile'])
+
         # Create a dummy fitmanager to correctly get the default fit parameters
         self.update_fitman()
 
@@ -513,6 +528,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.pb_filldata.clicked.connect(self.call_pb_filldata)
 
         self.update_infotext()
+        self.update_n_sites_widgets()
 
     def setup_menu(self):
         # nothing to do here at the moment
@@ -636,6 +652,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
             self.update_infotext()
             self.update_fitman()
             self.update_n_sites_widgets()
+            config.parser['fitmanager']['fitconfig'] = json.dumps(self.fitconfig)
         else:
             # Canceled
             pass
