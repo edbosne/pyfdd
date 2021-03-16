@@ -272,6 +272,10 @@ class SiteRange:
     def get_range_as_list(self):
         result = []
         text = self.le_siterange.text()
+        if len(text) == 0:
+            QtWidgets.QMessageBox.warning(self.parent, 'Warning message', 'Empty site range.')
+            raise ValueError('Site range is empty.')
+
         for part in text.split(','):
             if '-' in part:
                 a, b = part.split('-')

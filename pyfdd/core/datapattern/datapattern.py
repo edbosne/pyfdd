@@ -530,18 +530,20 @@ class DataPattern:
         for cmd in strg.split(','):
             if cmd == 'rl':
                 # rotate left
-                temp_matrix = np.rot90(temp_matrix)
+                temp_matrix = np.rot90(temp_matrix, 3)
             elif cmd == 'rr':
                 # rotate right
-                temp_matrix = np.rot90(temp_matrix, 3)
+                temp_matrix = np.rot90(temp_matrix)
             elif cmd == 'mv':
                 # vertical mirror
                 temp_matrix = np.flipud(temp_matrix)
             elif cmd == 'mh':
                 # horizontal mirror
                 temp_matrix = np.fliplr(temp_matrix)
+            elif cmd == '':
+                continue
             else:
-                print('Orientation command \'{}\'not understood'.format(cmd))
+                print('Orientation command \'{}\' not understood'.format(cmd))
         self.matrixCurrent = temp_matrix
 
     def manip_smooth(self, fwhm, matrix='Current'):

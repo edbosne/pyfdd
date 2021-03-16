@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # # Creating a DataPattern for the timepix quad
@@ -8,6 +8,7 @@
 # 
 
 # In[1]:
+
 
 import pyfdd
 print('PyFDD version', pyfdd.__version__)
@@ -27,6 +28,7 @@ pd.set_option('display.max_colwidth', -1)
 
 # In[2]:
 
+
 filename1 = "/home/user/path/to/pattern_1.txt"
 filename2 = "/home/user/path/to/pattern_2.txt"
 filename = "/home/eric/cernbox/Betapix_CERN/2016/2016-04_Mg/raw002/pattern_d3_Npix0-50.txt"
@@ -40,6 +42,7 @@ filename = "/home/eric/cernbox/Betapix_CERN/2016/2016-04_Mg/raw002/pattern_d3_Np
 
 # In[3]:
 
+
 dp1 = pyfdd.DataPattern(file_path=filename1, nChipsX=2, nChipsY=2, real_size=3)
 dp2 = pyfdd.DataPattern(file_path=filename2, nChipsX=2, nChipsY=2, real_size=3)
 dp = dp1 + dp2
@@ -48,6 +51,7 @@ dp = dp1 + dp2
 # ## Manipulation of the data pattern
 
 # In[4]:
+
 
 # Manipulation methods
 
@@ -61,7 +65,7 @@ dp.mask_std(4)
 # -Orient
 # use 'rr','rl','mh',mv' for rotate right, rotate left, mirror horizontal and mirror vertical
 # in the desired order
-dp.manip_orient('rr,mh')  # TimepixQuad orientation
+dp.manip_orient('rl,mh')  # TimepixQuad orientation
 
 # -Angular calibration
 dp.manip_create_mesh(pixel_size=0.055, distance=315)
@@ -81,7 +85,8 @@ dp.manip_compress(factor=8, rm_central_pix=2, rm_edge_pix=4)
 
 # In[6]:
 
-get_ipython().magic('matplotlib notebook')
+
+get_ipython().run_line_magic('matplotlib', 'notebook')
 fg = plt.figure()
 ax = fg.add_subplot('111')
 dp.draw(ax, percentiles=(0.04, 0.99))
@@ -89,6 +94,7 @@ dp.get_angle_tool()
 
 
 # In[7]:
+
 
 print('angle widget, center ', dp.center, ', angle ', dp.angle)
 # set_fit_region uses the angular values from the orientation 
@@ -99,6 +105,7 @@ dp.set_fit_region(distance=2.8)
 # ## Save as json file
 
 # In[8]:
+
 
 dp.io_save_json('/home/user/quad_datapattern.json')
 

@@ -248,10 +248,23 @@ class ImportSettings_dialog(QtWidgets.QDialog, Ui_ImportSettingsDialog):
                                'detector type': 'single',
                                'orientation': ''}
 
-        self.default_config_labels = ['Single chip', 'New configuration']
-        self.default_import_config = [dummy_configuration.copy(), dummy_configuration.copy()]
+        self.default_config_labels = ['Single chip', 'Pad6 EC-Sli', 'Tpx-quad EC-Sli', 'New configuration']
+        self.default_import_config = [dummy_configuration.copy(),
+                                      dummy_configuration.copy(),
+                                      dummy_configuration.copy(),
+                                      dummy_configuration.copy()]
+        # Single chip
         self.default_import_config[0]['label'] = self.default_config_labels[0]
+        # Pad EC-Sli
         self.default_import_config[1]['label'] = self.default_config_labels[1]
+        self.default_import_config[1]['detector type'] = 'single'
+        self.default_import_config[1]['orientation'] = 'rr'
+        # Tpx quad
+        self.default_import_config[2]['label'] = self.default_config_labels[2]
+        self.default_import_config[2]['detector type'] = 'quad'
+        self.default_import_config[2]['orientation'] = 'rl, mh'
+        # New configuration
+        self.default_import_config[3]['label'] = self.default_config_labels[3]
 
         self.import_labels = self.default_config_labels.copy() if not \
             config.parser.has_option('datapattern', 'import_labels') else \
@@ -302,6 +315,8 @@ class ImportSettings_dialog(QtWidgets.QDialog, Ui_ImportSettingsDialog):
         if (self.import_labels[-1] != 'New configuration') or\
             ('New configuration' not in current_keys):
             print(3)
+            print(current_keys)
+            print(self.import_labels[-1])
             self.load_defaut_config()
             return
 
@@ -334,7 +349,7 @@ class ImportSettings_dialog(QtWidgets.QDialog, Ui_ImportSettingsDialog):
         # Enable or disable all widgets
         # Single chip state
         if self.import_labels[self.selected_import] == 'Single chip' and \
-             self.selected_import == 0:
+                self.selected_import == 0:
             self.w_editables.setEnabled(False)
             self.pb_delete_configuration.setEnabled(False)
         # New configuration state
@@ -802,6 +817,7 @@ class DataPatternControler(QtCore.QObject):
                 self.datapattern = pyfdd.DataPattern(file_path=filename[0], nChipsX=1, nChipsY=1, real_size=1)
             elif import_config['detector type'] == 'quad':
                 self.datapattern = pyfdd.DataPattern(file_path=filename[0], nChipsX=2, nChipsY=2, real_size=3)
+                self.datapattern.manip_correct_central_pix()
             # Orient
             self.datapattern.manip_orient(import_config['orientation'])
         except:
