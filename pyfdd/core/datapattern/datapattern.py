@@ -1,41 +1,50 @@
+#!/usr/bin/env python3
 
-#import sys
-#sys.path.append('/home/eric/PycharmProjects/CustomWidgets/')
-#sys.path.append('/home/eric/ericathome/home/eric/PycharmProjects/CustomWidgets')
-#print(sys.path)
+"""
+DataPattern is the class to hold 2D patterns.
+"""
 
-from pyfdd.core.datapattern.CustomWidgets import AngleMeasure
-from matplotlib.widgets import RectangleSelector
+# Imports from standard library
+import os
+import warnings
+import struct
+import json
+import copy
+import bisect as bis
+import math
 
-
+# Imports from 3rd party
 import numpy as np
 import numpy.ma as ma
-import os
-import bisect as bis
 import scipy.ndimage
-import math
 import matplotlib as ml
 import matplotlib.pyplot as plt
-import struct
-import warnings
-import json, io
-import copy
+from matplotlib.widgets import RectangleSelector
+
+# Imports from project
+from pyfdd.core.datapattern.CustomWidgets import AngleMeasure
 
 
-def create_detector_mesh(n_h_pixels, n_v_pixels, pixel_size, distance):
-    #same as in PyFDD/patterncrator
+def create_detector_mesh(n_h_pixels, n_v_pixels, pixel_size=None, distance=None, d_theta=None):
     """
-    create a mesh for the detector.
-    returns a xmesh matrix with the angular values of the detector in the horizontal axis
+    Create a mesh for the detector.
+    Returns a xmesh matrix with the angular values of the detector in the horizontal axis
     and a ymesh matrix with the angular values of the detector in the vertical axis
     all distances must have the same units
-    :param n_h_pixels: number of horizontal pixels
-    :param n_v_pixels: number of vertical pixels
-    :param pixel_size: size of pixel
-    :param distance: distance from detector to sample
+    :param n_h_pixels: Number of horizontal pixels
+    :param n_v_pixels: Number of vertical pixels
+    :param pixel_size: Size of pixel
+    :param distance: Distance from detector to sample
+    :param d_theta: Angular step between pixels
     :return: x and y mesh matrixes
     """
-    d_theta = np.arctan(pixel_size/distance) * 180 / np.pi
+    if d_theta is None and pixel_size is not None and distance is not None:
+        d_theta = np.arctan(pixel_size/distance) * 180 / np.pi
+    elif d_theta is not None and pixel_size is None and distance is None:
+        d_theta = d_theta
+    else:
+        raise ValueError('Define pixel_size and distance or d_theta.')
+
     x_i = 0.5 * (n_h_pixels-1) * d_theta
     y_i = 0.5 * (n_v_pixels-1) * d_theta
     x = np.arange(n_h_pixels) * d_theta - x_i
@@ -46,17 +55,32 @@ def create_detector_mesh(n_h_pixels, n_v_pixels, pixel_size, distance):
 
 class MpxHist:
     """
-    Class to hold some useful methods for dealing with histograms in Medipix program
+    Class to hold useful methods for dealing with histograms in the datapattern program
     """
+
     def __init__(self, values):
+        """
+        Init function for MpxHist.
+        :param values: Masked array of values to fill in the histogram.
+        """
+        # Verify type
         if isinstance(values, ma.MaskedArray):
             values = values[~values.mask]
+
+        # Build histogram, the histogram integral and calculate usefull statistic function
         self.hist, self.bin_edges = np.histogram(values.reshape((1, values.size)), bins=5000)
         self.normalized_integral = self.hist.cumsum()/float(self.hist.sum())
         self.mean = np.mean(values.reshape((1, values.size)))
         self.std = np.std(values.reshape((1, values.size)))
 
     def get_bins_from_percentiles(self, percentiles):
+        """
+        Get bin values at the defined percentiles.
+        :param percentiles: Array-like with 2 values. Lower and upper percentiles.
+        :return: Tuple of leght 2 with the corresponding lower and upper tick values.
+        """
+
+        # Calculate bin indexes
         lowbin = bis.bisect(self.normalized_integral, percentiles[0], lo=1, hi=len(self.normalized_integral))-1
             # having lo=1 ensures lowbin is never -1
         highbin = bis.bisect(self.normalized_integral, percentiles[1])
@@ -70,12 +94,19 @@ class MpxHist:
             lowtick = np.floor(self.bin_edges[lowbin] * p10_low) / p10_low #self.bin_edges[lowbin]
         else:
             lowtick = 0
+
         # high bin precision defined as 4 - order of mag
         p10_high = 10**(4 - int(math.floor(math.log10(abs(self.bin_edges[highbin])))))
         hightick = np.ceil(self.bin_edges[highbin] * p10_high) / p10_high #self.bin_edges[highbin]
+
         return lowtick, hightick
 
     def get_percentiles_from_ticks(self, ticks):
+        """
+        Get percentiles at the defined tick values
+        :param ticks: Array-like with 2 values. Lower and upper ticks.
+        :return: Tuple of leght 2 with the corresponding lower and upper percentile values.
+        """
         # bin_edges is 1 longer than the normalized integral
         lowbin = bis.bisect(self.bin_edges[:-2], ticks[0], lo=0, hi=len(self.bin_edges[:-2]))
         # having lo=1 ensures lowbin is never -1
@@ -86,76 +117,11 @@ class MpxHist:
         return percentiles
 
 
+class DataPatternPlotter:
 
-class DataPattern:
-    """
-    A class to hold a data pattern and methods for
-    - Matrix manipulation (manip_);
-    - IO (io_);
-    - Angular calibration (ang_);
-    - Draw (draw_).
-    """
-    def __init__(self, file_path=None, pattern_array=None, verbose = 1,  **kwargs):
-        if file_path is None and pattern_array is None:
-            raise ValueError('Please input a file path or a pattern array')
-        if not file_path is None and not pattern_array is None:
-            raise ValueError('Please input a file path or a pattern array')
+    def __init__(self, datapattern):
 
-        self.verbose = verbose
-
-        # real size of pixels between chips
-        self.real_size = kwargs.get('real_size', 1)
-        self.nChipsX = kwargs.get('nChipsX', 1)
-        self.nChipsY = kwargs.get('nChipsY', 1)
-
-        assert isinstance(self.real_size,int), 'real_size should be int'
-        assert isinstance(self.nChipsX, int), 'nChipsX should be int'
-        assert isinstance(self.nChipsY, int), 'nChipsY should be int'
-
-        # initialization of values for IO
-        self.filename_in = ''
-        self.path_in = ''
-        self.filetype_in = ''
-
-        # create data objects for detector mesh
-        self.is_mesh_defined = False
-        self.xmesh = np.array([[]])
-        self.ymesh = np.array([[]])
-        (self.ny, self.nx) = (None, None)
-
-        # values for angular calibration
-        self.pixel_size_mm = None
-        self.distance = None
-        self.reverse_x = False
-
-        # values for manipulation methods
-        self.mask_central_pixels = 0
-        self.rm_edge_pixels = 0
-
-        # orientation variables
-        self.center = (0,0)
-        self.angle = 0
-
-        # importing matrix
-        if not pattern_array is None:
-            self.matrixOriginal = ma.array(data=pattern_array.copy(),mask=False)
-            (self.ny, self.nx) = self.matrixOriginal.shape
-        elif not file_path is None:
-            if os.path.isfile(file_path):
-                self._io_load(file_path)
-            else:
-                raise IOError('File does not exist: %s' % file_path)
-        self.matrixCurrent = self.matrixOriginal.copy()
-        self.matrixDrawable = self.matrixOriginal.copy()
-
-        # creating mesh
-        # ang_range = self.ang_get_range(self.distance, self.matrixDrawable.shape[0] * self.pixel_size_mm)
-        # self.range = kwargs.get('range', (-ang_range / 2.0, ang_range / 2.0))
-        if not self.is_mesh_defined:
-            self.manip_create_mesh()
-
-        # inicialization medipix histogram
-        self.hist = MpxHist(self.matrixCurrent)
+        self.datapattern = datapattern  # Reference
 
         # Draw variables
         self.ax = None
@@ -163,610 +129,9 @@ class DataPattern:
         self.rectangle_limits = None
         self.RS = None
 
-    def __have_same_attributes(self, other):
 
-        # verify if possible and get values
-        assert isinstance(other, DataPattern), "Add object is not a DataPattern"
 
-        # check if the shape is the same
-        if not self.matrixCurrent.shape == other.matrixCurrent.shape:
-            raise ValueError("error the medipix matrices have different shape")
 
-        # check if the number of chips is the same
-        if not (self.nChipsX == other.nChipsX and
-                        self.nChipsY == other.nChipsY):
-            raise ValueError("error, the DataPattern have different number of chips")
-
-        # check if the real size of central pixels is the same
-        if not (self.real_size == other.real_size):
-            raise ValueError("error, the DataPattern have different real size of central pixels")
-
-        # check if the mesh is the same
-        if self.is_mesh_defined is True and other.is_mesh_defined is True:
-            if not (np.allclose(self.xmesh, other.xmesh) and
-                    np.allclose(self.ymesh, other.ymesh)):
-                raise ValueError("error, the DataPattern have different angular mesh")
-
-    def __add__(self, other):
-
-        self.__have_same_attributes(other)
-
-        new_pattern = self.matrixCurrent.data + other.matrixCurrent.data
-        new_pattern_mask = self.matrixCurrent.mask + other.matrixCurrent.mask
-
-        new_mm = self.copy()
-
-        new_mm.matrixOriginal = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
-        new_mm.matrixCurrent = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
-
-        return new_mm
-
-    def __sub__(self, other):
-        self.__have_same_attributes(other)
-
-        new_pattern = self.matrixCurrent.data - other.matrixCurrent.data
-        new_pattern_mask = self.matrixCurrent.mask + other.matrixCurrent.mask
-
-        new_mm = self.copy()
-
-        new_mm.matrixOriginal = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
-        new_mm.matrixCurrent = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
-
-        return new_mm
-
-    def __rmul__(self, other):
-
-        return self.__mul__(other)
-
-
-    def __mul__(self, other):
-
-        # other needs to be a float
-        other = np.float(other)
-
-        new_pattern = ma.masked_array(data=self.matrixCurrent.data * other, mask=self.matrixCurrent.mask)
-
-        # Create new MM
-        new_mm = self.copy()
-
-        new_mm.matrixOriginal = new_pattern.copy()
-        new_mm.matrixCurrent = new_pattern.copy()
-
-        return new_mm
-
-    def __rdiv__(self, other):
-        # other needs to be a float
-        other = np.float(other)
-
-        if other == 0:
-            raise ValueError('Dividing by zero.')
-
-        new_pattern = ma.masked_array(data=self.matrixCurrent.data / other, mask=self.matrixCurrent.mask)
-
-        # Create new MM
-        new_mm = self.copy()
-
-        new_mm.matrixOriginal = copy.deepcopy(new_pattern)
-        new_mm.matrixCurrent = copy.deepcopy(new_pattern)
-
-        return new_mm
-
-    def copy(self):
-        # Draw variables should not be copied
-        temp_ax = self.ax
-        temp_ang_wid = self.ang_wid
-        temp_rectangle_limits= self.rectangle_limits
-        temp_RS = self.RS
-
-        self.ax = None
-        self.ang_wid = None
-        self.rectangle_limits = None
-        self.RS = None
-
-        new_dp = copy.deepcopy(self)
-
-        self.ax = temp_ax
-        self.ang_wid = temp_ang_wid
-        self.rectangle_limits = temp_rectangle_limits
-        self.RS = temp_RS
-
-        return new_dp
-
-    def get_matrix(self):
-        return self.matrixCurrent.copy()
-
-    def get_xymesh(self):
-        return self.xmesh.copy(), self.ymesh.copy()
-
-    def set_xymesh(self, xmesh, ymesh):
-
-        if xmesh.shape != ymesh.shape:
-            raise ValueError('xmesh and ymesh need to have the same shape')
-
-        if self.ny is None and self.nx is None:
-            (self.ny, self.nx) = xmesh.shape
-
-        if (xmesh.shape != (self.ny, self.nx) or
-            ymesh.shape != (self.ny, self.nx)):
-            raise ValueError('mesh needs to be of shape (ny,nx)')
-
-        self.is_mesh_defined = True
-        self.xmesh = np.array(xmesh)
-        self.ymesh = np.array(ymesh)
-
-    # ===== - IO Methods - =====
-    def _io_load(self, filename):
-        """
-        understand what is the filetype and saves the file in given format
-
-        :param filename:  is the name or full path to the file
-        :return:
-        """
-        if not os.path.isfile(filename):
-            print('Error file not valid.')
-            return
-        (self.path_in, self.filename_in) = os.path.split(filename)
-        (name, self.filetype_in) = os.path.splitext(self.filename_in)
-
-        if self.filetype_in == '.txt':
-            self._io_load_ascii()
-        elif self.filetype_in == '.2db':
-            self._io_load_origin()
-        elif self.filetype_in == '.json':
-            self.io_load_json()
-        else:
-            raise ValueError('Unknown requested file type extension')
-
-    def _io_load_ascii(self):
-        """
-        loads an ascii file containing a matrix
-        """
-        self.matrixOriginal = ma.array(data=np.loadtxt(os.path.join(self.path_in, self.filename_in)), mask=False)
-        (self.ny, self.nx) = self.matrixOriginal.shape
-
-    def io_save_ascii(self, filename, ignore_mask=False, number_format='int'):
-        """
-        saves the current matrix to an ascii file
-        :param filename: is the name or full path to the file
-        :param ignore_mask: if True data values are saved instead of a zero where the mask is on
-        :param number_format: set the number format, it can be set to 'int' or 'float'
-        :return:
-        """
-        if ignore_mask:
-            matrix = self.matrixCurrent.data
-        else:
-            matrix = self.matrixCurrent.filled(0)
-
-        if number_format == 'int':
-            np.savetxt(filename, matrix, "%d")
-        if number_format == 'float':
-            np.savetxt(filename, matrix, "%f")
-
-    def _io_load_origin(self):
-        """
-        loads a 2db file containing a matrix
-        """
-        fileContent = str('')
-        with open(os.path.join(self.path_in, self.filename_in), mode='rb') as file:  # b is important -> binary
-            self.fileContent = file.read()
-
-        short_sz = 2
-        float_sz = 4
-        self.nx = struct.unpack("<h", self.fileContent[0:0+short_sz])[0]
-        self.ny = struct.unpack("<h", self.fileContent[2:2+short_sz])[0]
-        type = struct.unpack("?", bytes(self.fileContent[4:5]))[0]
-        temp = struct.unpack(self.ny*self.nx*"f", self.fileContent[5:5+self.ny*self.nx*float_sz])
-        self.matrixOriginal = ma.array(data=np.array(temp).reshape((self.ny,self.nx)), mask=False)
-
-    def io_save_origin(self, filename, ignore_mask=False):
-        """
-        saves the current matrix to an 2db file
-        :param filename: is the name or full path to the file
-        :param ignore_mask: if True data values are saved instead of a zero where the mask is on
-        :return:
-        """
-        #matrix = DataPattern.manip_correct_central_pix(self.matrixCurrent, self.nChipsX, self.nChipsY, real_size=real_size)
-        if ignore_mask:
-            matrix = self.matrixCurrent.data
-        else:
-            matrix = self.matrixCurrent.filled(0)
-
-        (ny, nx) = matrix.shape
-        #print(nx,ny)
-        with open(filename, mode='wb') as newfile:  # b is important -> binary
-            newfile.write(struct.pack("<h", nx))
-            newfile.write(struct.pack("<h", ny))
-            newfile.write(struct.pack("<?", False))
-            tempbytes = struct.pack("<"+ ny * nx * "f", *matrix.reshape((ny * nx)))
-            newfile.write(tempbytes)
-
-    def io_save_json(self, jsonfile):
-        js_out = {}
-        js_out['matrix'] = {}
-        js_out['matrix']['data'] = self.matrixCurrent.data.tolist()
-        js_out['matrix']['mask'] = self.matrixCurrent.mask.tolist()
-        js_out['matrix']['fill_value'] = self.matrixCurrent.fill_value.tolist()
-        # real size of pixels between chips
-        js_out['real_size'] = self.real_size
-        js_out['nchipsx'] = self.nChipsX
-        js_out['nchipsy'] = self.nChipsY
-        # data objects for detector mesh
-        js_out['is_mesh_defined'] = self.is_mesh_defined
-        js_out['xmesh'] = self.xmesh.tolist()
-        js_out['ymesh'] = self.ymesh.tolist()
-        js_out['ny'] = self.ny
-        js_out['nx'] = self.nx
-        # values for angular calibration
-        js_out['pixel_size_mm'] = self.pixel_size_mm
-        js_out['distance'] = self.distance
-        # values for manipulation methods
-        js_out['mask_central_pixels'] = self.mask_central_pixels
-        js_out['rm_edge_pixels'] = self.rm_edge_pixels
-        # orientation variables
-        js_out['center'] = self.center
-        js_out['angle'] = self.angle
-
-        # save to file
-        #with io.open(jsonfile, 'w', encoding='utf-8') as f:
-        #    f.write(str(json.dumps(js_out, ensure_ascii=False, sort_keys=True)))
-        with open(jsonfile, 'w') as fp:
-            json.dump(js_out, fp)
-
-    def io_load_json(self):
-        with open(os.path.join(self.path_in, self.filename_in), mode='r') as fp:
-            json_in = json.load(fp)
-            matrix_data = json_in['matrix']['data']
-            matrix_mask = json_in['matrix']['mask']
-            matrix_fill = json_in['matrix']['fill_value']
-            self.matrixOriginal = ma.array(data=matrix_data, mask=matrix_mask, fill_value=matrix_fill)
-            # real size of pixels between chips
-            self.real_size = json_in['real_size']
-            self.nChipsX = json_in['nchipsx']
-            self.nChipsY = json_in['nchipsy']
-            # data objects for detector mesh
-            self.is_mesh_defined = json_in['is_mesh_defined']
-            self.xmesh = np.array(json_in['xmesh'])
-            self.ymesh = np.array(json_in['ymesh'])
-            self.ny = json_in['ny']
-            self.nx = json_in['nx']
-            # values for angular calibration
-            self.pixel_size_mm = json_in['pixel_size_mm']
-            self.distance = json_in['distance']
-            # values for manipulation methods
-            self.mask_central_pixels = json_in['mask_central_pixels']
-            self.rm_edge_pixels = json_in['rm_edge_pixels']
-            # orientation variables
-            self.center = json_in['center']
-            self.angle = json_in['angle']
-
-    # ===== - Mask Methods - =====
-
-    def load_mask(self, filename, expand_by=0):
-        mask = np.loadtxt(filename)
-        if mask.shape != self.matrixCurrent.shape:
-            raise ValueError('Shape of mask in file does not match the shape of DataPattern')
-        mask = self._expand_any_mask(mask, expand_by)
-        self.matrixCurrent.mask = (mask == 0)
-
-    def set_mask(self, mask, expand_by=0):
-        mask = np.array(mask)
-        if mask.shape != self.matrixCurrent.shape:
-            raise ValueError('Shape of mask does not match the shape of DataPattern')
-        mask = self._expand_any_mask(mask, expand_by)
-        self.matrixCurrent.mask = mask
-
-    def save_mask(self, filename):
-        np.savetxt(filename, self.matrixCurrent.mask == 0, fmt='%i')
-
-    def expand_mask(self, expand_by=0):
-        self.matrixCurrent.mask = self._expand_any_mask(self.matrixCurrent.mask, expand_by)
-
-    def _expand_any_mask(self, mask, expand_by=0):
-        '''
-        masks pixels that are adjacent to masked pixels up to a distance of expand_by.
-        :param mask:
-        :param expand_by:
-        :return:
-        '''
-
-        if not isinstance(expand_by, int):
-            raise ValueError('expand_by must be an int')
-
-        kernel = np.ones((expand_by * 2 + 1))
-        nr, nc = mask.shape
-        new_mask = mask.copy()
-        for r in range(nr):
-            new_mask[r, :] = np.convolve(new_mask[r, :], kernel, 'same')
-
-        for c in range(nc):
-            new_mask[:, c] = np.convolve(new_mask[:, c], kernel, 'same')
-        return new_mask
-
-    def set_fit_region(self, distance=2.9, center=None, angle=None):
-        if center is None:
-            center = self.center
-        if angle is None:
-            angle = self.angle
-
-        if len(center) != 2:
-            raise ValueError('center must be of length 2.')
-
-        angle = angle * np.pi / 180
-        v1 = np.array([np.cos(angle), np.sin(angle)])
-        v2 = np.array([np.sin(angle), -np.cos(angle)])
-
-        xy = np.stack([self.xmesh - center[0], self.ymesh - center[1]], axis=-1)
-
-        distance1 = np.abs(np.dot(xy, v1))
-        distance2 = np.abs(np.dot(xy, v2))
-
-        if distance >= 0:
-            condition = ((distance1 > distance) | (distance2 > distance))
-        elif distance < 0:
-            condition = ~((distance1 > -distance) | (distance2 > -distance))
-
-        self.matrixCurrent = ma.masked_where(condition, self.matrixCurrent)
-
-    def mask_std(self, std=6, expand_by=0):
-        hist = MpxHist(self.matrixCurrent)
-        condition = ((self.matrixCurrent <= hist.mean - std * hist.std) | \
-                     (self.matrixCurrent >= hist.mean + std * hist.std))
-        mask = self._expand_any_mask(condition, expand_by)
-        self.matrixCurrent = ma.masked_where(mask==1, self.matrixCurrent)
-
-    def clear_mask(self):
-        self.matrixCurrent.mask = False
-
-    # ===== - Matrix Manipulation Methods - =====
-
-    def undo_all(self):
-        self.matrixCurrent = self.matrixOriginal.copy()
-        self.matrixDrawable = self.matrixOriginal.copy()
-
-    def manip_orient(self, strg):
-        assert isinstance(strg, str)
-        temp_matrix = self.matrixCurrent
-        strg = strg.lower().replace(' ','').strip(',')
-        for cmd in strg.split(','):
-            if cmd == 'rl':
-                # rotate left
-                temp_matrix = np.rot90(temp_matrix, 3)
-            elif cmd == 'rr':
-                # rotate right
-                temp_matrix = np.rot90(temp_matrix)
-            elif cmd == 'mv':
-                # vertical mirror
-                temp_matrix = np.flipud(temp_matrix)
-            elif cmd == 'mh':
-                # horizontal mirror
-                temp_matrix = np.fliplr(temp_matrix)
-            elif cmd == '':
-                continue
-            else:
-                print('Orientation command \'{}\' not understood'.format(cmd))
-        self.matrixCurrent = temp_matrix
-
-    def manip_smooth(self, fwhm, matrix='Current'):
-        #print("smoothing" , fwhm)
-        gauss_smooth = fwhm/2.32
-        if matrix == 'Current':
-            self.matrixCurrent.data[:,:] = scipy.ndimage.gaussian_filter(self.matrixCurrent.data, gauss_smooth)  #, mode='nearest')
-        elif matrix == 'Drawable':
-            self.matrixDrawable.data[:,:] = scipy.ndimage.gaussian_filter(self.matrixDrawable.data, gauss_smooth)
-
-    def manip_correct_central_pix(self):
-        if self.real_size <= 1 and (self.nChipsX > 1 or self.nChipsY > 1):
-            warnings.warn('The value for the central pixel real size is set to ', self.real_size)
-        nx = self.matrixCurrent.shape[0] + (2 * self.real_size - 2) * (self.nChipsX - 1)
-        ny = self.matrixCurrent.shape[0] + (2 * self.real_size - 2) * (self.nChipsY - 1)
-        # temp_matrix = -np.ones((ny, nx))
-        temp_matrix1 = np.zeros((self.matrixCurrent.shape[0], nx))
-        temp_matrix2 = np.zeros((ny, nx))
-        mask_update1 = np.ones((self.matrixCurrent.shape[0], nx))==1
-        mask_update2 = np.ones((ny, nx))==1
-
-        for interX in range(0, self.nChipsX):
-            dock_i = interX * (256 + 2 * self.real_size - 2)
-            dock_f = dock_i + 256
-            temp_matrix1[:, dock_i:dock_f] = self.matrixCurrent.data[:, interX*256:interX*256 + 256]
-            mask_update1[:, dock_i:dock_f] = self.matrixCurrent.mask[:, interX*256:interX*256 + 256]
-
-        for interY in range(0, self.nChipsY):
-            dock_i = interY * (256 + 2 * self.real_size - 2)
-            dock_f = dock_i + 256
-            temp_matrix2[dock_i:dock_f, :] = temp_matrix1[interY*256:interY*256 + 256, :]
-            mask_update2[dock_i:dock_f, :] = mask_update1[interY*256:interY*256 + 256, :]
-
-        self.matrixCurrent = ma.array(data=temp_matrix2,mask=mask_update2)
-        # Update mesh
-        self.manip_create_mesh()
-
-    def zero_central_pix(self, rm_central_pix=None):
-        rm_central_pix = int(rm_central_pix)
-        if rm_central_pix is not None:
-            self.rm_central_pix = rm_central_pix
-        #print('Number of chips - ', self.nChipsX*self.nChipsY)
-        (ny, nx) = self.matrixCurrent.shape
-        xstep = nx // self.nChipsX
-        ystep = nx // self.nChipsY
-        # print(xstep, ystep, rm_central_pix)
-        for ix in range(self.nChipsX-1):
-            self.matrixCurrent.mask[:,xstep-rm_central_pix:xstep+rm_central_pix] = True
-        for iy in range(self.nChipsY - 1):
-            self.matrixCurrent.mask[ystep - rm_central_pix:ystep + rm_central_pix,:] = True
-
-    def remove_edge_pixel(self, rm_edge_pix=0):
-        '''
-        This function is used to trim edge pixels
-        :param rm_edge_pix: number of edge pixels to remove
-        :return:
-        '''
-        assert isinstance(rm_edge_pix, int), 'number of edge pixels to remove should be int'
-        if rm_edge_pix > 0:
-            self.matrixCurrent = self.matrixCurrent[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
-            # Update mesh
-            self.xmesh = self.xmesh[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
-            self.ymesh = self.ymesh[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
-
-    def _update_compress_factors(self, factor, rm_central_pix, rm_edge_pix, consider_single_chip):
-
-        (ny, nx) = self.matrixCurrent.shape
-
-        # Quad detector compression
-        if (2 == self.nChipsX and 2 == self.nChipsY) and consider_single_chip is False:
-            # verify if zeroed central pixels are divided by factor
-            if 0 <= rm_central_pix:
-                # Ensure that the division rest is zero
-                central_gap = (2 * (self.real_size + rm_central_pix - 1))
-                rest = central_gap % factor
-                if rest != 0:
-                    rm_central_pix += (factor - rest) / 2
-                    warnings.warn("warning removed central pixels increased to " + str(rm_central_pix) +
-                                  ", rest is " + str(rest))
-
-            # verify if the rest of the matrix is divisable by factor
-            chip_size = 256 # size of a single timepix chip
-
-            if ny != self.nChipsY * (chip_size + self.real_size - 1) or \
-               nx != self.nChipsX * (chip_size + self.real_size - 1):
-                warnings.warn('Compression of a quad chip assumes a chip size of 256 pixels')
-
-            rest = (chip_size - rm_edge_pix - rm_central_pix) % factor
-            if rest != 0:
-                rm_edge_pix += rest
-                warnings.warn("warning removed edge pixels increased to " + str(rm_edge_pix))
-
-        # Compression of a single chip
-        elif (1 == self.nChipsX and 1 == self.nChipsY) or consider_single_chip is True:
-            if ny < nx:
-                n_min = ny
-                n_min_name = 'ny'
-            else:
-                n_min = nx
-                n_min_name = 'nx'
-
-            # The smallest side sets the rm_edge_pix
-            rest = (n_min - 2 * rm_edge_pix) % factor
-            if rest != 0:
-                rm_edge_pix += rest / 2
-                print("warning removed edge pixels increased to ", rm_edge_pix)
-
-            # crop largest side if needed
-            if n_min_name == 'ny':
-                rest = (nx - 2 * rm_edge_pix) % factor
-                print('rest/2', rest/2)
-                retrnArr = self.matrixCurrent.data[:, int(np.floor(rest/2)):nx - int(np.ceil(rest/2))]
-                retrnMa = self.matrixCurrent.mask[:, int(np.floor(rest/2)):nx - int(np.ceil(rest/2))]
-                self.matrixCurrent = ma.array(data=retrnArr, mask=(retrnMa >= 1))
-
-            elif n_min_name == 'nx':
-                rest = (ny - 2 * rm_edge_pix) % factor
-                retrnArr = self.matrixCurrent.data[int(np.floor(rest/2)):ny - int(np.ceil(rest/2)), :]
-                retrnMa = self.matrixCurrent.mask[int(np.floor(rest/2)):ny - int(np.ceil(rest/2)), :]
-                self.matrixCurrent = ma.array(data=retrnArr, mask=(retrnMa >= 1))
-
-        return factor, rm_central_pix, rm_edge_pix
-
-    def manip_convert_to_single_chip(self):
-        self.nChipsX = 1
-        self.nChipsY = 1
-        self.real_size = 1
-
-    def manip_compress(self, factor=2, rm_central_pix=0, rm_edge_pix=0, consider_single_chip=False):
-        '''
-        This function reduces the binning of the matrix in a smart way.
-        Removed central pixels are not merged with data bins.
-        It expects a matrix which central pixels have already been expanded.
-        It will increase removed central or edge pixels if needed to match the factor
-        :param factor:
-        :return:
-        '''
-        #TODO update for arbitrary vertical and horizontal size
-
-        # Inicial verifications
-        if rm_central_pix is not None:
-            self.rm_central_pix = rm_central_pix
-        if ((self.nChipsX > 1 or self.nChipsY > 1) and
-             self.real_size <= 1):
-            warnings.warn('The value for the central pixel real size is set to ' + str(self.real_size))
-
-        assert isinstance(factor,int), 'factor should be int'
-        assert isinstance(rm_central_pix, int), 'number of central pixels to remove should be int'
-        assert isinstance(rm_edge_pix, int), 'number of edge pixels to remove should be int'
-        assert isinstance(consider_single_chip, bool), 'consider_single_chip should be bool'
-
-        # update factors to ensure matrix is devisable by factor
-        factor, rm_central_pix, rm_edge_pix = \
-            self._update_compress_factors(factor, rm_central_pix, rm_edge_pix, consider_single_chip)
-
-        # calculate final shape
-        (ny, nx) = self.matrixCurrent.shape
-
-        final_size = [int((ny - rm_edge_pix * 2) / factor), int((nx - rm_edge_pix * 2) / factor)]
-        if self.verbose >= 1:
-            print('final_size', final_size)
-
-        # Update masked central pixels acoordingly
-        self.zero_central_pix(rm_central_pix + (self.real_size - 1))
-
-        # Reshaping the matrix
-        yslice = slice(int(np.floor(rm_edge_pix)), ny-int(np.ceil(rm_edge_pix)))
-        xslice = slice(int(np.floor(rm_edge_pix)), nx-int(np.ceil(rm_edge_pix)))
-
-        retrnArr = self.matrixCurrent.data[yslice, xslice]\
-                       .reshape([final_size[0], factor, final_size[1], factor]).sum(3).sum(1)
-        retrnMa = self.matrixCurrent.mask[yslice, xslice] \
-                        .reshape([final_size[0], factor, final_size[1], factor]).sum(3).sum(1)
-        self.matrixCurrent = ma.array(data=retrnArr, mask=(retrnMa>=1))
-
-        # Update mesh
-        self.xmesh = self.xmesh[yslice, xslice] \
-                        .reshape([final_size[0], factor, final_size[1], factor]).mean(3).mean(1)
-        self.ymesh = self.ymesh[yslice, xslice] \
-            .reshape([final_size[0], factor, final_size[1], factor]).mean(3).mean(1)
-        if self.pixel_size_mm is not None:
-            self.pixel_size_mm *= factor
-        #self.manip_create_mesh()
-        # After compression convert to a single chip
-        self.manip_convert_to_single_chip()
-
-    def manip_create_mesh(self, pixel_size=None, distance=None, reverse_x=None):
-        if pixel_size is not None:
-            self.pixel_size_mm = pixel_size
-        if distance is not None:
-            self.distance = distance
-        if reverse_x is not None:
-            assert isinstance(reverse_x,bool), "reverse_x needs to be bool."
-            self.reverse_x = reverse_x
-        if pixel_size is not None and distance is not None:
-            self.xmesh, self.ymesh = create_detector_mesh(self.matrixCurrent.shape[1],self.matrixCurrent.shape[0],
-                                                          self.pixel_size_mm, self.distance)
-            self.is_mesh_defined = True
-        else:
-            if self.is_mesh_defined:
-                self.xmesh, self.ymesh = create_detector_mesh(self.matrixCurrent.shape[1], self.matrixCurrent.shape[0],
-                                                              self.pixel_size_mm, self.distance)
-            else:
-                # create detector mesh
-                xm = np.arange(self.matrixCurrent.shape[1])
-                ym = np.arange(self.matrixCurrent.shape[0])
-                self.xmesh, self.ymesh = np.meshgrid(xm, ym)
-        if self.reverse_x:
-            self.xmesh = np.fliplr(self.xmesh)
-
-        # alternative method
-        #manip_create_mesh(self, shape, axis_range):
-        #x_ang = np.linspace(axis_range[0], axis_range[1], shape[1])
-        #y_ang = np.linspace(axis_range[2], axis_range[3], shape[0])
-        #X_ang, Y_ang = np.meshgrid(x_ang, y_ang)
-        #return X_ang, Y_ang
-
-    # ===== - Angular Calibration Methods - =====
-    @staticmethod
-    def ang_get_range(distance, side):
-        return 2 * math.degrees(math.atan(side / (2 * distance)))
-
-    # ===== - Draw Methods - =====
     def draw(self, axes, blank_masked=True, **kwargs):
 
         assert isinstance(axes, plt.Axes)
@@ -848,10 +213,6 @@ class DataPattern:
 
         return axes, cb
 
-    def callonangle(self, center, angle):
-        self.center = center
-        self.angle = angle
-        self.ang_wid = None
 
     def get_angle_tool(self):
         if self.ax is None:
@@ -859,24 +220,6 @@ class DataPattern:
         self.center = (0,0)
         self.angle = 0
         self.ang_wid = AngleMeasure(self.ax, self.callonangle)
-
-    def mask_pixel(self, i, j):
-        self.matrixCurrent.mask[i, j] = True
-
-    def mask_rectangle(self, rectangle_limits):
-        condition = ((self.xmesh <= rectangle_limits[1]) &
-                     (self.xmesh >= rectangle_limits[0]) &
-                     (self.ymesh <= rectangle_limits[3]) &
-                     (self.ymesh >= rectangle_limits[2]))
-        self.matrixCurrent = ma.masked_where(condition, self.matrixCurrent)
-
-    def mask_below(self, value):
-        condition = self.matrixCurrent <= value
-        self.matrixCurrent = ma.masked_where(condition, self.matrixCurrent)
-
-    def mask_above(self, value):
-        condition = self.matrixCurrent >= value
-        self.matrixCurrent = ma.masked_where(condition, self.matrixCurrent)
 
     def onselect_RS(self, eclick, erelease):
         'eclick and erelease are matplotlib events at press and release'
@@ -893,9 +236,771 @@ class DataPattern:
         self.RS = RectangleSelector(self.ax, self.onselect_RS, drawtype='box', useblit=True, interactive=False,
                                     rectprops=rectprops)
 
+    def manip_smooth(self, fwhm, matrix='Current'):
+        #print("smoothing" , fwhm)
+        gauss_smooth = fwhm/2.32
+        if matrix == 'Current':
+            self.matrixCurrent.data[:,:] = scipy.ndimage.gaussian_filter(self.matrixCurrent.data, gauss_smooth)  #, mode='nearest')
+        elif matrix == 'Drawable':
+            self.matrixDrawable.data[:,:] = scipy.ndimage.gaussian_filter(self.matrixDrawable.data, gauss_smooth)
+
+
+class DataPattern:
+    """
+    A class to hold a data pattern and methods for
+    - Matrix manipulation (manip_);
+    - IO (io_);
+    - Angular calibration (ang_);
+    """
+
+    def __init__(self, file_path=None, pattern_array=None, verbose=1,  **kwargs):
+        """
+        Init method for the DataPattern class.
+        :param file_path: Path of a datapattern or array file. Do not use if pattern_array is defined.
+        :param pattern_array: A 2D array. Do not use if file_path is defined.
+        :param verbose: Verbose level.
+        :param kwargs: Timepix quad parameters: real_size, nChipsX and nChipsY.
+        """
+
+        if file_path is None and pattern_array is None:
+            raise ValueError('Please input a file path or a pattern array')
+        if file_path is not None and pattern_array is not None:
+            raise ValueError('Please input a file path or a pattern array')
+
+        self.verbose = verbose
+
+        # Variables here defined may need to be included in the JSON save and load methods
+
+        # real size of pixels between chips
+        self.real_size = kwargs.get('real_size', 1)
+        self.nChipsX = kwargs.get('nChipsX', 1)
+        self.nChipsY = kwargs.get('nChipsY', 1)
+
+        # Verifications
+        if not isinstance(file_path, str):
+            raise ValueError('file_path should be string.')
+        if not isinstance(pattern_array, (list, tuple, np.ndarray)):
+            raise ValueError('pattern_array should be an array like of 2 dimensions.')
+        if not isinstance(self.real_size, int):
+            raise ValueError('real_size should be int.')
+        if not isinstance(self.nChipsX, int):
+            raise ValueError('nChipsX should be int.')
+        if not isinstance(self.nChipsY, int):
+            raise ValueError('nChipsY should be int')
+
+        # Create data objects for detector mesh
+        self.is_mesh_defined = False
+        self.xmesh = np.array([[]])
+        self.ymesh = np.array([[]])
+        (self.ny, self.nx) = (None, None)  # (n rows, n columns)
+
+        # Values for angular calibration
+        self.pixel_size_mm = None
+        self.distance = None
+        self.reverse_x = False
+
+        # Values for manipulation methods
+        self.mask_central_pixels = 0
+        self.rm_edge_pixels = 0
+
+        # Orientation variables
+        self.center = (0, 0)
+        self.angle = 0
+
+        # Importing matrix
+        self.pattern_matrix = ma.array()
+        if pattern_array is not None:
+            self.pattern_matrix = ma.array(data=pattern_array.copy(), mask=False)
+            (self.ny, self.nx) = self.pattern_matrix.shape
+        elif file_path is not None:
+            if os.path.isfile(file_path):
+                self._io_load(file_path)
+            else:
+                raise IOError('File does not exist: {}}'.format_map(file_path))
+
+        # Create mesh
+        if not self.is_mesh_defined:
+            self.manip_create_mesh()
+
+    def _have_same_attributes(self, other):
+        """
+        Check if an other DataPattern object has the same attributes in order to do mathematical operation between them.
+        :param other: DataPattern object
+        """
+
+        # verify if possible and get values
+        if not isinstance(other, DataPattern):
+            raise ValueError('Operation failed as object is not a DataPattern.')
+
+        # check if the shape is the same
+        if not self.pattern_matrix.shape == other.pattern_matrix.shape:
+            raise ValueError('Error, the pattern matrices have different shapes.')
+
+        # check if the number of chips is the same
+        if not (self.nChipsX == other.nChipsX and
+                self.nChipsY == other.nChipsY):
+            raise ValueError('Error, the DataPattern have different number of chips.')
+
+        # check if the real size of central pixels is the same
+        if not (self.real_size == other.real_size):
+            raise ValueError('Error, the DataPattern have different real size of central pixels.')
+
+        # check if the mesh is the same
+        if self.is_mesh_defined is True and other.is_mesh_defined is True:
+            if not (np.allclose(self.xmesh, other.xmesh) and
+                    np.allclose(self.ymesh, other.ymesh)):
+                raise ValueError('Error, the DataPattern have different angular mesh.')
+
+    def __add__(self, other):
+        """
+        Add two DataPattern objects.
+        :param other: DataPattern object.
+        :return: DataPattern object.
+        """
+
+        # Do verifications
+        self._have_same_attributes(other)
+
+        # Add matrices
+        new_pattern = self.pattern_matrix.data + other.pattern_matrix.data
+        new_pattern_mask = self.pattern_matrix.mask + other.pattern_matrix.mask
+
+        # Make a new DataPattern with the calculated matrices
+        new_mm = self.copy()
+        new_mm.pattern_matrix = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
+        return new_mm
+
+    def __sub__(self, other):
+        """
+        Subtract a DataPattern object.
+        :param other: DataPattern object.
+        :return: DataPattern object.
+        """
+
+        # Do verifications
+        self._have_same_attributes(other)
+
+        # Subtract matrix
+        new_pattern = self.pattern_matrix.data - other.pattern_matrix.data
+        new_pattern_mask = self.pattern_matrix.mask + other.pattern_matrix.mask
+
+        # Make a new DataPattern with the calculated matrices
+        new_mm = self.copy()
+        new_mm.pattern_matrix = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
+        return new_mm
+
+    def __rmul__(self, other):
+        """
+        Right multiplication by a scalar.
+        :param other: A numerical value.
+        :return: DataPattern object.
+        """
+
+        return self.__mul__(other)
+
+    def __mul__(self, other):
+        """
+        Left multiplication by a scalar.
+        :param other: A numerical value.
+        :return: DataPattern object.
+        """
+
+        # other needs to be a float
+        other = np.float(other)
+
+        # Calculate new pattern
+        new_pattern = ma.masked_array(data=self.pattern_matrix.data * other, mask=self.pattern_matrix.mask)
+
+        # Make a new DataPattern with the calculated matrices
+        new_mm = self.copy()
+        new_mm.pattern_matrix = new_pattern.copy()
+        return new_mm
+
+    def __rdiv__(self, other):
+        """
+        Right division by a scalar.
+        :param other: A numerical value.
+        :return: DataPattern object.
+        """
+
+        # other needs to be a float
+        other = np.float(other)
+
+        if other == 0:
+            raise ValueError('Dividing by zero.')
+
+        # Calculate new pattern
+        new_pattern = ma.masked_array(data=self.pattern_matrix.data / other, mask=self.pattern_matrix.mask)
+
+        # Make a new DataPattern with the calculated matrices
+        new_mm = self.copy()
+        new_mm.pattern_matrix = copy.deepcopy(new_pattern)
+        return new_mm
+
+    def copy(self):
+        """
+        Make a copy of itself.
+        :return: DataPattern object.
+        """
+        new_dp = copy.deepcopy(self)
+        return new_dp
+
+    def get_matrix(self):
+        """
+        Get the pattern matrix.
+        :return: Numpy array.
+        """
+        return self.pattern_matrix.copy()
+
+    def get_xymesh(self):
+        """
+        Get the X and Y mesh.
+        :return: Tuple of (x, y) mesh. Each a Numpy array.
+        """
+        return self.xmesh.copy(), self.ymesh.copy()
+
+    def set_xymesh(self, xmesh, ymesh):
+        """
+        Set the X and Y mesh.
+        :param xmesh: Two dimmentional array of mesh coordinates.
+        :param ymesh: Two dimmentional array of mesh coordinates.
+        """
+
+        # Verify if the shapes are the same
+        if xmesh.shape != ymesh.shape:
+            raise ValueError('xmesh and ymesh need to have the same shape.')
+
+        if self.ny is None and self.nx is None:
+            (self.ny, self.nx) = xmesh.shape
+
+        if (xmesh.shape != (self.ny, self.nx) or
+                ymesh.shape != (self.ny, self.nx)):
+            raise ValueError('Mesh needs to be of shape (ny, nx).')
+
+        self.is_mesh_defined = True
+        self.xmesh = np.array(xmesh)
+        self.ymesh = np.array(ymesh)
+
+    # ===== - IO Methods - =====
+    def _io_load(self, filename):
+        """
+        Loads the DataPattern in the given file format.
+        :param filename: Name or full path to the file.
+        """
+        if not os.path.isfile(filename):
+            print('Error file not valid.')
+            return
+
+        # Path operations
+        (_, filetype) = os.path.splitext(filename)
+
+        # Call the right load function
+        if filetype == '.txt':
+            self._io_load_ascii(filename)
+        elif filetype == '.2db':
+            self._io_load_origin(filename)
+        elif filetype == '.json':
+            self._io_load_json(filename)
+        else:
+            raise ValueError('Unknown file type extension.')
+
+    def _io_load_ascii(self, filename):
+        """
+        Loads an ascii file containing a 2D data matrix.
+        :param filename: Name or full path to the file.
+        """
+        self.pattern_matrix = ma.array(data=np.loadtxt(filename), mask=False)
+        (self.ny, self.nx) = self.pattern_matrix.shape
+
+    def io_save_ascii(self, filename, ignore_mask=False, number_format='int'):
+        """
+        Saves the current pattern matrix to an ascii file.
+        :param filename: Name or full path to the file.
+        :param ignore_mask: If True data values are saved instead of a zero where the mask is on.
+        :param number_format: Set the number format, it can be set to 'int' or 'float'
+        :return:
+        """
+        if ignore_mask:
+            matrix = self.pattern_matrix.data
+        else:
+            matrix = self.pattern_matrix.filled(0)
+
+        if number_format == 'int':
+            np.savetxt(filename, matrix, "%d")
+        if number_format == 'float':
+            np.savetxt(filename, matrix, "%f")
+
+    def _io_load_origin(self, filename):
+        """
+        Loads a 2db file containing a pattern matrix.
+        :param filename: Name or full path to the file.
+        """
+        with open(filename, mode='rb') as file:  # b is important -> binary
+            file_content = file.read()
+
+        # Size of short and float types in bytes
+        short_sz = 2
+        float_sz = 4
+
+        # 2db file has
+        # 1 Short with the number of columns
+        # 1 Short with the number of lines
+        # 1 Dummy byte
+        # nx*ny of Floats
+        self.nx = struct.unpack("<h", file_content[0:0+short_sz])[0]
+        self.ny = struct.unpack("<h", file_content[2:2+short_sz])[0]
+        _ = struct.unpack("?", bytes(file_content[4:5]))[0]  # Dummy byte, named type on FDD
+        temp = struct.unpack(self.ny*self.nx*"f", file_content[5:5+self.ny*self.nx*float_sz])
+        self.pattern_matrix = ma.array(data=np.array(temp).reshape((self.ny, self.nx)), mask=False)
+
+    def io_save_origin(self, filename, ignore_mask=False):
+        """
+        Saves the current matrix to an 2db file.
+        :param filename: Name or full path to the file.
+        :param ignore_mask: If True data values are saved instead of a zero where the mask is on.
+        """
+        if ignore_mask:
+            matrix = self.pattern_matrix.data
+        else:
+            matrix = self.pattern_matrix.filled(0)
+
+        (ny, nx) = matrix.shape
+        with open(filename, mode='wb') as newfile:  # b is important -> binary
+            newfile.write(struct.pack("<h", nx))
+            newfile.write(struct.pack("<h", ny))
+            newfile.write(struct.pack("<?", False))
+            tempbytes = struct.pack("<" + ny * nx * "f", *matrix.reshape((ny * nx)))
+            newfile.write(tempbytes)
+
+    def io_save_json(self, filename):
+        """
+        Saves the current DataPattern to a JSON file.
+        :param filename: Name or full path to the file.
+        """
+        js_out = dict()
+        js_out['matrix'] = dict()
+        js_out['matrix']['data'] = self.pattern_matrix.data.tolist()
+        js_out['matrix']['mask'] = self.pattern_matrix.mask.tolist()
+        js_out['matrix']['fill_value'] = self.pattern_matrix.fill_value.tolist()
+        # real size of pixels between chips
+        js_out['real_size'] = self.real_size
+        js_out['nchipsx'] = self.nChipsX
+        js_out['nchipsy'] = self.nChipsY
+        # data objects for detector mesh
+        js_out['is_mesh_defined'] = self.is_mesh_defined
+        js_out['xmesh'] = self.xmesh.tolist()
+        js_out['ymesh'] = self.ymesh.tolist()
+        js_out['ny'] = self.ny
+        js_out['nx'] = self.nx
+        # values for angular calibration
+        js_out['pixel_size_mm'] = self.pixel_size_mm
+        js_out['distance'] = self.distance
+        # values for manipulation methods
+        js_out['mask_central_pixels'] = self.mask_central_pixels
+        js_out['rm_edge_pixels'] = self.rm_edge_pixels
+        # orientation variables
+        js_out['center'] = self.center
+        js_out['angle'] = self.angle
+
+        # save to file
+        with open(filename, 'w') as fp:
+            json.dump(js_out, fp)
+
+    def _io_load_json(self, filename):
+        """
+        Loads a DataPatter from a JSON file.
+        :param filename: Name or full path to the file.
+        """
+        with open(filename, mode='r') as fp:
+            json_in = json.load(fp)
+            matrix_data = json_in['matrix']['data']
+            matrix_mask = json_in['matrix']['mask']
+            matrix_fill = json_in['matrix']['fill_value']
+            self.pattern_matrix = ma.array(data=matrix_data, mask=matrix_mask, fill_value=matrix_fill)
+            # real size of pixels between chips
+            self.real_size = json_in['real_size']
+            self.nChipsX = json_in['nchipsx']
+            self.nChipsY = json_in['nchipsy']
+            # data objects for detector mesh
+            self.is_mesh_defined = json_in['is_mesh_defined']
+            self.xmesh = np.array(json_in['xmesh'])
+            self.ymesh = np.array(json_in['ymesh'])
+            self.ny = json_in['ny']
+            self.nx = json_in['nx']
+            # values for angular calibration
+            self.pixel_size_mm = json_in['pixel_size_mm']
+            self.distance = json_in['distance']
+            # values for manipulation methods
+            self.mask_central_pixels = json_in['mask_central_pixels']
+            self.rm_edge_pixels = json_in['rm_edge_pixels']
+            # orientation variables
+            self.center = json_in['center']
+            self.angle = json_in['angle']
+
+    # ===== - Mask Methods - =====
+    def load_mask(self, filename, expand_by=0):
+        """
+        Loads a mask file.
+        :param filename: Name or full path to the file.
+        :param expand_by: Number of pixels by which to expand each masked pixel.
+        """
+        mask = np.loadtxt(filename)
+        if mask.shape != self.pattern_matrix.shape:
+            raise ValueError('Shape of mask in file does not match the shape of DataPattern')
+        mask = self._expand_any_mask(mask, expand_by)
+        self.pattern_matrix.mask = (mask == 0)
+
+    def set_mask(self, mask, expand_by=0):
+        """
+        Set the datapattern mask.
+        :param mask: 2D array.
+        :param expand_by: Number of pixels by which to expand each masked pixel.
+        """
+        mask = np.array(mask)
+        if mask.shape != self.pattern_matrix.shape:
+            raise ValueError('Shape of mask does not match the shape of DataPattern')
+        mask = self._expand_any_mask(mask, expand_by)
+        self.pattern_matrix.mask = mask
+
+    def save_mask(self, filename):
+        """
+        Save mask to a text file.
+        :param filename: Name or full path to the file.
+        """
+        np.savetxt(filename, self.pattern_matrix.mask == 0, fmt='%i')
+
+    def expand_mask(self, expand_by=0):
+        """
+        Expand the DataPattern mask.
+        :param expand_by: Number of pixels by which to expand each masked pixel.
+        :return:
+        """
+        self.pattern_matrix.mask = self._expand_any_mask(self.pattern_matrix.mask, expand_by)
+
+    @staticmethod
+    def _expand_any_mask(mask, expand_by=0):
+        """
+        Masks pixels that are adjacent to masked pixels up to a distance of expand_by.
+        :param mask: 2D array.
+        :param expand_by: Number of pixels by which to expand each masked pixel.
+        :return: New mask in a 2D array.
+        """
+        if not isinstance(expand_by, int):
+            raise ValueError('expand_by must be an int')
+
+        kernel = np.ones((expand_by * 2 + 1))
+        nr, nc = mask.shape
+        new_mask = mask.copy()
+
+        for r in range(nr):
+            new_mask[r, :] = np.convolve(new_mask[r, :], kernel, 'same')
+        for c in range(nc):
+            new_mask[:, c] = np.convolve(new_mask[:, c], kernel, 'same')
+
+        return new_mask
+
+    # TODO here
+    def set_fit_region(self, distance=2.9, center=None, angle=None):
+        if center is None:
+            center = self.center
+        if angle is None:
+            angle = self.angle
+
+        if len(center) != 2:
+            raise ValueError('center must be of length 2.')
+
+        angle = angle * np.pi / 180
+        v1 = np.array([np.cos(angle), np.sin(angle)])
+        v2 = np.array([np.sin(angle), -np.cos(angle)])
+
+        xy = np.stack([self.xmesh - center[0], self.ymesh - center[1]], axis=-1)
+
+        distance1 = np.abs(np.dot(xy, v1))
+        distance2 = np.abs(np.dot(xy, v2))
+
+        if distance >= 0:
+            condition = ((distance1 > distance) | (distance2 > distance))
+        else:  # distance < 0
+            condition = ~((distance1 > -distance) | (distance2 > -distance))
+
+        self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
+
+    def mask_std(self, std=6, expand_by=0):
+        hist = MpxHist(self.pattern_matrix)
+        condition = ((self.pattern_matrix <= hist.mean - std * hist.std) |
+                     (self.pattern_matrix >= hist.mean + std * hist.std))
+        mask = self._expand_any_mask(condition, expand_by)
+        self.pattern_matrix = ma.masked_where(mask == 1, self.pattern_matrix)
+
+    def clear_mask(self):
+        self.pattern_matrix.mask = False
+
+    # ===== - Matrix Manipulation Methods - =====
+
+    def manip_orient(self, strg):
+        assert isinstance(strg, str)
+        temp_matrix = self.pattern_matrix
+        strg = strg.lower().replace(' ','').strip(',')
+        for cmd in strg.split(','):
+            if cmd == 'rl':
+                # rotate left
+                temp_matrix = np.rot90(temp_matrix, 3)
+            elif cmd == 'rr':
+                # rotate right
+                temp_matrix = np.rot90(temp_matrix)
+            elif cmd == 'mv':
+                # vertical mirror
+                temp_matrix = np.flipud(temp_matrix)
+            elif cmd == 'mh':
+                # horizontal mirror
+                temp_matrix = np.fliplr(temp_matrix)
+            elif cmd == '':
+                continue
+            else:
+                print('Orientation command \'{}\' not understood'.format(cmd))
+        self.pattern_matrix = temp_matrix
+
+    def manip_correct_central_pix(self):
+        if self.real_size <= 1 and (self.nChipsX > 1 or self.nChipsY > 1):
+            warnings.warn('The value for the central pixel real size is set to ', self.real_size)
+        nx = self.pattern_matrix.shape[0] + (2 * self.real_size - 2) * (self.nChipsX - 1)
+        ny = self.pattern_matrix.shape[0] + (2 * self.real_size - 2) * (self.nChipsY - 1)
+        # temp_matrix = -np.ones((ny, nx))
+        temp_matrix1 = np.zeros((self.pattern_matrix.shape[0], nx))
+        temp_matrix2 = np.zeros((ny, nx))
+        mask_update1 = np.ones((self.pattern_matrix.shape[0], nx)) == 1
+        mask_update2 = np.ones((ny, nx))==1
+
+        for interX in range(0, self.nChipsX):
+            dock_i = interX * (256 + 2 * self.real_size - 2)
+            dock_f = dock_i + 256
+            temp_matrix1[:, dock_i:dock_f] = self.pattern_matrix.data[:, interX * 256:interX * 256 + 256]
+            mask_update1[:, dock_i:dock_f] = self.pattern_matrix.mask[:, interX * 256:interX * 256 + 256]
+
+        for interY in range(0, self.nChipsY):
+            dock_i = interY * (256 + 2 * self.real_size - 2)
+            dock_f = dock_i + 256
+            temp_matrix2[dock_i:dock_f, :] = temp_matrix1[interY*256:interY*256 + 256, :]
+            mask_update2[dock_i:dock_f, :] = mask_update1[interY*256:interY*256 + 256, :]
+
+        self.pattern_matrix = ma.array(data=temp_matrix2, mask=mask_update2)
+        # Update mesh
+        self.manip_create_mesh()
+
+    def zero_central_pix(self, rm_central_pix=None):
+        rm_central_pix = int(rm_central_pix)
+        if rm_central_pix is not None:
+            self.rm_central_pix = rm_central_pix
+        #print('Number of chips - ', self.nChipsX*self.nChipsY)
+        (ny, nx) = self.pattern_matrix.shape
+        xstep = nx // self.nChipsX
+        ystep = nx // self.nChipsY
+        # print(xstep, ystep, rm_central_pix)
+        for ix in range(self.nChipsX-1):
+            self.pattern_matrix.mask[:, xstep - rm_central_pix:xstep + rm_central_pix] = True
+        for iy in range(self.nChipsY - 1):
+            self.pattern_matrix.mask[ystep - rm_central_pix:ystep + rm_central_pix, :] = True
+
+    def remove_edge_pixel(self, rm_edge_pix=0):
+        """
+        This function is used to trim edge pixels
+        :param rm_edge_pix: number of edge pixels to remove
+        :return:
+        """
+        assert isinstance(rm_edge_pix, int), 'number of edge pixels to remove should be int'
+        if rm_edge_pix > 0:
+            self.pattern_matrix = self.pattern_matrix[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
+            # Update mesh
+            self.xmesh = self.xmesh[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
+            self.ymesh = self.ymesh[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
+
+    def _update_compress_factors(self, factor, rm_central_pix, rm_edge_pix, consider_single_chip):
+
+        (ny, nx) = self.pattern_matrix.shape
+
+        # Quad detector compression
+        if (2 == self.nChipsX and 2 == self.nChipsY) and consider_single_chip is False:
+            # verify if zeroed central pixels are divided by factor
+            if 0 <= rm_central_pix:
+                # Ensure that the division rest is zero
+                central_gap = (2 * (self.real_size + rm_central_pix - 1))
+                rest = central_gap % factor
+                if rest != 0:
+                    rm_central_pix += (factor - rest) / 2
+                    warnings.warn("warning removed central pixels increased to " + str(rm_central_pix) +
+                                  ", rest is " + str(rest))
+
+            # verify if the rest of the matrix is divisable by factor
+            chip_size = 256 # size of a single timepix chip
+
+            if ny != self.nChipsY * (chip_size + self.real_size - 1) or \
+               nx != self.nChipsX * (chip_size + self.real_size - 1):
+                warnings.warn('Compression of a quad chip assumes a chip size of 256 pixels')
+
+            rest = (chip_size - rm_edge_pix - rm_central_pix) % factor
+            if rest != 0:
+                rm_edge_pix += rest
+                warnings.warn("warning removed edge pixels increased to " + str(rm_edge_pix))
+
+        # Compression of a single chip
+        elif (1 == self.nChipsX and 1 == self.nChipsY) or consider_single_chip is True:
+            if ny < nx:
+                n_min = ny
+                n_min_name = 'ny'
+            else:
+                n_min = nx
+                n_min_name = 'nx'
+
+            # The smallest side sets the rm_edge_pix
+            rest = (n_min - 2 * rm_edge_pix) % factor
+            if rest != 0:
+                rm_edge_pix += rest / 2
+                print("warning removed edge pixels increased to ", rm_edge_pix)
+
+            # crop largest side if needed
+            if n_min_name == 'ny':
+                rest = (nx - 2 * rm_edge_pix) % factor
+                print('rest/2', rest/2)
+                retrnArr = self.pattern_matrix.data[:, int(np.floor(rest / 2)):nx - int(np.ceil(rest / 2))]
+                retrnMa = self.pattern_matrix.mask[:, int(np.floor(rest / 2)):nx - int(np.ceil(rest / 2))]
+                self.pattern_matrix = ma.array(data=retrnArr, mask=(retrnMa >= 1))
+
+            elif n_min_name == 'nx':
+                rest = (ny - 2 * rm_edge_pix) % factor
+                retrnArr = self.pattern_matrix.data[int(np.floor(rest / 2)):ny - int(np.ceil(rest / 2)), :]
+                retrnMa = self.pattern_matrix.mask[int(np.floor(rest / 2)):ny - int(np.ceil(rest / 2)), :]
+                self.pattern_matrix = ma.array(data=retrnArr, mask=(retrnMa >= 1))
+
+        return factor, rm_central_pix, rm_edge_pix
+
+    def manip_convert_to_single_chip(self):
+        self.nChipsX = 1
+        self.nChipsY = 1
+        self.real_size = 1
+
+    def manip_compress(self, factor=2, rm_central_pix=0, rm_edge_pix=0, consider_single_chip=False):
+        """
+        This function reduces the binning of the matrix in a smart way.
+        Removed central pixels are not merged with data bins.
+        It expects a matrix which central pixels have already been expanded.
+        It will increase removed central or edge pixels if needed to match the factor
+        :param factor:
+        :return:
+        """
+        #TODO update for arbitrary vertical and horizontal size
+
+        # Inicial verifications
+        if rm_central_pix is not None:
+            self.rm_central_pix = rm_central_pix
+        if ((self.nChipsX > 1 or self.nChipsY > 1) and
+             self.real_size <= 1):
+            warnings.warn('The value for the central pixel real size is set to ' + str(self.real_size))
+
+        assert isinstance(factor,int), 'factor should be int'
+        assert isinstance(rm_central_pix, int), 'number of central pixels to remove should be int'
+        assert isinstance(rm_edge_pix, int), 'number of edge pixels to remove should be int'
+        assert isinstance(consider_single_chip, bool), 'consider_single_chip should be bool'
+
+        # update factors to ensure matrix is devisable by factor
+        factor, rm_central_pix, rm_edge_pix = \
+            self._update_compress_factors(factor, rm_central_pix, rm_edge_pix, consider_single_chip)
+
+        # calculate final shape
+        (ny, nx) = self.pattern_matrix.shape
+
+        final_size = [int((ny - rm_edge_pix * 2) / factor), int((nx - rm_edge_pix * 2) / factor)]
+        if self.verbose >= 1:
+            print('final_size', final_size)
+
+        # Update masked central pixels acoordingly
+        self.zero_central_pix(rm_central_pix + (self.real_size - 1))
+
+        # Reshaping the matrix
+        yslice = slice(int(np.floor(rm_edge_pix)), ny-int(np.ceil(rm_edge_pix)))
+        xslice = slice(int(np.floor(rm_edge_pix)), nx-int(np.ceil(rm_edge_pix)))
+
+        retrnArr = self.pattern_matrix.data[yslice, xslice]\
+                       .reshape([final_size[0], factor, final_size[1], factor]).sum(3).sum(1)
+        retrnMa = self.pattern_matrix.mask[yslice, xslice] \
+                        .reshape([final_size[0], factor, final_size[1], factor]).sum(3).sum(1)
+        self.pattern_matrix = ma.array(data=retrnArr, mask=(retrnMa >= 1))
+
+        # Update mesh
+        self.xmesh = self.xmesh[yslice, xslice] \
+                        .reshape([final_size[0], factor, final_size[1], factor]).mean(3).mean(1)
+        self.ymesh = self.ymesh[yslice, xslice] \
+            .reshape([final_size[0], factor, final_size[1], factor]).mean(3).mean(1)
+        if self.pixel_size_mm is not None:
+            self.pixel_size_mm *= factor
+        #self.manip_create_mesh()
+        # After compression convert to a single chip
+        self.manip_convert_to_single_chip()
+
+    def manip_create_mesh(self, pixel_size=None, distance=None, reverse_x=None):
+        if pixel_size is not None:
+            self.pixel_size_mm = pixel_size
+        if distance is not None:
+            self.distance = distance
+        if reverse_x is not None:
+            assert isinstance(reverse_x,bool), "reverse_x needs to be bool."
+            self.reverse_x = reverse_x
+        if pixel_size is not None and distance is not None:
+            self.xmesh, self.ymesh = create_detector_mesh(self.pattern_matrix.shape[1], self.pattern_matrix.shape[0],
+                                                          self.pixel_size_mm, self.distance)
+            self.is_mesh_defined = True
+        else:
+            if self.is_mesh_defined:
+                self.xmesh, self.ymesh = create_detector_mesh(self.pattern_matrix.shape[1], self.pattern_matrix.shape[0],
+                                                              self.pixel_size_mm, self.distance)
+            else:
+                # create detector mesh
+                xm = np.arange(self.pattern_matrix.shape[1])
+                ym = np.arange(self.pattern_matrix.shape[0])
+                self.xmesh, self.ymesh = np.meshgrid(xm, ym)
+        if self.reverse_x:
+            self.xmesh = np.fliplr(self.xmesh)
+
+        # alternative method
+        #manip_create_mesh(self, shape, axis_range):
+        #x_ang = np.linspace(axis_range[0], axis_range[1], shape[1])
+        #y_ang = np.linspace(axis_range[2], axis_range[3], shape[0])
+        #X_ang, Y_ang = np.meshgrid(x_ang, y_ang)
+        #return X_ang, Y_ang
+
+    # ===== - Angular Calibration Methods - =====
+    @staticmethod
+    def ang_get_range(distance, side):
+        return 2 * math.degrees(math.atan(side / (2 * distance)))
+
+    # ===== - Draw Methods - =====
+
+    # TODO rename
+    def callonangle(self, center, angle):
+        self.center = center
+        self.angle = angle
+        self.ang_wid = None
+
+    def mask_pixel(self, i, j):
+        self.pattern_matrix.mask[i, j] = True
+
+    def mask_rectangle(self, rectangle_limits):
+        condition = ((self.xmesh <= rectangle_limits[1]) &
+                     (self.xmesh >= rectangle_limits[0]) &
+                     (self.ymesh <= rectangle_limits[3]) &
+                     (self.ymesh >= rectangle_limits[2]))
+        self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
+
+    def mask_below(self, value):
+        condition = self.pattern_matrix <= value
+        self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
+
+    def mask_above(self, value):
+        condition = self.pattern_matrix >= value
+        self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
+
     def get_ticks(self, percentiles):
         if len(percentiles) != 2:
             raise ValueError("percentiles must be of length 2, for example [0.01, 0.99]")
-        self.hist = MpxHist(self.matrixCurrent)
-        lowtick, hightick = self.hist.get_bins_from_percentiles(percentiles)
+        hist = MpxHist(self.pattern_matrix)
+        lowtick, hightick = hist.get_bins_from_percentiles(percentiles)
         return [lowtick, hightick]

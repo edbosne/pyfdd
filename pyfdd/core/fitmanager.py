@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
 
 """
-Fit manager is the kernel class for fitting.
+FitManager is the user class for fitting.
 """
 
-__author__ = 'E. David-Bosne'
-__email__ = 'eric.bosne@cern.ch'
-
-from pyfdd.core.lib2dl import Lib2dl
-from pyfdd.core.patterncreator import PatternCreator, create_detector_mesh
-from pyfdd.core.datapattern import DataPattern
-from pyfdd.core.fit import Fit
-
-import pandas as pd
+# Imports from standard library
 import os
-import numpy as np
-import numpy.ma as ma
-import math
-import matplotlib.pyplot as plt
 import warnings
 import collections
-import copy
+import math
+
+# Imports from 3rd party
+import pandas as pd
+import numpy as np
+import numpy.ma as ma
+import matplotlib.pyplot as plt
+
+# Imports from project
+from pyfdd.core.lib2dl import Lib2dl
+from pyfdd.core.patterncreator import PatternCreator
+from pyfdd.core.datapattern import DataPattern
+from pyfdd.core.fit import Fit
 
 
 class FitManager:
@@ -311,9 +311,9 @@ class FitManager:
             raise ValueError('The data_pattern is not properly set.')
 
         if ignore_masked:
-            total_cts = self.dp_pattern.matrixCurrent.sum()
+            total_cts = self.dp_pattern.pattern_matrix.sum()
         else:
-            total_cts = self.dp_pattern.matrixCurrent.data.sum()
+            total_cts = self.dp_pattern.pattern_matrix.data.sum()
         return total_cts
 
     def _get_initial_values(self, pass_results=False):
@@ -356,7 +356,7 @@ class FitManager:
                 elif key == 'phi':
                     p0 += (p0_last[p0_last_i],) if p0_pass else (self.dp_pattern.angle,)
                 elif key == 'total_cts':
-                    patt = self.dp_pattern.matrixOriginal.copy()
+                    patt = self.dp_pattern.pattern_matrix.copy()
                     # counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
                     counts = patt.sum()
                     p0 += (counts,)
@@ -379,7 +379,7 @@ class FitManager:
             # total_cts is a spacial case at it uses the counts from the pattern
             if key == 'total_cts':
                 if self._cost_function == 'chi2':
-                    patt = self.dp_pattern.matrixCurrent
+                    patt = self.dp_pattern.pattern_matrix
                     counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
                     scale += (counts_ordofmag * self._scale[key],)
                 elif self._cost_function == 'ml':
@@ -404,7 +404,7 @@ class FitManager:
         ft.set_sub_pixels(self._sub_pixels)
         ft.set_fit_options(self._fit_options)
 
-        patt = self.dp_pattern.matrixCurrent
+        patt = self.dp_pattern.pattern_matrix
         xmesh = self.dp_pattern.xmesh
         ymesh = self.dp_pattern.ymesh
         ft.set_data_pattern(xmesh, ymesh, patt)
@@ -448,7 +448,7 @@ class FitManager:
     def _fill_horizontal_results_dict(self, ft, get_errors, sites):#p1=None, p2=None, p3=None):
         assert isinstance(ft, Fit), "ft is not of type PyFDD.Fit."
 
-        patt = self.dp_pattern.matrixCurrent.copy()
+        patt = self.dp_pattern.pattern_matrix.copy()
 
         # keys are 'pattern_1','pattern_2','pattern_3','sub_pixels','dx','dy','phi',
         # 'total_cts','sigma','f_p1','f_p2','f_p3'
@@ -490,7 +490,7 @@ class FitManager:
     def _fill_vertical_results_dict(self, ft, get_errors, sites):#p1=None, p2=None, p3=None):
         assert isinstance(ft, Fit), "ft is not of type PyFDD.Fit."
 
-        patt = self.dp_pattern.matrixCurrent.copy()
+        patt = self.dp_pattern.pattern_matrix.copy()
 
         # keys are 'pattern_1','pattern_2','pattern_3','sub_pixels','dx','dy','phi',
         # 'total_cts','sigma','f_p1','f_p2','f_p3'
@@ -715,14 +715,14 @@ class FitManager:
     def _get_sim_normalization_factor(self, normalization, pattern_type, fit_obj=None):
 
         assert isinstance(fit_obj, Fit) or fit_obj is None
-        total_counts = np.sum(self.dp_pattern.matrixCurrent)
+        total_counts = np.sum(self.dp_pattern.pattern_matrix)
         if fit_obj is None:
             total_yield = None
         else:
             sim_pattern = self._gen_detector_pattern_from_fit(fit_obj=fit_obj, generator='yield', rm_mask=False)
             total_yield = sim_pattern.sum()
             # print('total_yield', total_yield, '# pixels', np.sum(~sim_pattern.mask))
-            #total_yield = np.sum(~self.dp_pattern.matrixCurrent.mask)
+            #total_yield = np.sum(~self.dp_pattern.pattern_matrix.mask)
         norm_factor = None
         if normalization is None:
             norm_factor = 1
@@ -757,7 +757,7 @@ class FitManager:
         dy = parameter_dict['dy']['value']
         phi = parameter_dict['phi']['value']
         total_events = parameter_dict['total_cts']['value'] if self._cost_function == 'chi2' else \
-            np.sum(self.dp_pattern.matrixCurrent)
+            np.sum(self.dp_pattern.pattern_matrix)
         sigma = parameter_dict['sigma']['value']
         fractions_sims = ()
         for i in range(self._n_sites):
@@ -826,14 +826,14 @@ class FitManager:
                                                               rm_mask=True)
 
             # dont substitute pixels that are out of range of simulations
-            substitute_matrix = (np.array(dp_pattern.matrixCurrent.mask, np.int) +
-                                np.array(sim_pattern.mask, np.int)) == 1
+            substitute_matrix = (np.array(dp_pattern.pattern_matrix.mask, np.int) +
+                                 np.array(sim_pattern.mask, np.int)) == 1
 
-            dp_pattern.matrixCurrent.data[substitute_matrix] = \
+            dp_pattern.pattern_matrix.data[substitute_matrix] = \
                 sim_pattern.data[substitute_matrix]
-            dp_pattern.matrixCurrent.mask = sim_pattern.mask
+            dp_pattern.pattern_matrix.mask = sim_pattern.mask
 
-            #print('data\n', dp_pattern.matrixCurrent.data[dp_pattern.matrixCurrent.mask])
+            #print('data\n', dp_pattern.pattern_matrix.data[dp_pattern.pattern_matrix.mask])
 
         norm_factor = self._get_sim_normalization_factor(normalization, pattern_type='data', fit_obj=fit_obj)
 

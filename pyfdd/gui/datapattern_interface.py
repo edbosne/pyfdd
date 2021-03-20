@@ -954,10 +954,10 @@ class DataPatternControler(QtCore.QObject):
                     'Angular range (x, y): {:.1f}, {:.1f}\n' \
                     'Pattern orientation (x, y, phi): {:.2f}, {:.2f}, {:.1f}'
 
-        total_c = self.datapattern.matrixCurrent.data.sum()
-        total_c_active = self.datapattern.matrixCurrent.sum()
-        masked_p = self.datapattern.matrixCurrent.mask.sum()
-        active_p = (~self.datapattern.matrixCurrent.mask).sum()
+        total_c = self.datapattern.pattern_matrix.data.sum()
+        total_c_active = self.datapattern.pattern_matrix.sum()
+        masked_p = self.datapattern.pattern_matrix.mask.sum()
+        active_p = (~self.datapattern.pattern_matrix.mask).sum()
         xm = self.datapattern.xmesh[0, :]
         ym = self.datapattern.ymesh[:, 0]
         x_range = xm[-1] - xm[0]

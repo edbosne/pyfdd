@@ -1,48 +1,30 @@
 #!/usr/bin/env python3
 
-__author__ = 'E. David-Bosne'
-__email__ = 'eric.bosne@cern.ch'
+"""
+PatternCreator is the class to create patterns from simulations.
+"""
 
 
+# Imports from standard library
+import warnings
+
+# Imports from 3rd party
+import numpy as np
+import numpy.ma as ma
+from scipy.ndimage.interpolation import map_coordinates
+from scipy.ndimage import gaussian_filter
+
+# Imports from project
 from pyfdd.core.lib2dl import Lib2dl
 from pyfdd.core.datapattern import DataPattern
 
-import numpy as np
-import numpy.ma as ma
-import matplotlib.pyplot as plt
-import warnings
-from scipy.ndimage.interpolation import rotate, map_coordinates
-from scipy.interpolate import griddata, interpn
-from scipy.ndimage import gaussian_filter
-
-
-def create_detector_mesh(n_h_pixels, n_v_pixels, pixel_size, distance):
-    """
-    create a mesh for the detector.
-    returns a xmesh matrix with the angular values of the detector in the horizontal axis
-    and a ymesh matrix with the angular values of the detector in the vertical axis
-    all distances must have the same units
-    :param n_h_pixels: number of horizontal pixels
-    :param n_v_pixels: number of vertical pixels
-    :param pixel_size: size of pixel
-    :param distance: distance from detector to sample
-    :return: x and y mesh matrixes
-    """
-    d_theta = np.arctan(pixel_size/distance) * 180 / np.pi
-    x_i = 0.5 * (n_h_pixels-1) * d_theta
-    y_i = 0.5 * (n_v_pixels-1) * d_theta
-    x = np.arange(n_h_pixels) * d_theta - x_i
-    y = np.arange(n_v_pixels) * d_theta - y_i
-    xmesh, ymesh = np.meshgrid(x,y)
-    return xmesh, ymesh
-
 
 class PatternCreator:
-    '''
+    """
     Objects of this classe hold a single set of patterns and are used to create combined spectrums
     Can create patterns for a specific detector configuration
     Can create ideal patterns, patterns with poisson noise and by Monte Carlo
-    '''
+    """
     def __init__(self, lib, xmesh=None, ymesh=None, simulations=None, mask=ma.nomask, sub_pixels=1,
                  mask_out_of_range=True):
         """

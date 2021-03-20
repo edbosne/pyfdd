@@ -22,7 +22,7 @@ def test_datapattern():
     mm1.io_save_json('jsontest.json')
 
     mm3 = DataPattern(file_path='jsontest.json')
-    print('mm3 shape ', mm3.matrixCurrent.shape)
+    print('mm3 shape ', mm3.pattern_matrix.shape)
     f3 = plt.figure(3)
     ax3 = plt.subplot('111')
     mm3.draw(ax3)
@@ -115,7 +115,7 @@ def test_assimetric():
     mm1.io_save_json('assimetric_test.json')
 
     mm2 = DataPattern(file_path='assimetric_test.json')
-    print('mm2 shape ', mm2.matrixCurrent.shape)
+    print('mm2 shape ', mm2.pattern_matrix.shape)
     f2 = plt.figure(2)
     ax2 = plt.subplot('111')
     mm2.draw(ax2)

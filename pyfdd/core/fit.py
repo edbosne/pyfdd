@@ -1,40 +1,37 @@
 #!/usr/bin/env python3
 
-'''
-The Fit object gets access to a Lib2dl object and performs Fit and statistical tests to data or MC simulation
-'''
+"""
+The Fit object gets access to a Lib2dl object and performs Fit and statistical tests to data or MC simulation.
+"""
 
-__author__ = 'E. David-Bosne'
-__email__ = 'eric.bosne@cern.ch'
-
-from pyfdd.core.lib2dl import Lib2dl
-from pyfdd.core.patterncreator import PatternCreator, create_detector_mesh
-from pyfdd.core.datapattern import DataPattern
-
-
-import numpy as np
-import numpy.ma as ma
-import scipy.optimize as op
-import scipy.stats as st
-import math
-import numdifftools as nd
-import matplotlib.pyplot as plt
-from scipy.ndimage import gaussian_filter
+# Imports from standard library
 import collections
 import warnings
+
+# Imports from 3rd party
+import numpy as np
+import scipy.optimize as op
+import numdifftools as nd
+import matplotlib.pyplot as plt
+
+# Imports from project
+from pyfdd.core.lib2dl import Lib2dl
+from pyfdd.core.patterncreator import PatternCreator
+
 
 class StopFit(Exception):
     """ Raise this exeption to stop the fit """
     pass
 
+
 class Fit:
     def __init__(self, lib, sites, verbose_graphics=False):
-        '''
+        """
         Init method for class fit
         :param lib: Lib2dl library
         :param sites: indexes of sites to include in the fit
         :param verbose_graphics: plot graphics while fitting
-        '''
+        """
 
         if not isinstance(lib, Lib2dl):
             raise ValueError('lib is not an instance of Lib2dl')

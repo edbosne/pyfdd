@@ -234,7 +234,7 @@ class Lib2dl:
         with io.open(jsonfile, 'w', encoding='utf-8') as f:
             f.write(str(json.dumps(self.dict_2dl, ensure_ascii=False, sort_keys=True, indent=4)),'utf-8')
 
-        #with open(jsonfile, 'wb') as fp:
+        #with open(filename, 'wb') as fp:
         #    json.dump(self.dict_2dl, fp) #can be used with pickle too
 
         # json load:
