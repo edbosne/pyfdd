@@ -49,7 +49,7 @@ def create_detector_mesh(n_h_pixels, n_v_pixels, pixel_size=None, distance=None,
     y_i = 0.5 * (n_v_pixels-1) * d_theta
     x = np.arange(n_h_pixels) * d_theta - x_i
     y = np.arange(n_v_pixels) * d_theta - y_i
-    xmesh, ymesh = np.meshgrid(x,y)
+    xmesh, ymesh = np.meshgrid(x, y)
     return xmesh, ymesh
 
 
@@ -82,7 +82,7 @@ class MpxHist:
 
         # Calculate bin indexes
         lowbin = bis.bisect(self.normalized_integral, percentiles[0], lo=1, hi=len(self.normalized_integral))-1
-            # having lo=1 ensures lowbin is never -1
+        # having lo=1 ensures lowbin is never -1
         highbin = bis.bisect(self.normalized_integral, percentiles[1])
 
         # I decided to round the ticks because in previous versions the tick label would write all decimal cases
@@ -91,13 +91,13 @@ class MpxHist:
             # low bin precision defined as 4 - order of mag
             p10_low = 10**(4 - int(math.floor(math.log10(abs(self.bin_edges[lowbin])))))
             # floor in precision point
-            lowtick = np.floor(self.bin_edges[lowbin] * p10_low) / p10_low #self.bin_edges[lowbin]
+            lowtick = np.floor(self.bin_edges[lowbin] * p10_low) / p10_low  # self.bin_edges[lowbin]
         else:
             lowtick = 0
 
         # high bin precision defined as 4 - order of mag
         p10_high = 10**(4 - int(math.floor(math.log10(abs(self.bin_edges[highbin])))))
-        hightick = np.ceil(self.bin_edges[highbin] * p10_high) / p10_high #self.bin_edges[highbin]
+        hightick = np.ceil(self.bin_edges[highbin] * p10_high) / p10_high  # self.bin_edges[highbin]
 
         return lowtick, hightick
 
@@ -118,8 +118,17 @@ class MpxHist:
 
 
 class DataPatternPlotter:
-
+    """
+    Class for plotting DataPatterns.
+    """
     def __init__(self, datapattern):
+        """
+        Init method for the DataPatternPlotter class
+        :param datapattern: A DataPattern object.
+        """
+
+        if not isinstance(datapattern, DataPattern):
+            raise ValueError('datapattern is not of the DataPattern type.')
 
         self.datapattern = datapattern  # Reference
 
@@ -129,10 +138,14 @@ class DataPatternPlotter:
         self.rectangle_limits = None
         self.RS = None
 
-
-
-
     def draw(self, axes, blank_masked=True, **kwargs):
+        """
+        Draw the DataPattern to the given axes.
+        :param axes: Matplotlib axes
+        :param blank_masked: If true masked pixels will be blanked.
+        :param kwargs: Plotting arguments.
+        :return:
+        """
 
         assert isinstance(axes, plt.Axes)
         self.ax = axes
@@ -213,13 +226,24 @@ class DataPatternPlotter:
 
         return axes, cb
 
+    def get_ticks(self, percentiles):
+        """
+        Get tics for the colorbar.
+        :param percentiles: Percentiles to set the max and minimum tick values.
+        :return:
+        """
+        if len(percentiles) != 2:
+            raise ValueError("percentiles must be of length 2, for example [0.01, 0.99]")
+        hist = MpxHist(self.pattern_matrix)
+        lowtick, hightick = hist.get_bins_from_percentiles(percentiles)
+        return [lowtick, hightick]
 
     def get_angle_tool(self):
         if self.ax is None:
             raise ValueError('No axes are defined')
         self.center = (0,0)
         self.angle = 0
-        self.ang_wid = AngleMeasure(self.ax, self.callonangle)
+        self.ang_wid = AngleMeasure(self.ax, self.set_pattern_angular_pos)
 
     def onselect_RS(self, eclick, erelease):
         'eclick and erelease are matplotlib events at press and release'
@@ -302,13 +326,14 @@ class DataPattern:
         # Values for manipulation methods
         self.mask_central_pixels = 0
         self.rm_edge_pixels = 0
+        self.rm_central_pix = 0
 
         # Orientation variables
         self.center = (0, 0)
         self.angle = 0
 
         # Importing matrix
-        self.pattern_matrix = ma.array()
+        self.pattern_matrix = ma.array([])
         if pattern_array is not None:
             self.pattern_matrix = ma.array(data=pattern_array.copy(), mask=False)
             (self.ny, self.nx) = self.pattern_matrix.shape
@@ -316,7 +341,7 @@ class DataPattern:
             if os.path.isfile(file_path):
                 self._io_load(file_path)
             else:
-                raise IOError('File does not exist: {}}'.format_map(file_path))
+                raise IOError('File does not exist: {}}'.format(file_path))
 
         # Create mesh
         if not self.is_mesh_defined:
@@ -699,8 +724,14 @@ class DataPattern:
 
         return new_mask
 
-    # TODO here
     def set_fit_region(self, distance=2.9, center=None, angle=None):
+        """
+        Set the valid fit region around the center.
+        :param distance: Angular distance that defines the region.
+        :param center: (x, y) position of the center.
+        :param angle: Angular orientation of the pattern.
+        :return:
+        """
         if center is None:
             center = self.center
         if angle is None:
@@ -709,6 +740,7 @@ class DataPattern:
         if len(center) != 2:
             raise ValueError('center must be of length 2.')
 
+        # Calculate the distance of each point in the pattern.
         angle = angle * np.pi / 180
         v1 = np.array([np.cos(angle), np.sin(angle)])
         v2 = np.array([np.sin(angle), -np.cos(angle)])
@@ -718,14 +750,22 @@ class DataPattern:
         distance1 = np.abs(np.dot(xy, v1))
         distance2 = np.abs(np.dot(xy, v2))
 
+        # Compare the calculated distance with the distange range
         if distance >= 0:
             condition = ((distance1 > distance) | (distance2 > distance))
         else:  # distance < 0
             condition = ~((distance1 > -distance) | (distance2 > -distance))
 
+        # Mask pixels that are outside of the fit region
         self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
 
     def mask_std(self, std=6, expand_by=0):
+        """
+        Mask pixels whose value exeed a certain standard deviation.
+        :param std: Standard deviation limit
+        :param expand_by: Expand masked pixels.
+        :return:
+        """
         hist = MpxHist(self.pattern_matrix)
         condition = ((self.pattern_matrix <= hist.mean - std * hist.std) |
                      (self.pattern_matrix >= hist.mean + std * hist.std))
@@ -733,15 +773,27 @@ class DataPattern:
         self.pattern_matrix = ma.masked_where(mask == 1, self.pattern_matrix)
 
     def clear_mask(self):
+        """
+        Clear the mask.
+        :return:
+        """
         self.pattern_matrix.mask = False
 
     # ===== - Matrix Manipulation Methods - =====
 
-    def manip_orient(self, strg):
-        assert isinstance(strg, str)
-        temp_matrix = self.pattern_matrix
-        strg = strg.lower().replace(' ','').strip(',')
-        for cmd in strg.split(','):
+    def manip_orient(self, command_str):
+        """
+        Orient pattern matrix by rotation and mirroring
+        :param command_str: A string of commands. Use rr,rl,mh,mv to rotate left, rotate right,
+        mirror horizontaly and mirror verticaly.
+        :return:
+        """
+        if not isinstance(command_str, str):
+            raise ValueError('command_str must be a string.')
+
+        temp_matrix = self.pattern_matrix.copy()
+        command_str = command_str.lower().replace(' ', '').strip(',')
+        for cmd in command_str.split(','):
             if cmd == 'rl':
                 # rotate left
                 temp_matrix = np.rot90(temp_matrix, 3)
@@ -761,16 +813,23 @@ class DataPattern:
         self.pattern_matrix = temp_matrix
 
     def manip_correct_central_pix(self):
+        """
+        Correct central pixels in quad detectors.
+        :return:
+        """
+        # Do input verifications
         if self.real_size <= 1 and (self.nChipsX > 1 or self.nChipsY > 1):
             warnings.warn('The value for the central pixel real size is set to ', self.real_size)
+
+        # Calculate new dimentions
         nx = self.pattern_matrix.shape[0] + (2 * self.real_size - 2) * (self.nChipsX - 1)
         ny = self.pattern_matrix.shape[0] + (2 * self.real_size - 2) * (self.nChipsY - 1)
-        # temp_matrix = -np.ones((ny, nx))
         temp_matrix1 = np.zeros((self.pattern_matrix.shape[0], nx))
         temp_matrix2 = np.zeros((ny, nx))
         mask_update1 = np.ones((self.pattern_matrix.shape[0], nx)) == 1
-        mask_update2 = np.ones((ny, nx))==1
+        mask_update2 = np.ones((ny, nx)) == 1
 
+        # Update pattern matrix
         for interX in range(0, self.nChipsX):
             dock_i = interX * (256 + 2 * self.real_size - 2)
             dock_f = dock_i + 256
@@ -784,18 +843,26 @@ class DataPattern:
             mask_update2[dock_i:dock_f, :] = mask_update1[interY*256:interY*256 + 256, :]
 
         self.pattern_matrix = ma.array(data=temp_matrix2, mask=mask_update2)
+
         # Update mesh
         self.manip_create_mesh()
 
     def zero_central_pix(self, rm_central_pix=None):
+        """
+        Mask the central pixels for a quad detector.
+        :param rm_central_pix:
+        :return:
+        """
         rm_central_pix = int(rm_central_pix)
         if rm_central_pix is not None:
             self.rm_central_pix = rm_central_pix
-        #print('Number of chips - ', self.nChipsX*self.nChipsY)
+        else:
+            self.rm_central_pix = 0
+
         (ny, nx) = self.pattern_matrix.shape
         xstep = nx // self.nChipsX
         ystep = nx // self.nChipsY
-        # print(xstep, ystep, rm_central_pix)
+
         for ix in range(self.nChipsX-1):
             self.pattern_matrix.mask[:, xstep - rm_central_pix:xstep + rm_central_pix] = True
         for iy in range(self.nChipsY - 1):
@@ -803,11 +870,13 @@ class DataPattern:
 
     def remove_edge_pixel(self, rm_edge_pix=0):
         """
-        This function is used to trim edge pixels
-        :param rm_edge_pix: number of edge pixels to remove
+        This function is used to trim edge pixels.
+        :param rm_edge_pix: Number of edge pixels to remove.
         :return:
         """
-        assert isinstance(rm_edge_pix, int), 'number of edge pixels to remove should be int'
+        if not isinstance(rm_edge_pix, int):
+            raise ValueError('The number of edge pixels to remove should be int')
+
         if rm_edge_pix > 0:
             self.pattern_matrix = self.pattern_matrix[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
             # Update mesh
@@ -815,6 +884,14 @@ class DataPattern:
             self.ymesh = self.ymesh[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
 
     def _update_compress_factors(self, factor, rm_central_pix, rm_edge_pix, consider_single_chip):
+        """
+        Update the rm_central_pix and rm_edge_pix in a smart way for the timepix quad or a single chip detector.
+        :param factor: Number of pixels to add together.
+        :param rm_central_pix: Number of central pixels to mask.
+        :param rm_edge_pix: Number of edge pixels to trim.
+        :param consider_single_chip: Treat the detector as a single chip.
+        :return:
+        """
 
         (ny, nx) = self.pattern_matrix.shape
 
@@ -831,7 +908,7 @@ class DataPattern:
                                   ", rest is " + str(rest))
 
             # verify if the rest of the matrix is divisable by factor
-            chip_size = 256 # size of a single timepix chip
+            chip_size = 256  # size of a single timepix chip
 
             if ny != self.nChipsY * (chip_size + self.real_size - 1) or \
                nx != self.nChipsX * (chip_size + self.real_size - 1):
@@ -861,19 +938,23 @@ class DataPattern:
             if n_min_name == 'ny':
                 rest = (nx - 2 * rm_edge_pix) % factor
                 print('rest/2', rest/2)
-                retrnArr = self.pattern_matrix.data[:, int(np.floor(rest / 2)):nx - int(np.ceil(rest / 2))]
-                retrnMa = self.pattern_matrix.mask[:, int(np.floor(rest / 2)):nx - int(np.ceil(rest / 2))]
-                self.pattern_matrix = ma.array(data=retrnArr, mask=(retrnMa >= 1))
+                retrn_arr = self.pattern_matrix.data[:, int(np.floor(rest / 2)):nx - int(np.ceil(rest / 2))]
+                retrn_ma = self.pattern_matrix.mask[:, int(np.floor(rest / 2)):nx - int(np.ceil(rest / 2))]
+                self.pattern_matrix = ma.array(data=retrn_arr, mask=(retrn_ma >= 1))
 
             elif n_min_name == 'nx':
                 rest = (ny - 2 * rm_edge_pix) % factor
-                retrnArr = self.pattern_matrix.data[int(np.floor(rest / 2)):ny - int(np.ceil(rest / 2)), :]
-                retrnMa = self.pattern_matrix.mask[int(np.floor(rest / 2)):ny - int(np.ceil(rest / 2)), :]
-                self.pattern_matrix = ma.array(data=retrnArr, mask=(retrnMa >= 1))
+                retrn_arr = self.pattern_matrix.data[int(np.floor(rest / 2)):ny - int(np.ceil(rest / 2)), :]
+                retrn_ma = self.pattern_matrix.mask[int(np.floor(rest / 2)):ny - int(np.ceil(rest / 2)), :]
+                self.pattern_matrix = ma.array(data=retrn_arr, mask=(retrn_ma >= 1))
 
         return factor, rm_central_pix, rm_edge_pix
 
     def manip_convert_to_single_chip(self):
+        """
+        Convert the current DataPattern to a single chip.
+        :return:
+        """
         self.nChipsX = 1
         self.nChipsY = 1
         self.real_size = 1
@@ -884,22 +965,29 @@ class DataPattern:
         Removed central pixels are not merged with data bins.
         It expects a matrix which central pixels have already been expanded.
         It will increase removed central or edge pixels if needed to match the factor
-        :param factor:
+        :param factor: Number of pixels to add together.
+        :param rm_central_pix: Number of central pixels to mask.
+        :param rm_edge_pix: Number of edge pixels to trim.
+        :param consider_single_chip: Treat the detector as a single chip.
         :return:
         """
-        #TODO update for arbitrary vertical and horizontal size
+        # TODO update for arbitrary vertical and horizontal size
 
         # Inicial verifications
-        if rm_central_pix is not None:
-            self.rm_central_pix = rm_central_pix
-        if ((self.nChipsX > 1 or self.nChipsY > 1) and
-             self.real_size <= 1):
+        if not isinstance(factor, int):
+            raise ValueError('factor should be int.')
+        if not isinstance(rm_central_pix, int):
+            raise ValueError('number of central pixels to remove should be int.')
+        if not isinstance(rm_edge_pix, int):
+            raise ValueError('number of edge pixels to remove should be int.')
+        if not isinstance(consider_single_chip, bool):
+            raise ValueError('consider_single_chip should be bool.')
+
+        if (self.nChipsX > 1 or self.nChipsY > 1) and self.real_size <= 1:
             warnings.warn('The value for the central pixel real size is set to ' + str(self.real_size))
 
-        assert isinstance(factor,int), 'factor should be int'
-        assert isinstance(rm_central_pix, int), 'number of central pixels to remove should be int'
-        assert isinstance(rm_edge_pix, int), 'number of edge pixels to remove should be int'
-        assert isinstance(consider_single_chip, bool), 'consider_single_chip should be bool'
+        if rm_central_pix is not None:
+            self.rm_central_pix = rm_central_pix
 
         # update factors to ensure matrix is devisable by factor
         factor, rm_central_pix, rm_edge_pix = \
@@ -919,39 +1007,51 @@ class DataPattern:
         yslice = slice(int(np.floor(rm_edge_pix)), ny-int(np.ceil(rm_edge_pix)))
         xslice = slice(int(np.floor(rm_edge_pix)), nx-int(np.ceil(rm_edge_pix)))
 
-        retrnArr = self.pattern_matrix.data[yslice, xslice]\
-                       .reshape([final_size[0], factor, final_size[1], factor]).sum(3).sum(1)
-        retrnMa = self.pattern_matrix.mask[yslice, xslice] \
+        retrn_arr = self.pattern_matrix.data[yslice, xslice]\
                         .reshape([final_size[0], factor, final_size[1], factor]).sum(3).sum(1)
-        self.pattern_matrix = ma.array(data=retrnArr, mask=(retrnMa >= 1))
+        retrn_ma = self.pattern_matrix.mask[yslice, xslice] \
+                       .reshape([final_size[0], factor, final_size[1], factor]).sum(3).sum(1)
+        self.pattern_matrix = ma.array(data=retrn_arr, mask=(retrn_ma >= 1))
 
         # Update mesh
         self.xmesh = self.xmesh[yslice, xslice] \
-                        .reshape([final_size[0], factor, final_size[1], factor]).mean(3).mean(1)
+                         .reshape([final_size[0], factor, final_size[1], factor]).mean(3).mean(1)
         self.ymesh = self.ymesh[yslice, xslice] \
             .reshape([final_size[0], factor, final_size[1], factor]).mean(3).mean(1)
         if self.pixel_size_mm is not None:
             self.pixel_size_mm *= factor
-        #self.manip_create_mesh()
+
         # After compression convert to a single chip
         self.manip_convert_to_single_chip()
 
     def manip_create_mesh(self, pixel_size=None, distance=None, reverse_x=None):
+        """
+        Creates an angular mesh for the pattern according to the setup geometry.
+        :param pixel_size: Real size of a pixel.
+        :param distance: Distance from the sample to the detector.
+        :param reverse_x: If true the x axis increases from right to left.
+        :return:
+        """
+        # Inputs verifications
         if pixel_size is not None:
             self.pixel_size_mm = pixel_size
         if distance is not None:
             self.distance = distance
         if reverse_x is not None:
-            assert isinstance(reverse_x,bool), "reverse_x needs to be bool."
+            if not isinstance(reverse_x, bool):
+                raise ValueError('reverse_x needs to be bool.')
             self.reverse_x = reverse_x
+
         if pixel_size is not None and distance is not None:
             self.xmesh, self.ymesh = create_detector_mesh(self.pattern_matrix.shape[1], self.pattern_matrix.shape[0],
                                                           self.pixel_size_mm, self.distance)
             self.is_mesh_defined = True
         else:
             if self.is_mesh_defined:
-                self.xmesh, self.ymesh = create_detector_mesh(self.pattern_matrix.shape[1], self.pattern_matrix.shape[0],
-                                                              self.pixel_size_mm, self.distance)
+                self.xmesh, self.ymesh = create_detector_mesh(self.pattern_matrix.shape[1],
+                                                              self.pattern_matrix.shape[0],
+                                                              self.pixel_size_mm,
+                                                              self.distance)
             else:
                 # create detector mesh
                 xm = np.arange(self.pattern_matrix.shape[1])
@@ -960,30 +1060,32 @@ class DataPattern:
         if self.reverse_x:
             self.xmesh = np.fliplr(self.xmesh)
 
-        # alternative method
-        #manip_create_mesh(self, shape, axis_range):
-        #x_ang = np.linspace(axis_range[0], axis_range[1], shape[1])
-        #y_ang = np.linspace(axis_range[2], axis_range[3], shape[0])
-        #X_ang, Y_ang = np.meshgrid(x_ang, y_ang)
-        #return X_ang, Y_ang
-
-    # ===== - Angular Calibration Methods - =====
-    @staticmethod
-    def ang_get_range(distance, side):
-        return 2 * math.degrees(math.atan(side / (2 * distance)))
-
     # ===== - Draw Methods - =====
-
-    # TODO rename
-    def callonangle(self, center, angle):
+    def set_pattern_angular_pos(self, center, angle):
+        """
+        Set the angular position of the pattern.
+        :param center: The (x, y) position of the center.
+        :param angle: The angular orientation of the pattern in degrees.
+        :return:
+        """
         self.center = center
         self.angle = angle
-        self.ang_wid = None
 
     def mask_pixel(self, i, j):
+        """
+        Mask single pixel.
+        :param i: Line index.
+        :param j: Column index.
+        :return:
+        """
         self.pattern_matrix.mask[i, j] = True
 
     def mask_rectangle(self, rectangle_limits):
+        """
+        Mask a rectangular area.
+        :param rectangle_limits: (x1, x2, y1, y2) limits of the rectangle to mask.
+        :return:
+        """
         condition = ((self.xmesh <= rectangle_limits[1]) &
                      (self.xmesh >= rectangle_limits[0]) &
                      (self.ymesh <= rectangle_limits[3]) &
@@ -991,16 +1093,19 @@ class DataPattern:
         self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
 
     def mask_below(self, value):
+        """
+        Mask pixels whose value is bellow a value.
+        :param value: Mask value threshold.
+        :return:
+        """
         condition = self.pattern_matrix <= value
         self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
 
     def mask_above(self, value):
+        """
+        Mask pixels whose value is above a value.
+        :param value: Mask value threshold.
+        :return:
+        """
         condition = self.pattern_matrix >= value
         self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
-
-    def get_ticks(self, percentiles):
-        if len(percentiles) != 2:
-            raise ValueError("percentiles must be of length 2, for example [0.01, 0.99]")
-        hist = MpxHist(self.pattern_matrix)
-        lowtick, hightick = hist.get_bins_from_percentiles(percentiles)
-        return [lowtick, hightick]
