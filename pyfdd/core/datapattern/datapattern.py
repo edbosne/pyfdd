@@ -134,9 +134,11 @@ class DataPatternPlotter:
 
         # Draw variables
         self.ax = None
+        self.colorbar_ax = None
         self.ang_wid = None
         self.rectangle_limits = None
         self.RS = None
+        self.matrixDrawable = np.array([])
 
     def draw(self, axes, blank_masked=True, **kwargs):
         """
@@ -146,11 +148,13 @@ class DataPatternPlotter:
         :param kwargs: Plotting arguments.
         :return:
         """
+        if not isinstance(axes, plt.Axes):
+            raise ValueError('axes need to be of type pyplot.Axes')
 
-        assert isinstance(axes, plt.Axes)
         self.ax = axes
-        fig = ml.axis.Axis.get_figure(axes)
+        fig = ml.axis.Axis.get_figure(self.ax)
 
+        # Define ticks and percentiles
         ticks = None
         percentiles = None
         if 'ticks' in kwargs.keys():
@@ -162,36 +166,39 @@ class DataPatternPlotter:
             if len(percentiles) != 2:
                 raise ValueError("percentiles must be of length 2, for example [0.01, 0.99]")
 
+        # Plot arguments
         colormap = kwargs.get('colormap', 'jet')  # PiYG #coolwarm #spectral
         n_color_bins = kwargs.get('n_color_bins', 10)
         smooth_fwhm = kwargs.get('smooth_fwhm', 0)
-        plot_type = kwargs.get('plot_type', 'pixels') #pixels or contour
+        plot_type = kwargs.get('plot_type', 'pixels')  # pixels or contour
         xlabel = kwargs.get('xlabel', r'x-angle $\theta[°]$')
         ylabel = kwargs.get('ylabel', r'y-angle $\omega[°]$')
         zlabel = kwargs.get('zlabel', 'Counts')
-        title = kwargs.get('title', '2D pattern - ' + str(self.matrixCurrent.shape[0]) +
-                           'x' + str(self.matrixCurrent.shape[1]))
+        title = kwargs.get('title', '2D pattern - ' + str(self.datapattern.pattern_matrix.shape[0]) +
+                           'x' + str(self.datapattern.pattern_matrix.shape[1]))
 
-        if not self.matrixCurrent.shape == self.xmesh.shape or not self.matrixCurrent.shape == self.ymesh.shape:
-            print(self.matrixCurrent.shape, self.ymesh.shape)
+        # Verify shape of pattern matrix and mesh shape
+        if not self.datapattern.pattern_matrix.shape == self.datapattern.xmesh.shape or \
+                not self.datapattern.pattern_matrix.shape == self.datapattern.ymesh.shape:
             raise ValueError('Pattern and mesh shape dont match')
 
+        # Get a working matrix
+        self.matrixDrawable = self.datapattern.pattern_matrix.copy()
 
-        self.matrixDrawable = self.matrixCurrent.copy()
-
-        if not smooth_fwhm <= 0:
-            self.manip_smooth(smooth_fwhm, matrix='Drawable')
+        if not smooth_fwhm < 0:
+            self.manip_smooth(smooth_fwhm)
 
         if blank_masked is False:
             self.matrixDrawable.mask = 0
-            if self.nChipsX > 1 and self.real_size > 1:
-                #TODO This is not valid if the matrix is compressed
+            if self.datapattern.nChipsX > 1 and self.datapattern.real_size > 1:
+                # TODO This is not valid if the matrix is compressed
                 half = (np.array(self.matrixDrawable.shape)/2).astype(np.int)
                 #print([half[0]-(self.real_size-1),half[0]-(self.real_size-1)])
-                self.matrixDrawable.mask[half[0] - (self.real_size-1):half[0] + (self.real_size-1), :] = True
-                self.matrixDrawable.mask[:, half[1] - (self.real_size - 1):half[1] + (self.real_size - 1)] = True
+                self.matrixDrawable.mask[half[0] - (self.datapattern.real_size-1):half[0] + (self.datapattern.real_size-1), :] = True
+                self.matrixDrawable.mask[:, half[1] - (self.datapattern.real_size - 1):half[1] + (self.datapattern.real_size - 1)] = True
 
-        imgCmap = ml.cm.get_cmap(colormap)
+        # Colormap
+        img_cmap = ml.cm.get_cmap(colormap)
         if ticks is not None:
             lowtick, hightick = ticks
         else:
@@ -201,30 +208,52 @@ class DataPatternPlotter:
             # set up to n_color_bins levels at nice locations
             levels = ml.ticker.MaxNLocator(nbins=n_color_bins).tick_values(lowtick, hightick)
             # set up exactly n_color_bins levels (alternative)
-            #levels = ml.ticker.LinearLocator(numticks=n_color_bins+1).tick_values(lowtick, hightick)
-            ret = axes.contourf(self.xmesh, self.ymesh, self.matrixDrawable, cmap=imgCmap, levels=levels)
-            if self.reverse_x == True:
-                axes.invert_xaxis()
+            # levels = ml.ticker.LinearLocator(numticks=n_color_bins+1).tick_values(lowtick, hightick)
+            ret = self.ax.contourf(self.datapattern.xmesh, self.datapattern.ymesh, self.matrixDrawable, cmap=img_cmap, levels=levels)
+            if self.datapattern.reverse_x is True:
+                self.ax.invert_xaxis()
         elif plot_type == 'pixels':
             # the extent needs to acount for the last pixel space therefore add the ste size
-            xstep = self.xmesh[0, 1] - self.xmesh[0, 0]
-            ystep = self.ymesh[1, 0] - self.ymesh[0, 0]
-            extent = [self.xmesh[0,0], self.xmesh[0,-1] + xstep, self.ymesh[0,0], self.ymesh[-1,0] + ystep]
-            #print('extent - ', extent)
-            ret = axes.imshow(self.matrixDrawable, cmap=imgCmap, interpolation='None', aspect='auto',\
-                             vmin=lowtick, vmax=hightick, origin='lower', extent=extent)
+            xstep = self.datapattern.xmesh[0, 1] - self.datapattern.xmesh[0, 0]
+            ystep = self.datapattern.ymesh[1, 0] - self.datapattern.ymesh[0, 0]
+            extent = [self.datapattern.xmesh[0, 0],
+                      self.datapattern.xmesh[0, -1] + xstep,
+                      self.datapattern.ymesh[0, 0],
+                      self.datapattern.ymesh[-1, 0] + ystep]
+            ret = self.ax.imshow(self.matrixDrawable, cmap=img_cmap, interpolation='None', aspect='auto',
+                                 vmin=lowtick, vmax=hightick, origin='lower', extent=extent)
         else:
             raise ValueError('plot_type not recognized, use contour or pixels')
 
-        cb = fig.colorbar(ret, ax=axes, use_gridspec=True)
+        self.colorbar_ax = fig.colorbar(ret, ax=self.ax, use_gridspec=True)
 
-        cb.set_label(zlabel)
-        axes.set_title(title)
-        axes.set_xlabel(xlabel)
-        axes.set_ylabel(ylabel)
-        axes.axis('image')
+        self.colorbar_ax.set_label(zlabel)
+        self.ax.set_title(title)
+        self.ax.set_xlabel(xlabel)
+        self.ax.set_ylabel(ylabel)
+        self.ax.axis('image')
 
-        return axes, cb
+        return self.ax, self.colorbar_ax
+
+    def clear_draw(self):
+        """
+        Clear previous axes and colorbar.
+        :return:
+        """
+        if self.colorbar_ax is not None:
+            self.colorbar_ax.remove()
+        if self.ax is not None:
+            self.ax.clear()
+
+    def get_axes(self):
+        """
+        Get the axes and colorbar.
+        :return:
+        """
+        if self.ax is None or self.colorbar_ax is None:
+            warnings.warn('Axes are not properly set.')
+
+        return self.ax, self.colorbar_ax
 
     def get_ticks(self, percentiles):
         """
@@ -234,22 +263,22 @@ class DataPatternPlotter:
         """
         if len(percentiles) != 2:
             raise ValueError("percentiles must be of length 2, for example [0.01, 0.99]")
-        hist = MpxHist(self.pattern_matrix)
+        hist = MpxHist(self.datapattern.pattern_matrix)
         lowtick, hightick = hist.get_bins_from_percentiles(percentiles)
         return [lowtick, hightick]
 
     def get_angle_tool(self):
         if self.ax is None:
             raise ValueError('No axes are defined')
-        self.center = (0,0)
-        self.angle = 0
-        self.ang_wid = AngleMeasure(self.ax, self.set_pattern_angular_pos)
+        self.datapattern.center = (0, 0)
+        self.datapattern.angle = 0
+        self.ang_wid = AngleMeasure(self.ax, self.datapattern.set_pattern_angular_pos)
 
     def onselect_RS(self, eclick, erelease):
-        'eclick and erelease are matplotlib events at press and release'
+        # eclick and erelease are matplotlib events at press and release
         rectangle_limits = np.array([eclick.xdata, erelease.xdata, eclick.ydata, erelease.ydata])
         self.RS = None
-        self.mask_rectangle(rectangle_limits)
+        self.datapattern.mask_rectangle(rectangle_limits)
 
     def get_rectangle_mask_tool(self):
         if self.ax is None:
@@ -260,13 +289,9 @@ class DataPatternPlotter:
         self.RS = RectangleSelector(self.ax, self.onselect_RS, drawtype='box', useblit=True, interactive=False,
                                     rectprops=rectprops)
 
-    def manip_smooth(self, fwhm, matrix='Current'):
-        #print("smoothing" , fwhm)
+    def manip_smooth(self, fwhm):
         gauss_smooth = fwhm/2.32
-        if matrix == 'Current':
-            self.matrixCurrent.data[:,:] = scipy.ndimage.gaussian_filter(self.matrixCurrent.data, gauss_smooth)  #, mode='nearest')
-        elif matrix == 'Drawable':
-            self.matrixDrawable.data[:,:] = scipy.ndimage.gaussian_filter(self.matrixDrawable.data, gauss_smooth)
+        self.matrixDrawable.data[:, :] = scipy.ndimage.gaussian_filter(self.matrixDrawable.data, gauss_smooth)
 
 
 class DataPattern:
@@ -301,9 +326,9 @@ class DataPattern:
         self.nChipsY = kwargs.get('nChipsY', 1)
 
         # Verifications
-        if not isinstance(file_path, str):
+        if not isinstance(file_path, str) and file_path is not None:
             raise ValueError('file_path should be string.')
-        if not isinstance(pattern_array, (list, tuple, np.ndarray)):
+        if not isinstance(pattern_array, (list, tuple, np.ndarray)) and pattern_array is not None:
             raise ValueError('pattern_array should be an array like of 2 dimensions.')
         if not isinstance(self.real_size, int):
             raise ValueError('real_size should be int.')
@@ -724,6 +749,16 @@ class DataPattern:
 
         return new_mask
 
+    def set_pattern_angular_pos(self, center, angle):
+        """
+        Set the angular position of the pattern.
+        :param center: The (x, y) position of the center.
+        :param angle: The angular orientation of the pattern in degrees.
+        :return:
+        """
+        self.center = center
+        self.angle = angle
+
     def set_fit_region(self, distance=2.9, center=None, angle=None):
         """
         Set the valid fit region around the center.
@@ -757,6 +792,45 @@ class DataPattern:
             condition = ~((distance1 > -distance) | (distance2 > -distance))
 
         # Mask pixels that are outside of the fit region
+        self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
+
+    def mask_pixel(self, i, j):
+        """
+        Mask single pixel.
+        :param i: Line index.
+        :param j: Column index.
+        :return:
+        """
+        self.pattern_matrix.mask[i, j] = True
+
+    def mask_rectangle(self, rectangle_limits):
+        """
+        Mask a rectangular area.
+        :param rectangle_limits: (x1, x2, y1, y2) limits of the rectangle to mask.
+        :return:
+        """
+        condition = ((self.xmesh <= rectangle_limits[1]) &
+                     (self.xmesh >= rectangle_limits[0]) &
+                     (self.ymesh <= rectangle_limits[3]) &
+                     (self.ymesh >= rectangle_limits[2]))
+        self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
+
+    def mask_below(self, value):
+        """
+        Mask pixels whose value is bellow a value.
+        :param value: Mask value threshold.
+        :return:
+        """
+        condition = self.pattern_matrix <= value
+        self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
+
+    def mask_above(self, value):
+        """
+        Mask pixels whose value is above a value.
+        :param value: Mask value threshold.
+        :return:
+        """
+        condition = self.pattern_matrix >= value
         self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
 
     def mask_std(self, std=6, expand_by=0):
@@ -1061,51 +1135,15 @@ class DataPattern:
             self.xmesh = np.fliplr(self.xmesh)
 
     # ===== - Draw Methods - =====
-    def set_pattern_angular_pos(self, center, angle):
+    def draw(self, axes, **kwargs):
         """
-        Set the angular position of the pattern.
-        :param center: The (x, y) position of the center.
-        :param angle: The angular orientation of the pattern in degrees.
+        Calls a DataPatternPlotter and draws the pattern into the given axes.
+        :param axes: Matplotlib axes
+        :param kwargs: Plotting arguments.
         :return:
         """
-        self.center = center
-        self.angle = angle
+        dp_plotter = DataPatternPlotter(datapattern=self)
+        dp_plotter.draw(axes, **kwargs)
 
-    def mask_pixel(self, i, j):
-        """
-        Mask single pixel.
-        :param i: Line index.
-        :param j: Column index.
-        :return:
-        """
-        self.pattern_matrix.mask[i, j] = True
+        return dp_plotter
 
-    def mask_rectangle(self, rectangle_limits):
-        """
-        Mask a rectangular area.
-        :param rectangle_limits: (x1, x2, y1, y2) limits of the rectangle to mask.
-        :return:
-        """
-        condition = ((self.xmesh <= rectangle_limits[1]) &
-                     (self.xmesh >= rectangle_limits[0]) &
-                     (self.ymesh <= rectangle_limits[3]) &
-                     (self.ymesh >= rectangle_limits[2]))
-        self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
-
-    def mask_below(self, value):
-        """
-        Mask pixels whose value is bellow a value.
-        :param value: Mask value threshold.
-        :return:
-        """
-        condition = self.pattern_matrix <= value
-        self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
-
-    def mask_above(self, value):
-        """
-        Mask pixels whose value is above a value.
-        :param value: Mask value threshold.
-        :return:
-        """
-        condition = self.pattern_matrix >= value
-        self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)

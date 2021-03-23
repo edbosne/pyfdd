@@ -150,7 +150,7 @@ class ColorScale_dialog(QtWidgets.QDialog, Ui_ColorScaleDialog):
 
     def update_ticks_from_percentiles(self):
 
-        self.dp_controler.ticks = self.dp_controler.datapattern.get_ticks(self.dp_controler.percentiles)
+        self.dp_controler.ticks = self.dp_controler.dp_plotter.get_ticks(self.dp_controler.percentiles)
         self.sb_min_tick.setValue(self.dp_controler.ticks[0])
         self.sb_max_tick.setValue(self.dp_controler.ticks[1])
         self.update_plot()
@@ -620,6 +620,7 @@ class DataPatternControler(QtCore.QObject):
 
         # initiate variables
         self.datapattern = None
+        self.dp_plotter = None
         self.percentiles = default_percentiles
         self.ticks = None
         self.changes_saved = True
@@ -924,16 +925,16 @@ class DataPatternControler(QtCore.QObject):
     def draw_datapattern(self):
 
         # Clear previous axes and colorbar
-        if self.colorbar_ax is not None:
-            self.colorbar_ax.remove()
-        if self.plot_ax is not None:
-            self.plot_ax.clear()
+        if self.dp_plotter is not None:
+            self.dp_plotter.clear_draw()
+
+        self.dp_plotter = pyfdd.DataPatternPlotter(self.datapattern)
 
         if self.ticks is None:
-            self.ticks = self.datapattern.get_ticks(self.percentiles)
+            self.ticks = self.dp_plotter.get_ticks(self.percentiles)
 
-        self.plot_ax, self.colorbar_ax = \
-            self.datapattern.draw(self.plot_ax, ticks=self.ticks, **self.plot_labels)
+        self.dp_plotter.draw(self.plot_ax, ticks=self.ticks, **self.plot_labels)
+        self.plot_ax, self.colorbar_ax = self.dp_plotter.get_axes()
 
         # call a few times to keep the figure from moving
         self.pltfig.tight_layout()
@@ -972,10 +973,10 @@ class DataPatternControler(QtCore.QObject):
     def on_move(self, event):
         if event.inaxes == self.plot_ax:
             x, y = event.xdata, event.ydata
-            if self.datapattern is not None:
+            if self.dp_plotter is not None:
                 i, j = self.get_index_from_xy(x, y)
                 # get value with 2 decimal cases. 2db files don't round properly
-                z = self.datapattern.matrixDrawable[i, j]
+                z = self.dp_plotter.matrixDrawable[i, j]
                 if isinstance(z, float):
                     z = float('{:.1f}'.format(z))
             else:
