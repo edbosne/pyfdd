@@ -14,6 +14,7 @@ import bisect as bis
 import math
 
 # Imports from 3rd party
+from packaging import version
 import numpy as np
 import numpy.ma as ma
 import scipy.ndimage
@@ -22,6 +23,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import RectangleSelector
 
 # Imports from project
+import pyfdd
 from pyfdd.core.datapattern.CustomWidgets import AngleMeasure
 
 
@@ -367,6 +369,9 @@ class DataPattern:
                 self._io_load(file_path)
             else:
                 raise IOError('File does not exist: {}}'.format(file_path))
+        # Masks
+        self.pixels_mask = np.array(np.zeros((self.ny, self.nx)), dtype=bool)
+        self.fitregion_mask = np.array(np.zeros((self.ny, self.nx)), dtype=bool)
 
         # Create mesh
         if not self.is_mesh_defined:
@@ -410,14 +415,20 @@ class DataPattern:
 
         # Do verifications
         self._have_same_attributes(other)
+        assert isinstance(other, DataPattern)
 
         # Add matrices
         new_pattern = self.pattern_matrix.data + other.pattern_matrix.data
-        new_pattern_mask = self.pattern_matrix.mask + other.pattern_matrix.mask
+        # new_pattern_mask = self.pattern_matrix.mask + other.pattern_matrix.mask
+        new_pattern_pixel_mask = self.pixels_mask + other.pixels_mask
+        new_pattern_fitrange_mask = self.fitregion_mask + other.fitregion_mask
 
         # Make a new DataPattern with the calculated matrices
         new_mm = self.copy()
-        new_mm.pattern_matrix = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
+        new_mm.pattern_matrix = ma.array(data=new_pattern.copy(), mask=False)
+        new_mm.pixels_mask = new_pattern_pixel_mask
+        new_mm.fitregion_mask = new_pattern_fitrange_mask
+        new_mm._update_mask()
         return new_mm
 
     def __sub__(self, other):
@@ -429,14 +440,20 @@ class DataPattern:
 
         # Do verifications
         self._have_same_attributes(other)
+        assert isinstance(other, DataPattern)
 
         # Subtract matrix
         new_pattern = self.pattern_matrix.data - other.pattern_matrix.data
-        new_pattern_mask = self.pattern_matrix.mask + other.pattern_matrix.mask
+        # new_pattern_mask = self.pattern_matrix.mask + other.pattern_matrix.mask
+        new_pattern_pixel_mask = self.pixels_mask + other.pixels_mask
+        new_pattern_fitrange_mask = self.fitregion_mask + other.fitregion_mask
 
         # Make a new DataPattern with the calculated matrices
         new_mm = self.copy()
-        new_mm.pattern_matrix = ma.array(data=new_pattern.copy(), mask=new_pattern_mask.copy())
+        new_mm.pattern_matrix = ma.array(data=new_pattern.copy(), mask=False)
+        new_mm.pixels_mask = new_pattern_pixel_mask
+        new_mm.fitregion_mask = new_pattern_fitrange_mask
+        new_mm._update_mask()
         return new_mm
 
     def __rmul__(self, other):
@@ -459,11 +476,12 @@ class DataPattern:
         other = np.float(other)
 
         # Calculate new pattern
-        new_pattern = ma.masked_array(data=self.pattern_matrix.data * other, mask=self.pattern_matrix.mask)
+        new_pattern = ma.masked_array(data=self.pattern_matrix.data * other, mask=False)
 
         # Make a new DataPattern with the calculated matrices
         new_mm = self.copy()
         new_mm.pattern_matrix = new_pattern.copy()
+        new_mm._update_mask()
         return new_mm
 
     def __rdiv__(self, other):
@@ -480,11 +498,12 @@ class DataPattern:
             raise ValueError('Dividing by zero.')
 
         # Calculate new pattern
-        new_pattern = ma.masked_array(data=self.pattern_matrix.data / other, mask=self.pattern_matrix.mask)
+        new_pattern = ma.masked_array(data=self.pattern_matrix.data / other, mask=False)
 
         # Make a new DataPattern with the calculated matrices
         new_mm = self.copy()
         new_mm.pattern_matrix = copy.deepcopy(new_pattern)
+        new_mm._update_mask()
         return new_mm
 
     def copy(self):
@@ -628,9 +647,11 @@ class DataPattern:
         :param filename: Name or full path to the file.
         """
         js_out = dict()
+        js_out['pyfdd version'] = pyfdd.__version__
         js_out['matrix'] = dict()
         js_out['matrix']['data'] = self.pattern_matrix.data.tolist()
-        js_out['matrix']['mask'] = self.pattern_matrix.mask.tolist()
+        js_out['matrix']['pixels_mask'] = self.pixels_mask.tolist()
+        js_out['matrix']['fitregion_mask'] = self.fitregion_mask.tolist()
         js_out['matrix']['fill_value'] = self.pattern_matrix.fill_value.tolist()
         # real size of pixels between chips
         js_out['real_size'] = self.real_size
@@ -663,10 +684,17 @@ class DataPattern:
         """
         with open(filename, mode='r') as fp:
             json_in = json.load(fp)
+            # Data and masks
             matrix_data = json_in['matrix']['data']
-            matrix_mask = json_in['matrix']['mask']
+            if 'mask' in json_in['matrix']:
+                # Changed in version 0.8.0.dev1
+                self.pixels_mask = np.array(json_in['matrix']['mask'], dtype=bool)
+                self.fitregion_mask = np.array(np.zeros(self.pixels_mask.shape), dtype=bool)
+            else:
+                self.pixels_mask = np.array(json_in['matrix']['pixels_mask'], dtype=bool)
+                self.fitregion_mask = np.array(json_in['matrix']['fitregion_mask'], dtype=bool)
             matrix_fill = json_in['matrix']['fill_value']
-            self.pattern_matrix = ma.array(data=matrix_data, mask=matrix_mask, fill_value=matrix_fill)
+            self.pattern_matrix = ma.array(data=matrix_data, mask=False, fill_value=matrix_fill)
             # real size of pixels between chips
             self.real_size = json_in['real_size']
             self.nChipsX = json_in['nchipsx']
@@ -687,6 +715,9 @@ class DataPattern:
             self.center = json_in['center']
             self.angle = json_in['angle']
 
+            # Update mask
+            self._update_mask()
+
     # ===== - Mask Methods - =====
     def load_mask(self, filename, expand_by=0):
         """
@@ -698,7 +729,8 @@ class DataPattern:
         if mask.shape != self.pattern_matrix.shape:
             raise ValueError('Shape of mask in file does not match the shape of DataPattern')
         mask = self._expand_any_mask(mask, expand_by)
-        self.pattern_matrix.mask = (mask == 0)
+        self.pixels_mask = np.array((mask == 0), dtype=bool)
+        self._update_mask()
 
     def set_mask(self, mask, expand_by=0):
         """
@@ -710,14 +742,18 @@ class DataPattern:
         if mask.shape != self.pattern_matrix.shape:
             raise ValueError('Shape of mask does not match the shape of DataPattern')
         mask = self._expand_any_mask(mask, expand_by)
-        self.pattern_matrix.mask = mask
+        self.pixels_mask = np.array(mask, dtype=bool)
+        self._update_mask()
+
+    def _update_mask(self):
+        self.pattern_matrix.mask = self.pixels_mask + self.fitregion_mask
 
     def save_mask(self, filename):
         """
         Save mask to a text file.
         :param filename: Name or full path to the file.
         """
-        np.savetxt(filename, self.pattern_matrix.mask == 0, fmt='%i')
+        np.savetxt(filename, self.pixels_mask == 0, fmt='%i')
 
     def expand_mask(self, expand_by=0):
         """
@@ -725,7 +761,8 @@ class DataPattern:
         :param expand_by: Number of pixels by which to expand each masked pixel.
         :return:
         """
-        self.pattern_matrix.mask = self._expand_any_mask(self.pattern_matrix.mask, expand_by)
+        self.pixels_mask = self._expand_any_mask(self.pixels_mask, expand_by)
+        self._update_mask()
 
     @staticmethod
     def _expand_any_mask(mask, expand_by=0):
@@ -792,7 +829,8 @@ class DataPattern:
             condition = ~((distance1 > -distance) | (distance2 > -distance))
 
         # Mask pixels that are outside of the fit region
-        self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
+        self.fitregion_mask = condition
+        self._update_mask()
 
     def mask_pixel(self, i, j):
         """
@@ -801,7 +839,8 @@ class DataPattern:
         :param j: Column index.
         :return:
         """
-        self.pattern_matrix.mask[i, j] = True
+        self.pixels_mask[i, j] = True
+        self._update_mask()
 
     def mask_rectangle(self, rectangle_limits):
         """
@@ -813,7 +852,8 @@ class DataPattern:
                      (self.xmesh >= rectangle_limits[0]) &
                      (self.ymesh <= rectangle_limits[3]) &
                      (self.ymesh >= rectangle_limits[2]))
-        self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
+        self.pixels_mask = self.pixels_mask + condition
+        self._update_mask()
 
     def mask_below(self, value):
         """
@@ -822,7 +862,8 @@ class DataPattern:
         :return:
         """
         condition = self.pattern_matrix <= value
-        self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
+        self.pixels_mask = self.pixels_mask + condition
+        self._update_mask()
 
     def mask_above(self, value):
         """
@@ -831,7 +872,8 @@ class DataPattern:
         :return:
         """
         condition = self.pattern_matrix >= value
-        self.pattern_matrix = ma.masked_where(condition, self.pattern_matrix)
+        self.pixels_mask = self.pixels_mask + condition
+        self._update_mask()
 
     def mask_std(self, std=6, expand_by=0):
         """
@@ -844,14 +886,19 @@ class DataPattern:
         condition = ((self.pattern_matrix <= hist.mean - std * hist.std) |
                      (self.pattern_matrix >= hist.mean + std * hist.std))
         mask = self._expand_any_mask(condition, expand_by)
-        self.pattern_matrix = ma.masked_where(mask == 1, self.pattern_matrix)
+        self.pixels_mask = self.pixels_mask + mask
+        self._update_mask()
 
-    def clear_mask(self):
+    def clear_mask(self, pixels_mask=True, fitregion_mask=False):
         """
         Clear the mask.
         :return:
         """
-        self.pattern_matrix.mask = False
+        if pixels_mask:
+            self.pixels_mask = np.array(np.zeros((self.ny, self.nx)), dtype=bool)
+        if fitregion_mask:
+            self.fitregion_mask = np.array(np.zeros((self.ny, self.nx)), dtype=bool)
+        self._update_mask()
 
     # ===== - Matrix Manipulation Methods - =====
 
@@ -900,26 +947,35 @@ class DataPattern:
         ny = self.pattern_matrix.shape[0] + (2 * self.real_size - 2) * (self.nChipsY - 1)
         temp_matrix1 = np.zeros((self.pattern_matrix.shape[0], nx))
         temp_matrix2 = np.zeros((ny, nx))
-        mask_update1 = np.ones((self.pattern_matrix.shape[0], nx)) == 1
-        mask_update2 = np.ones((ny, nx)) == 1
+        # masks are ones so that new pixels are masked
+        pixels_mask_update1 = np.ones((self.pattern_matrix.shape[0], nx)) == 1
+        pixels_mask_update2 = np.ones((ny, nx)) == 1
+        fitregion_mask_update1 = np.ones((self.pattern_matrix.shape[0], nx)) == 1
+        fitregion_mask_update2 = np.ones((ny, nx)) == 1
 
         # Update pattern matrix
         for interX in range(0, self.nChipsX):
             dock_i = interX * (256 + 2 * self.real_size - 2)
             dock_f = dock_i + 256
             temp_matrix1[:, dock_i:dock_f] = self.pattern_matrix.data[:, interX * 256:interX * 256 + 256]
-            mask_update1[:, dock_i:dock_f] = self.pattern_matrix.mask[:, interX * 256:interX * 256 + 256]
+            pixels_mask_update1[:, dock_i:dock_f] = self.pixels_mask[:, interX * 256:interX * 256 + 256]
+            fitregion_mask_update1[:, dock_i:dock_f] = self.fitregion_mask[:, interX * 256:interX * 256 + 256]
 
         for interY in range(0, self.nChipsY):
             dock_i = interY * (256 + 2 * self.real_size - 2)
             dock_f = dock_i + 256
             temp_matrix2[dock_i:dock_f, :] = temp_matrix1[interY*256:interY*256 + 256, :]
-            mask_update2[dock_i:dock_f, :] = mask_update1[interY*256:interY*256 + 256, :]
+            pixels_mask_update2[dock_i:dock_f, :] = pixels_mask_update1[interY*256:interY*256 + 256, :]
+            fitregion_mask_update2[dock_i:dock_f, :] = fitregion_mask_update1[interY * 256:interY * 256 + 256, :]
 
-        self.pattern_matrix = ma.array(data=temp_matrix2, mask=mask_update2)
+        self.pattern_matrix = ma.array(data=temp_matrix2, mask=False)
 
         # Update mesh
         self.manip_create_mesh()
+        # Update mask
+        self.pixels_mask = pixels_mask_update2
+        self.fitregion_mask = fitregion_mask_update2
+        self._update_mask()
 
     def zero_central_pix(self, rm_central_pix=None):
         """
@@ -938,9 +994,10 @@ class DataPattern:
         ystep = nx // self.nChipsY
 
         for ix in range(self.nChipsX-1):
-            self.pattern_matrix.mask[:, xstep - rm_central_pix:xstep + rm_central_pix] = True
+            self.pixels_mask[:, xstep - rm_central_pix:xstep + rm_central_pix] = True
         for iy in range(self.nChipsY - 1):
-            self.pattern_matrix.mask[ystep - rm_central_pix:ystep + rm_central_pix, :] = True
+            self.pixels_mask[ystep - rm_central_pix:ystep + rm_central_pix, :] = True
+        self._update_mask()
 
     def remove_edge_pixel(self, rm_edge_pix=0):
         """
@@ -949,17 +1006,41 @@ class DataPattern:
         :return:
         """
         if not isinstance(rm_edge_pix, int):
-            raise ValueError('The number of edge pixels to remove should be int')
+            raise ValueError('The number of edge pixels to remove should be int.')
 
         if rm_edge_pix > 0:
             self.pattern_matrix = self.pattern_matrix[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
+            # update mask
+            self.pixels_mask = self.pixels_mask[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
+            self.fitregion_mask = self.fitregion_mask[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
+            self._update_mask()
             # Update mesh
             self.xmesh = self.xmesh[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
             self.ymesh = self.ymesh[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
 
+    def mask_edge_pixel(self, n_edge_pix=0):
+        """
+        This function is used to mask edge pixels.
+        :param n_edge_pix: Number of edge pixels to mask.
+        :return:
+        """
+        if not isinstance(n_edge_pix, int):
+            raise ValueError('The number of edge pixels to mask should be int.')
+
+        if n_edge_pix > 0:
+            print(self.pixels_mask)
+            self.pixels_mask[0:n_edge_pix, :] = True
+            self.pixels_mask[:, 0:n_edge_pix] = True
+            self.pixels_mask[-n_edge_pix:, :] = True
+            self.pixels_mask[:, -n_edge_pix:] = True
+
+            self._update_mask()
+
     def _update_compress_factors(self, factor, rm_central_pix, rm_edge_pix, consider_single_chip):
         """
         Update the rm_central_pix and rm_edge_pix in a smart way for the timepix quad or a single chip detector.
+        When a single chip pattern is not square this function will also crop the longuest side so that
+        it is divisible by factor.
         :param factor: Number of pixels to add together.
         :param rm_central_pix: Number of central pixels to mask.
         :param rm_edge_pix: Number of edge pixels to trim.
@@ -967,7 +1048,7 @@ class DataPattern:
         :return:
         """
 
-        (ny, nx) = self.pattern_matrix.shape
+        (ny, nx) = (self.ny, self.nx)
 
         # Quad detector compression
         if (2 == self.nChipsX and 2 == self.nChipsY) and consider_single_chip is False:
@@ -1013,14 +1094,26 @@ class DataPattern:
                 rest = (nx - 2 * rm_edge_pix) % factor
                 print('rest/2', rest/2)
                 retrn_arr = self.pattern_matrix.data[:, int(np.floor(rest / 2)):nx - int(np.ceil(rest / 2))]
-                retrn_ma = self.pattern_matrix.mask[:, int(np.floor(rest / 2)):nx - int(np.ceil(rest / 2))]
-                self.pattern_matrix = ma.array(data=retrn_arr, mask=(retrn_ma >= 1))
+                retrn_pixels_mask = self.pixels_mask[:, int(np.floor(rest / 2)):nx - int(np.ceil(rest / 2))]
+                retrn_fitregion_mask = self.fitregion_mask[:, int(np.floor(rest / 2)):nx - int(np.ceil(rest / 2))]
+                self.pattern_matrix = ma.array(data=retrn_arr, mask=False)
+                self.pixels_mask = retrn_pixels_mask
+                self.fitregion_mask = retrn_fitregion_mask
+                self._update_mask()
+                # Update nx
+                self.nx = nx - 2 * int(np.ceil(rest / 2))
 
             elif n_min_name == 'nx':
                 rest = (ny - 2 * rm_edge_pix) % factor
                 retrn_arr = self.pattern_matrix.data[int(np.floor(rest / 2)):ny - int(np.ceil(rest / 2)), :]
-                retrn_ma = self.pattern_matrix.mask[int(np.floor(rest / 2)):ny - int(np.ceil(rest / 2)), :]
-                self.pattern_matrix = ma.array(data=retrn_arr, mask=(retrn_ma >= 1))
+                retrn_pixels_mask = self.pixels_mask[int(np.floor(rest / 2)):ny - int(np.ceil(rest / 2)), :]
+                retrn_fitregion_mask = self.fitregion_mask[int(np.floor(rest / 2)):ny - int(np.ceil(rest / 2)), :]
+                self.pattern_matrix = ma.array(data=retrn_arr, mask=False)
+                self.pixels_mask = retrn_pixels_mask
+                self.fitregion_mask = retrn_fitregion_mask
+                self._update_mask()
+                # Update ny
+                self.ny = ny - 2 * int(np.ceil(rest / 2))
 
         return factor, rm_central_pix, rm_edge_pix
 
@@ -1068,11 +1161,9 @@ class DataPattern:
             self._update_compress_factors(factor, rm_central_pix, rm_edge_pix, consider_single_chip)
 
         # calculate final shape
-        (ny, nx) = self.pattern_matrix.shape
+        (ny, nx) = (self.ny, self.nx)
 
         final_size = [int((ny - rm_edge_pix * 2) / factor), int((nx - rm_edge_pix * 2) / factor)]
-        if self.verbose >= 1:
-            print('final_size', final_size)
 
         # Update masked central pixels acoordingly
         self.zero_central_pix(rm_central_pix + (self.real_size - 1))
@@ -1083,9 +1174,18 @@ class DataPattern:
 
         retrn_arr = self.pattern_matrix.data[yslice, xslice]\
                         .reshape([final_size[0], factor, final_size[1], factor]).sum(3).sum(1)
-        retrn_ma = self.pattern_matrix.mask[yslice, xslice] \
+        retrn_pixels_mask = self.pixels_mask[yslice, xslice] \
                        .reshape([final_size[0], factor, final_size[1], factor]).sum(3).sum(1)
-        self.pattern_matrix = ma.array(data=retrn_arr, mask=(retrn_ma >= 1))
+        retrn_fitregion_mask = self.fitregion_mask[yslice, xslice] \
+                       .reshape([final_size[0], factor, final_size[1], factor]).sum(3).sum(1)
+
+        self.pattern_matrix = ma.array(data=retrn_arr, mask=False)
+        self.pixels_mask = retrn_pixels_mask
+        self.fitregion_mask = retrn_fitregion_mask
+        self._update_mask()
+        (self.ny, self.nx) = final_size
+
+        # Update shape
 
         # Update mesh
         self.xmesh = self.xmesh[yslice, xslice] \

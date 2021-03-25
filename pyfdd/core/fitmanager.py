@@ -822,18 +822,17 @@ class FitManager:
         dp_pattern = self.dp_pattern.copy()
 
         if substitute_masked_with is not None:
+            # Get a pattern with no mask besides what is outside of the simulation.
             sim_pattern = self._gen_detector_pattern_from_fit(fit_obj=fit_obj, generator=substitute_masked_with,
                                                               rm_mask=True)
 
-            # dont substitute pixels that are out of range of simulations
-            substitute_matrix = (np.array(dp_pattern.pattern_matrix.mask, np.int) +
-                                 np.array(sim_pattern.mask, np.int)) == 1
+            # Substitute pixels that are masked and that are not in the fitregion mask
+            substitute_matrix = np.logical_and(dp_pattern.pixels_mask,
+                                               np.logical_not(sim_pattern.mask))
 
             dp_pattern.pattern_matrix.data[substitute_matrix] = \
                 sim_pattern.data[substitute_matrix]
-            dp_pattern.pattern_matrix.mask = sim_pattern.mask
-
-            #print('data\n', dp_pattern.pattern_matrix.data[dp_pattern.pattern_matrix.mask])
+            dp_pattern.clear_mask(pixels_mask=True, fitregion_mask=True)
 
         norm_factor = self._get_sim_normalization_factor(normalization, pattern_type='data', fit_obj=fit_obj)
 

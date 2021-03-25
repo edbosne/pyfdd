@@ -1132,6 +1132,7 @@ class DataPatternControler(QtCore.QObject):
                                                   value=remove_edge, min=0)
         if ok:
             self.datapattern.remove_edge_pixel(value)
+            #self.datapattern.mask_edge_pixel(value)
 
             # Draw pattern and update info text
             self.draw_datapattern()
