@@ -163,9 +163,9 @@ p, li { white-space: pre-wrap; }
           </widget>
          </item>
          <item row="3" column="0">
-          <widget class="QPushButton" name="pb_removeedge">
+          <widget class="QPushButton" name="pb_maskedge">
            <property name="text">
-            <string>Remove Edge Pixels</string>
+            <string>Mask Edge Pixels</string>
            </property>
           </widget>
          </item>

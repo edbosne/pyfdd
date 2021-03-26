@@ -1028,7 +1028,6 @@ class DataPattern:
             raise ValueError('The number of edge pixels to mask should be int.')
 
         if n_edge_pix > 0:
-            print(self.pixels_mask)
             self.pixels_mask[0:n_edge_pix, :] = True
             self.pixels_mask[:, 0:n_edge_pix] = True
             self.pixels_mask[-n_edge_pix:, :] = True

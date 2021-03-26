@@ -516,7 +516,7 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         self.pb_maskrectangle.clicked.connect(self.untoggle_pb_maskpixel)
         self.pb_maskbelow.clicked.connect(self.dpcontroler.call_pb_maskbelow)
         self.pb_maskabove.clicked.connect(self.dpcontroler.call_pb_maskabove)
-        self.pb_removeedge.clicked.connect(self.dpcontroler.call_pb_removeedge)
+        self.pb_maskedge.clicked.connect(self.dpcontroler.call_pb_maskedge)
         self.pb_removecentral.clicked.connect(self.dpcontroler.call_pb_removecentral)
         self.pb_expandmask.clicked.connect(self.dpcontroler.call_pb_expandmask)
         self.pb_clearmask.clicked.connect(self.dpcontroler.call_pb_clearmask)
@@ -574,6 +574,15 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         saveimage_act.setStatusTip('Save pattern as an image')
         saveimage_act.triggered.connect(self.dpcontroler.saveasimage_dp_call)
         dp_menu.addAction(saveimage_act)
+
+        # Separate io from manipulation
+        dp_menu.addSeparator()
+
+        # Remove edge pixels
+        removeedge_act = QtWidgets.QAction('&Remove edge pixels', self)
+        removeedge_act.setStatusTip('Remove edge pixels from the pattern.')
+        removeedge_act.triggered.connect(self.dpcontroler.call_pb_removeedge)
+        dp_menu.addAction(removeedge_act)
 
         return dp_menu
 
@@ -1120,6 +1129,29 @@ class DataPatternControler(QtCore.QObject):
             # update config
             config.parser['datapattern']['mask_above'] = str(value)
 
+    def call_pb_maskedge(self):
+        if not self.datapattern_exits():
+            return
+
+        mask_edge = 0 if not config.parser.has_option('datapattern', 'mask_edge') else \
+            config.getint('datapattern', 'mask_edge')
+
+        value, ok = QtWidgets.QInputDialog.getInt(self.parent_widget, 'Input value',
+                                                  'Number of edge pixels to mask\t\t\t',
+                                                  value=mask_edge, min=0)
+        if ok:
+            #self.datapattern.remove_edge_pixel(value)
+            self.datapattern.mask_edge_pixel(value)
+
+            # Draw pattern and update info text
+            self.draw_datapattern()
+            self.update_infotext()
+            self.changes_saved = False
+            self.datapattern_changed_or_saved.emit()
+
+            # update config
+            config.parser['datapattern']['mask_edge'] = str(value)
+
     def call_pb_removeedge(self):
         if not self.datapattern_exits():
             return
@@ -1336,6 +1368,7 @@ class DataPatternControler(QtCore.QObject):
                                                      'Set a valid angular range around the channeling axis\t\t\t\n' \
                                                      '(x={:.2f}, y={:.2f} ,phi={:.2f})'.format(x_orient, y_orient, phi),
                                                      value=angular_fit_range, min=0)
+
         if ok:
             self.datapattern.set_fit_region(distance=value)
 
