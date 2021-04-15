@@ -838,3 +838,5 @@ class FitManager:
 
         return dp_pattern * norm_factor
 
+    @staticmethod get_inicial_values
+

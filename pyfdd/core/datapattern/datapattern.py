@@ -1013,6 +1013,9 @@ class DataPattern:
             # update mask
             self.pixels_mask = self.pixels_mask[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
             self.fitregion_mask = self.fitregion_mask[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
+            # Update pattern shape and mask
+            self.nx -= 2 * rm_edge_pix
+            self.ny -= 2 * rm_edge_pix
             self._update_mask()
             # Update mesh
             self.xmesh = self.xmesh[rm_edge_pix:-rm_edge_pix, rm_edge_pix:-rm_edge_pix]
