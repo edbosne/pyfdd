@@ -355,6 +355,9 @@ class FitManawerWorker(QtCore.QObject):
         # Set a pattern or range of patterns to fit
         self.sites_to_fit = [site_range.get_range_as_list() for site_range in sites_range_objects]
 
+    def is_datapattern_inrange(self):
+        return self.fitman.is_datapattern_inrange()
+
     @QtCore.pyqtSlot()
     def run(self):
         self.new_print('*'*80)
@@ -681,6 +684,14 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.fitman_worker = FitManawerWorker(self.datapattern, self.simlibrary,
                                          self.fitconfig, self.parameter_objects,
                                          self.sites_range_objects)
+
+        # Do checks before starting
+        # Check if the fit range is correct
+        if not self.fitman_worker.is_datapattern_inrange():
+            QtWidgets.QMessageBox.warning(self, 'Warning message',
+                                          'The datapattern is not in the simulation range. \n'
+                                          'Consider reducing the fit range arount the axis first.')
+            return
 
         # Move worker to the thread
         self.fitman_worker.moveToThread(self.fitman_thread)

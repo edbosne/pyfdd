@@ -112,8 +112,8 @@ class FitManager:
         self._bounds = {**self._bounds, **bounds_temp}
 
         # overwrite defaults from Fit
-        self.p_initial_values = {}
-        self.p_fixed_values = {}
+        self.p_initial_values = dict()
+        self.p_fixed_values = dict()
 
         # order of columns in results
         self.columns_horizontal = \
@@ -322,54 +322,31 @@ class FitManager:
         :param pass_results: Use the previous fit results
         :return p0, p_fix: initial values and tuple of bools indicating if it is fixed
         """
-        # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
-        p0 = ()
-        p_fix = ()
-
         # decide if using last fit results
         p0_pass = pass_results \
             and self.last_fit is not None \
             and self.last_fit.results['success']
 
-        # starting too close from a minimum can cause errors so 1e-5 is added
-        p0_last = self.last_fit.results['x'] + 1e-5 if p0_pass else None
-        # print('p0_last', p0_last)
-        p0_last_i = 0
+        new_initial_values = self.p_initial_values.copy()
 
-        for key in self.parameter_keys:
-            # Use user defined fixed value
-            if key in self.p_fixed_values:
-                p0 += (self.p_fixed_values[key],)
-                p_fix += (True,)
+        if p0_pass:  # change initial values
+            p0_last = self.last_fit.results['x']
+            p0_last_i = 0
 
-            # Use user defined initial value
-            elif key in self.p_initial_values:
-                p0 += (self.p_initial_values[key],)
-                p_fix += (False,)
-
-            # Use FitManager choice
-            else:
-                if key == 'dx':
-                    p0 += (p0_last[p0_last_i],) if p0_pass else (self.dp_pattern.center[0],)
-                elif key == 'dy':
-                    p0 += (p0_last[p0_last_i],) if p0_pass else (self.dp_pattern.center[1],)
-                elif key == 'phi':
-                    p0 += (p0_last[p0_last_i],) if p0_pass else (self.dp_pattern.angle,)
-                elif key == 'total_cts':
-                    patt = self.dp_pattern.pattern_matrix.copy()
-                    # counts_ordofmag = 10 ** (int(math.log10(patt.sum())))
-                    counts = patt.sum()
-                    p0 += (counts,)
-                elif key == 'sigma':
-                    p0 += (p0_last[p0_last_i],) if p0_pass else (0.1,)
+            for key in self.parameter_keys:
+                if key in self.p_fixed_values:
+                    pass  # Fixed, dont change
                 else:
-                    # assuming a pattern fraction
-                    p0 += (p0_last[p0_last_i],) if p0_pass and p0_last_i < len(p0_last) \
-                        else (min(0.15, 0.5/self._n_sites),)
-                p_fix += (False,)
-                if p0_pass:
+                    # starting too close from a minimum can cause errors so 1e-5 is added
+                    new_initial_values[key] = p0_last[p0_last_i] + 1e-5
                     p0_last_i += 1
-        # print('p0',p0,'\np_fix', p_fix)
+
+        p0, p_fix = self.calculate_inicial_values(
+                            datapattern=self.dp_pattern,
+                            n_sites=self._n_sites,
+                            p_fixed_values=self.p_fixed_values,
+                            p_initial_values=new_initial_values)
+
         return p0, p_fix
 
     def _get_scale_values(self):
@@ -568,6 +545,11 @@ class FitManager:
         :return:
         """
 
+        if not self.is_datapattern_inrange():
+            warnings.warn('The datapattern is not in the simulation range. \n'
+                          'Consider reducing the fit range arount the axis.')
+            raise ValueError
+
         self.done_param_verbose = False
 
         patterns_list = ()
@@ -594,6 +576,10 @@ class FitManager:
 
     def run_single_fit(self, *args, verbose=1,
                        verbose_graphics=False, get_errors=False):
+
+        if not self.is_datapattern_inrange():
+            warnings.warn('The datapattern is not in the simulation range. \n'
+                          'Consider reducing the fit range arount the axis.')
 
         args = list(args)
         sites = ()
@@ -674,6 +660,35 @@ class FitManager:
     def stop_current_fit(self):
         if self.current_fit_obj is not None:
             self.current_fit_obj.stop_current_fit()
+
+    def is_datapattern_inrange(self):
+
+        initial_values, _ = self._get_initial_values()
+
+        dx = initial_values[0]
+        dy = initial_values[1]
+        phi = initial_values[2]
+
+        # generate sim pattern
+        gen = PatternCreator(self.lib, self.dp_pattern.xmesh, self.dp_pattern.ymesh, 1,
+                             mask=self.dp_pattern.pattern_matrix.mask,  # need the mask for the normalization
+                             sub_pixels=self._sub_pixels,
+                             mask_out_of_range=True)
+        # mask out of range false means that points that are out of the range of simulations are not masked,
+        # instead they are substituted by a very small number 1e-12
+        sim_pattern = gen.make_pattern(dx, dy, phi, 0, 1, sigma=0, pattern_type='ideal')
+
+        # Logic verification
+        # Data points that are not masked should not be in a position where the simulation is masked
+        data_mask = self.dp_pattern.pattern_matrix.mask
+        sim_mask = sim_pattern.mask
+
+        print('data mask - {}'.format(data_mask.sum()))
+        print('sim mask - {}'.format(sim_mask.sum()))
+
+        inrange = not np.any(~data_mask == sim_mask)
+
+        return inrange
 
     # results and output methods
     def save_output(self, filename, layout='horizontal', save_figure=False):
@@ -838,5 +853,66 @@ class FitManager:
 
         return dp_pattern * norm_factor
 
-    @staticmethod get_inicial_values
+    @staticmethod
+    def calculate_inicial_values(datapattern, n_sites=1,
+                                 p_fixed_values=None, p_initial_values=None):
+        """
+        Static method to get the initial values for the next fit according to a given DataPattern.
+        :param datapattern: DataPattern object to fit
+        :param n_sites: Number of sites in the fit
+        :param p_fixed_values: User defined fixed values
+        :param p_initial_values: User defined initial values
+        :return: p0, p_fix: initial values and tuple of bools indicating if it is fixed
+        """
+
+        # Set the parameter keys
+        # Example: ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
+        parameter_keys = FitManager.default_parameter_keys.copy()
+        parameter_keys.pop()  # remove 'f_px'
+        for i in range(n_sites):
+            fraction_key = 'f_p' + str(i + 1)  # 'f_p1', 'f_p2', 'f_p3',...
+            parameter_keys.append(fraction_key)
+
+        # If None make them as empty dictionaries
+        if p_fixed_values is None:
+            p_fixed_values = dict()
+
+        if p_initial_values is None:
+            p_initial_values = dict()
+
+        p0 = ()
+        p_fix = ()
+
+        for key in parameter_keys:
+            # Use user defined fixed value
+            if key in p_fixed_values:
+                p0 += (p_fixed_values[key],)
+                p_fix += (True,)
+
+            # Use user defined initial value
+            elif key in p_initial_values:
+                p0 += (p_initial_values[key],)
+                p_fix += (False,)
+
+            # Use FitManager choice
+            else:
+                if key == 'dx':
+                    p0 += (datapattern.center[0],)
+                elif key == 'dy':
+                    p0 += (datapattern.center[1],)
+                elif key == 'phi':
+                    p0 += (datapattern.angle,)
+                elif key == 'total_cts':
+                    counts = datapattern.pattern_matrix.sum()
+                    p0 += (counts,)
+                elif key == 'sigma':
+                    p0 += (0.1,)
+                else:
+                    # assuming a pattern fraction
+                    p0 += (min(0.15, 0.5 / n_sites),)
+                p_fix += (False,)
+
+        return p0, p_fix
+
+
 
