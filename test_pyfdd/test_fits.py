@@ -48,7 +48,7 @@ def test_chi2_fit(lib, xmesh, ymesh, patt):
     ft._parameters_dict['sub_pixels']['value'] = 1
 
     ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=counts_ordofmag, sigma=0.1, f_p1=1)
-    ft.set_inicial_values(0, 0, 0, counts_ordofmag, sigma=0.1)
+    ft.set_initial_values(0, 0, 0, counts_ordofmag, sigma=0.1)
     # ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, counts_ordofmag, sigma=0.1)
     #ft.fix_parameters(dx=False, dy=False, phi=False, total_cts=False, sigma=False, f_p1=False, f_p2=False)
 
@@ -87,7 +87,7 @@ def test_ml_fit(lib, xmesh, ymesh, patt):
     ft._parameters_dict['sub_pixels']['value'] = 1
 
     ft.set_scale_values(dx=1, dy=1, phi=1, total_cts=-1, f_p1=1, f_p2=1)
-    ft.set_inicial_values(0, 0, 0, -1, sigma=0.1)
+    ft.set_initial_values(0, 0, 0, -1, sigma=0.1)
     ft.fix_parameters(dx=False, dy=False, phi=False, total_cts=False, sigma=False, f_p1=False, f_p2=False)
     # ft.set_inicial_values(mm.center[0], mm.center[1], mm.angle, -1, sigma=0.1)
     ft.maximize_likelyhood()

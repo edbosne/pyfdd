@@ -37,19 +37,19 @@ class CostFunc(IntEnum):
 
 
 class FitConfig_dialog(QtWidgets.QDialog, Ui_FitConfigDialog):
-    def __init__(self, parent_widget, current_config, fitman):
+    def __init__(self, parent_widget, current_config):
         assert isinstance(current_config, dict)
-        assert isinstance(fitman, pyfdd.FitManager)
         super(FitConfig_dialog, self).__init__(parent_widget)
         self.setupUi(self)
 
-        self.fitman = fitman
+        self.custom_profile_str = None
         self.load_config(current_config)
-        self.new_config = dict
+        self.new_config = dict()
 
         # Connect signals
         self.cb_costfunc.currentIndexChanged.connect(self.update_profile_text)
         self.cb_profile.currentIndexChanged.connect(self.update_profile_text)
+        self.le_profile.editingFinished.connect(self.custom_profile_changed)
 
     def load_config(self, config):
         self.cb_costfunc.setCurrentIndex(config['cost_func'])
@@ -58,7 +58,8 @@ class FitConfig_dialog(QtWidgets.QDialog, Ui_FitConfigDialog):
         self.sb_subpixels.setValue(config['sub_pixels'])
         self.cb_profile.setCurrentIndex(int(config['min_profile']))
         if config['min_profile'] is Profile.custom:
-            self.le_profile.setText(config['custom_profile'])
+            self.le_profile.setText(str(config['custom_profile']))
+            self.custom_profile_str = str(config['custom_profile'])
         else:
             self.update_profile_text()
 
@@ -66,11 +67,18 @@ class FitConfig_dialog(QtWidgets.QDialog, Ui_FitConfigDialog):
         profile = Profile(self.cb_profile.currentIndex())
         cost_func = CostFunc(self.cb_costfunc.currentIndex())
         if profile is not Profile.custom:
-            fit_options = self.fitman._profiles_fit_options[profile.name][cost_func.name]
+            fit_options = pyfdd.FitManager.default_profiles_fit_options.copy()[profile.name][cost_func.name]
             self.le_profile.setText(str(fit_options))
             self.le_profile.setReadOnly(True)
         else:
+            if self.custom_profile_str is not None:
+                self.le_profile.setText(self.custom_profile_str)
             self.le_profile.setReadOnly(False)
+
+    def custom_profile_changed(self):
+        profile = Profile(self.cb_profile.currentIndex())
+        if profile is Profile.custom:
+            self.custom_profile_str = self.le_profile.text()
 
     def get_config(self):
         self.new_config = {
@@ -81,9 +89,16 @@ class FitConfig_dialog(QtWidgets.QDialog, Ui_FitConfigDialog):
             'min_profile': Profile(self.cb_profile.currentIndex())}
 
         if self.new_config['min_profile'] is Profile.custom:
-            self.new_config['custom'] = self.le_profile.text()
+            temp_string = self.le_profile.text()
+            temp_string = temp_string.replace('\'', '\"')  # Use double quotes
+            temp_string = temp_string.replace('False', 'false')  # Use lower case bools for json
+            temp_string = temp_string.replace('True', 'true')
+            print(temp_string)
+            self.new_config['custom_profile'] = json.loads(temp_string)
+            print(type(self.new_config['custom_profile']))
+            print(self.new_config['custom_profile'])
         else:
-            self.new_config['custom'] = ''
+            self.new_config['custom_profile'] = ''
 
         return self.new_config
 
@@ -331,7 +346,6 @@ class FitManawerWorker(QtCore.QObject):
         # Change default bounds
         bounds = {key: parameter.bounds
                   for key, parameter in zip(parameter_keys, parameter_objects)}
-        print('bounds', bounds)
         self.fitman.set_bounds(**bounds)
 
         # Change default step modifier
@@ -346,11 +360,13 @@ class FitManawerWorker(QtCore.QObject):
 
         # Set a minization profile
         if fitconfig['min_profile'] is Profile.custom:
-            min_profile = fitconfig['custom_profile']
+            min_profile = 'custom'
+            fit_options = fitconfig['custom_profile']
         else:
             min_profile = fitconfig['min_profile'].name
+            fit_options = None
 
-        self.fitman.set_minimization_settings(profile=min_profile)
+        self.fitman.set_minimization_settings(profile=min_profile, options=fit_options)
 
         # Set a pattern or range of patterns to fit
         self.sites_to_fit = [site_range.get_range_as_list() for site_range in sites_range_objects]
@@ -406,7 +422,8 @@ class FitManager_window(QtWidgets.QMainWindow):
         self.resize(1150, 670)
 
         # Connect
-        self.fm_w.fitresults_changed_or_saved.connect(self.title_update)
+        self.fm_w.fitresults_changed.connect(self.title_update)
+        self.fm_w.fitresults_saved.connect(self.title_update)
 
     @staticmethod
     def get_datapattern():
@@ -435,7 +452,8 @@ class FitManager_window(QtWidgets.QMainWindow):
 class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
     """ Data pattern widget class"""
 
-    fitresults_changed_or_saved = QtCore.pyqtSignal()
+    fitresults_changed = QtCore.pyqtSignal()
+    fitresults_saved = QtCore.pyqtSignal()
 
     def __init__(self, *args, mainwindow=None, **kwargs):
         """
@@ -469,7 +487,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.fractions_widget_stack = []
         self.n_sites_in_stack = 1
 
-        # Popup widgets
+        # Popup widgets that need a reference in self
         self.viewresults_window = None
         self.dp_external = []
 
@@ -480,7 +498,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.simlibrary = None
         self.get_datapattern()
         self.get_simlibrary()
-        self.fitman = None
+        self.fitman = None # TODO remove the use of fitman instances
         self.changes_saved = True
 
         # Fitman thread variables
@@ -504,9 +522,6 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
             self.fitconfig['cost_func'] = CostFunc(self.fitconfig['cost_func'])
             self.fitconfig['min_profile'] = Profile(self.fitconfig['min_profile'])
 
-        # Create a dummy fitmanager to correctly get the default fit parameters
-        self.update_fitman()
-
         # Sites ranges
         self.sites_range_objects = []
         self.init_sites_ranges()
@@ -514,17 +529,12 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         # Parameters
         # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         self.parameter_objects = []
-        self.parameter_keys = ()
-        self.initial_values = dict()
-        self.bounds = dict()
-        self.step_modifier = dict()
-        self.fixed = dict()
         self.init_parameters()
         self.refresh_parameters()
 
         # Connect signals
         self.pb_fitconfig.clicked.connect(self.call_pb_fitconfig)
-        self.pb_reset.clicked.connect(self.reset_parameters)
+        self.pb_reset.clicked.connect(lambda: self.refresh_parameters(reset=True))
         self.pb_abortfits.setEnabled(False)
         self.pb_runfits.clicked.connect(self.call_pb_runfits)
         self.pb_abortfits.clicked.connect(self.call_pb_abortfits)
@@ -541,10 +551,11 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         # nothing to do here at the moment
         return None
 
-    def make_dummy_pattern(self):
+    @staticmethod
+    def make_dummy_pattern():
         pattern = np.random.poisson(1000, (22, 22))
         dp = pyfdd.DataPattern(pattern_array=pattern)
-        dp.manip_create_mesh(pixel_size=1.3, distance=300)
+        dp.manip_create_mesh(pixel_size=1.4, distance=300)
         return dp
 
     def init_parameters(self):
@@ -581,30 +592,46 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
                         lb_description=self.lb_f1)
         self.parameter_objects.append(par)
 
-    def refresh_parameters(self, reset=False):
-        self.parameter_keys = self.fitman.parameter_keys
-        temp_init_values, temp_fixed_values = self.fitman._get_initial_values()  # fitman needs a dp to get the ini v
-        self.initial_values = dict()
-        self.fixed = dict()
-        for key, value in zip(self.parameter_keys, temp_init_values):
-            self.initial_values[key] = value
-        for key, value in zip(self.parameter_keys, temp_fixed_values):
-            self.fixed[key] = value
-        self.bounds = self.fitman._bounds
-        self.step_modifier = self.fitman._scale
+    def refresh_parameters(self, reset: bool = False):
+        """
+        Refresh the parameters acoording to the current data pattern and library.
+        :param reset: If true all paremeters that were changed by the user are reset.
+        :return:
+        """
 
-        for key, parameter in zip(self.parameter_keys, self.parameter_objects):
+        if isinstance(self.datapattern, pyfdd.DataPattern):
+            data_p = self.datapattern
+        else:
+            data_p = self.make_dummy_pattern()
+
+        # Compute values
+        parameter_keys = pyfdd.FitManager.compute_parameter_keys(n_sites=self.fitconfig['n_sites'])
+
+        temp_init_values, temp_fixed_values = \
+            pyfdd.FitManager.compute_initial_fit_values(datapattern=data_p,
+                                                        n_sites=self.fitconfig['n_sites'])
+        initial_values = dict()
+        fixed = dict()
+        for key, value in zip(parameter_keys, temp_init_values):
+            initial_values[key] = value
+        for key, value in zip(parameter_keys, temp_fixed_values):
+            fixed[key] = value
+
+        bounds = pyfdd.FitManager.compute_bounds(datapattern=data_p,
+                                                 n_sites=self.fitconfig['n_sites'])
+        step_modifier = pyfdd.FitManager.compute_step_modifier(n_sites=self.fitconfig['n_sites'])
+
+        # Apply new values to the interface
+        for key, parameter in zip(parameter_keys, self.parameter_objects):
             assert parameter.key == key
             if not reset and parameter.was_changed:
-                # keep the value introduced by the user
+                # Keep the value introduced by the user
                 continue
-            parameter.reset_values_to(initial_value=self.initial_values[key],
-                                      bounds=self.bounds[key],
-                                      step_modifier=self.step_modifier[key],
-                                      fixed=self.fixed[key])
-
-    def reset_parameters(self):
-        self.refresh_parameters(reset=True)
+            else:
+                parameter.reset_values_to(initial_value=initial_values[key],
+                                          bounds=bounds[key],
+                                          step_modifier=step_modifier[key],
+                                          fixed=fixed[key])
 
     def init_sites_ranges(self):
         """ Create the first site range widget"""
@@ -653,11 +680,10 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
 
     def call_pb_fitconfig(self):
 
-        fitconfig_dialog = FitConfig_dialog(parent_widget=self, current_config=self.fitconfig, fitman=self.fitman)
+        fitconfig_dialog = FitConfig_dialog(parent_widget=self, current_config=self.fitconfig)
         if fitconfig_dialog.exec_() == QtWidgets.QDialog.Accepted:
             self.fitconfig = fitconfig_dialog.get_config()
             self.update_infotext()
-            self.update_fitman()
             self.update_n_sites_widgets()
             config.parser['fitmanager']['fitconfig'] = json.dumps(self.fitconfig)
         else:
@@ -735,7 +761,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
     def call_store_output(self, fitman):
         self.fitman_output = fitman
         self.changes_saved = False
-        self.fitresults_changed_or_saved.emit()
+        self.fitresults_changed.emit()
 
     def call_pb_viewresults(self):
 
@@ -759,7 +785,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
 
             self.fitman_output.save_output(filename[0])
             self.changes_saved = True
-            self.fitresults_changed_or_saved.emit()
+            self.fitresults_saved.emit()
         else:
             QtWidgets.QMessageBox.warning(self, 'Warning message', 'Results are not ready.')
 
@@ -818,25 +844,11 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         else:
             QtWidgets.QMessageBox.warning(self, 'Warning message', 'Results are not ready.')
 
-    def update_fitman(self):
-        cost_function = self.fitconfig['cost_func'].name
-        n_sites = self.fitconfig['n_sites']
-        sub_pixels = self.fitconfig['sub_pixels']
-        self.fitman = pyfdd.FitManager(cost_function=cost_function,
-                                       n_sites=n_sites,
-                                       sub_pixels=sub_pixels)
-        if self.datapattern is not None:
-            self.fitman.dp_pattern = self.datapattern
-        else:
-            self.fitman.dp_pattern = self.make_dummy_pattern()
-        if self.simlibrary is not None:
-            self.fitman.lib = self.simlibrary
-
     def update_all(self):
         self.get_datapattern()
         self.get_simlibrary()
-        self.update_fitman()
         self.update_infotext()
+        self.refresh_parameters()
 
     def update_n_sites_widgets(self):
         self.parameters_layout.removeWidget(self.pb_reset)

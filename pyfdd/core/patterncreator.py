@@ -273,7 +273,7 @@ class PatternCreator:
     def _update_coordinates_mesh(self):
         '''
         create or update object x and y mesh
-        use for inicial mesh creation
+        use for initial mesh creation
         use to update mesh after a rotation with size change
         '''
         #set the stop between last and last+1step

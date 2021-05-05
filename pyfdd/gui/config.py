@@ -2,15 +2,22 @@ import configparser
 import os
 import json
 import warnings
-from PyQt5 import QtCore
 
 
-parser = None
+# Config file location
 filename = 'config.ini'
 path = './'
 
+# Parser variables and functions
+parser = None
+
 
 def parser_not_set(*args):
+    """
+    Raise error if function is called. Used to predefine parser get functions.
+    :param args: any argument
+    :return:
+    """
     raise ValueError('Parser not set.')
 
 
@@ -21,14 +28,6 @@ getfloat = parser_not_set
 getint = parser_not_set
 getlist = parser_not_set
 getdict = parser_not_set
-
-
-class QtSignals(QtCore.QObject):
-    # make an updated signal to propagate changes to other datapattern widgets
-    updated = QtCore.pyqtSignal()
-
-
-signals = QtSignals()
 
 
 def read():
@@ -80,8 +79,6 @@ def write():
     global filename
     global path
 
-    global signals
-
     if parser is None:
         raise ValueError('Trying to write configuration file but the parser is not set')
     else:
@@ -90,8 +87,6 @@ def write():
     config_fullname = os.path.join(path, filename)
     with open(config_fullname, 'w') as configfile:
         parser.write(configfile)
-
-    signals.updated.emit()
 
 
 def load_config_option(self, section, optname, opttype=None):

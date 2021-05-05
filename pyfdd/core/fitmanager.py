@@ -175,7 +175,7 @@ class FitManager:
             ValueError('data_pattern input error')
 
         self.print('\nData pattern added')
-        self.print('Inicial orientation (x, y, phi) is (',
+        self.print('Initial orientation (x, y, phi) is (',
               self.dp_pattern.center[0], ', ', self.dp_pattern.center[1], ',',
               self.dp_pattern.angle, ')')
 
@@ -193,7 +193,7 @@ class FitManager:
         self.print('Fit options         -', self._fit_options)
         self.print('Sub pixels          -', self._sub_pixels)
         self.print('\nParameter settings')
-        self.print('{:<16}{:<16}{:<16}{:<16}{:<16}'.format('Name', 'Inicial Value', 'Fixed', 'Bounds', 'Scale'))
+        self.print('{:<16}{:<16}{:<16}{:<16}{:<16}'.format('Name', 'Initial Value', 'Fixed', 'Bounds', 'Scale'))
         string_temp = '{:<16}{:<16.2f}{:<16}{:<16}{:<16}'
         for key in self.parameter_keys:
             # {'p0':None, 'value':None, 'use':False, 'std':None, 'scale':1, 'bounds':(None,None)}
@@ -265,7 +265,7 @@ class FitManager:
                 raise ValueError('key word ' + key + 'is not recognized!' +
                        '\n Valid keys are, \'dx\',\'dy\',\'phi\',\'total_cts\',\'sigma\',\'f_p1\',\'f_p2\',\'f_p3\'')
 
-    def set_minimization_settings(self, profile='default', min_method='L-BFGS-B', options={}):
+    def set_minimization_settings(self, profile='default', min_method='L-BFGS-B', options=None):
         """
         Set the options for the minimization.
         :param profile: choose between 'coarse', 'default' and 'fine', predefined options.
@@ -275,20 +275,23 @@ class FitManager:
         # Using a coarse profile will lead to faster results but less optimized.
         # Using a fine profile can lead to rounding errors and jumping to other minima which causes artifacts
         # scipy default eps is 1e-8 this, sometimes, is too small to correctly get the derivative of phi
-        if not isinstance(options, dict):
+        if not isinstance(options, dict) and options is not None:
             raise ValueError('options must be of type dict.')
+
+        if options is None:
+            options = dict()
 
         if not isinstance(min_method, str):
             raise ValueError('min_method must be of type str.')
 
-        if profile not in ('coarse', 'default', 'fine'):
+        if profile not in ('coarse', 'default', 'fine', 'custom'):
             raise ValueError('profile value should be set to: coarse, default or fine.')
 
         self._minimization_method = min_method
 
         if len(options) > 0:
             self._fit_options = options
-            self._fit_options_profile = 'user'
+            self._fit_options_profile = 'custom'
 
         elif min_method == 'L-BFGS-B':
             self._fit_options_profile = profile
@@ -341,7 +344,7 @@ class FitManager:
                     new_initial_values[key] = p0_last[p0_last_i] + 1e-5
                     p0_last_i += 1
 
-        p0, p_fix = self.calculate_inicial_values(
+        p0, p_fix = self.compute_initial_fit_values(
                             datapattern=self.dp_pattern,
                             n_sites=self._n_sites,
                             p_fixed_values=self.p_fixed_values,
@@ -416,7 +419,7 @@ class FitManager:
             bound_dict[fraction_key] = self._bounds[fraction_key]
 
         ft.set_scale_values(**scale_dict)
-        ft.set_inicial_values(**init_dict)
+        ft.set_initial_values(**init_dict)
         ft.fix_parameters(**fix_dict)
         ft.set_bound_values(**bound_dict)
 
@@ -661,13 +664,17 @@ class FitManager:
         if self.current_fit_obj is not None:
             self.current_fit_obj.stop_current_fit()
 
-    def is_datapattern_inrange(self):
+    def is_datapattern_inrange(self, orientation_values=None):
 
-        initial_values, _ = self._get_initial_values()
+        if orientation_values is not None and len(orientation_values) < 3:
+            raise ValueError('Orientation_values need to be at least of lenght 3.')
 
-        dx = initial_values[0]
-        dy = initial_values[1]
-        phi = initial_values[2]
+        if orientation_values is None:
+            orientation_values, _ = self._get_initial_values()
+
+        dx = orientation_values[0]
+        dy = orientation_values[1]
+        phi = orientation_values[2]
 
         # generate sim pattern
         gen = PatternCreator(self.lib, self.dp_pattern.xmesh, self.dp_pattern.ymesh, 1,
@@ -682,10 +689,6 @@ class FitManager:
         # Data points that are not masked should not be in a position where the simulation is masked
         data_mask = self.dp_pattern.pattern_matrix.mask
         sim_mask = sim_pattern.mask
-
-        print('data mask - {}'.format(data_mask.sum()))
-        print('sim mask - {}'.format(sim_mask.sum()))
-
         inrange = not np.any(~data_mask == sim_mask)
 
         return inrange
@@ -854,8 +857,20 @@ class FitManager:
         return dp_pattern * norm_factor
 
     @staticmethod
-    def calculate_inicial_values(datapattern, n_sites=1,
-                                 p_fixed_values=None, p_initial_values=None):
+    def compute_parameter_keys(n_sites=1):
+        # Set the parameter keys
+        # Example: ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
+        parameter_keys = FitManager.default_parameter_keys.copy()
+        parameter_keys.pop()  # remove 'f_px'
+        for i in range(n_sites):
+            fraction_key = 'f_p' + str(i + 1)  # 'f_p1', 'f_p2', 'f_p3',...
+            parameter_keys.append(fraction_key)
+
+        return parameter_keys
+
+    @staticmethod
+    def compute_initial_fit_values(datapattern: DataPattern, n_sites=1,
+                                   p_fixed_values=None, p_initial_values=None):
         """
         Static method to get the initial values for the next fit according to a given DataPattern.
         :param datapattern: DataPattern object to fit
@@ -867,11 +882,7 @@ class FitManager:
 
         # Set the parameter keys
         # Example: ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
-        parameter_keys = FitManager.default_parameter_keys.copy()
-        parameter_keys.pop()  # remove 'f_px'
-        for i in range(n_sites):
-            fraction_key = 'f_p' + str(i + 1)  # 'f_p1', 'f_p2', 'f_p3',...
-            parameter_keys.append(fraction_key)
+        parameter_keys = FitManager.compute_parameter_keys(n_sites)
 
         # If None make them as empty dictionaries
         if p_fixed_values is None:
@@ -914,5 +925,73 @@ class FitManager:
 
         return p0, p_fix
 
+    @staticmethod
+    def compute_bounds(datapattern: DataPattern = None, n_sites=1, p_bounds=None):
+        """
+        Static method to compute the fit bounds
+        :param datapattern: DataPattern object used to compute the bounds of dx and dy
+        :param n_sites: Number of sites in the fit
+        :param p_bounds: User overwrite of bounds
+        :return: bounds dictionary
+        """
+
+        p_bounds = dict() if p_bounds is None else p_bounds
+
+        # Set the parameter keys
+        # Example: ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
+        parameter_keys = FitManager.compute_parameter_keys(n_sites)
+
+        # Compute defaults
+        bounds = FitManager.default_bounds.copy()
+        default_fraction_bounds = bounds.pop('f_px')  # remove 'f_px'
+        bounds_temp = dict()
+        for i in range(n_sites):
+            fraction_key = 'f_p' + str(i + 1)  # 'f_p1', 'f_p2', 'f_p3',...
+            bounds_temp[fraction_key] = default_fraction_bounds
+        bounds = {**bounds, **bounds_temp}  # Join dictionaries
+
+        # Computer with user input and datapattern
+        if datapattern is not None:
+            bounds['dx'] = (np.round(datapattern.xmesh[0, 0], 2),
+                            np.round(datapattern.xmesh[0, -1], 2))
+            bounds['dy'] = (np.round(datapattern.ymesh[0, 0], 2),
+                            np.round(datapattern.ymesh[-1, 0], 2))
+
+        for key in parameter_keys:
+            if key in p_bounds:
+                bounds[key] = p_bounds[key]
+
+        return bounds
+
+    @staticmethod
+    def compute_step_modifier(n_sites=1, p_scale=None):
+        """
+        Static method to compute the fit step modifiers (scale)
+        :param n_sites: Number of sites in the fit
+        :param p_scale: User overwrite of bounds
+        :return: step modifier dictionary
+        """
+
+        p_scale = dict() if p_scale is None else p_scale
+
+        # Set the parameter keys
+        # Example: ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
+        parameter_keys = FitManager.compute_parameter_keys(n_sites)
+
+        # Compute defaults
+        scale = FitManager.default_scale.copy()
+        default_fraction_scale = scale.pop('f_px')  # remove 'f_px'
+        scale_temp = dict()
+        for i in range(n_sites):
+            fraction_key = 'f_p' + str(i + 1)  # 'f_p1', 'f_p2', 'f_p3',...
+            scale_temp[fraction_key] = default_fraction_scale
+        scale = {**scale, **scale_temp}  # Join dictionaries
+
+        # Computer with user input
+        for key in parameter_keys:
+            if key in p_scale:
+                scale[key] = p_scale[key]
+
+        return scale
 
 

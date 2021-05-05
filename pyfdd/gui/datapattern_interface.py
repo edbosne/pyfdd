@@ -451,7 +451,9 @@ class DataPattern_window(QtWidgets.QMainWindow):
         self.setCentralWidget(self.dp_w)
         self.resize(1150, 670)
 
-        self.dp_w.datapattern_changed_or_saved.connect(self.title_update)
+        # Connect signals
+        self.dp_w.datapattern_changed.connect(self.title_update)
+        self.dp_w.datapattern_saved.connect(self.title_update)
 
     def set_datapattern(self, datapattern):
         self.dp_w.set_datapattern(datapattern)
@@ -472,7 +474,8 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
     """ Data pattern widget class"""
 
     datapattern_opened = QtCore.pyqtSignal()
-    datapattern_changed_or_saved = QtCore.pyqtSignal()
+    datapattern_changed = QtCore.pyqtSignal()
+    datapattern_saved = QtCore.pyqtSignal()
 
     def __init__(self, *args, mainwindow=None, **kwargs):
         """
@@ -496,7 +499,9 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         # Instantiate datapattern controler
         self.dpcontroler = DataPatternControler(parent_widget=self, mpl_layout=self.mplvl, infotext_box=self.infotext)
         self.dpcontroler.datapattern_opened.connect(self.datapattern_opened.emit)
-        self.dpcontroler.datapattern_changed_or_saved.connect(self.datapattern_changed_or_saved.emit)
+        self.dpcontroler.datapattern_changed.connect(self.datapattern_changed.emit)
+        self.dpcontroler.datapattern_saved.connect(self.datapattern_saved.emit)
+
 
         # Create a menubar entry for the datapattern
         self.menubar = self.mainwindow.menuBar()
@@ -609,8 +614,9 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
 class DataPatternControler(QtCore.QObject):
     """ Data pattern controler class"""
 
-    datapattern_opened = QtCore.pyqtSignal()
-    datapattern_changed_or_saved = QtCore.pyqtSignal()
+    datapattern_opened = QtCore.pyqtSignal()  # A single DP file is opened. Excludes add or import.
+    datapattern_changed = QtCore.pyqtSignal()  # The DP is changed
+    datapattern_saved = QtCore.pyqtSignal()  # The DP saved
 
     def __init__(self, parent_widget=None, mpl_layout=None, infotext_box=None):
 
@@ -653,7 +659,6 @@ class DataPatternControler(QtCore.QObject):
         mpl_bkg = mpl.colors.rgb2hex(pyqt_bkg)
 
         # self.pltfig = plt.figure() # don't use pyplot
-        #print(dir(mpl.figure))
         self.pltfig = mpl.figure.Figure()
         self.pltfig.set_facecolor(mpl_bkg)
         self.plot_ax = self.pltfig.add_subplot(111)
@@ -662,6 +667,27 @@ class DataPatternControler(QtCore.QObject):
         self.addmpl(self.pltfig)
         # call tight_layout after addmpl
         self.pltfig.tight_layout()
+
+        # Connect signals
+        # Changed the DP saved status
+        self.datapattern_opened.connect(lambda: self._set_saved(True))
+        self.datapattern_changed.connect(lambda: self._set_saved(False))
+        self.datapattern_saved.connect(lambda: self._set_saved(True))
+
+    def _set_saved(self, is_saved: bool):
+        """
+        Used to register if the current DP is saved or not.
+        :param is_saved:
+        :return:
+        """
+        self.changes_saved = is_saved
+
+    def are_changes_saved(self):
+        """
+        Is the current DP saved?.
+        :return: True if the DP has been saved.
+        """
+        return self.changes_saved
 
     def addmpl(self, fig):
         if self.mpl_layout is None:
@@ -696,8 +722,7 @@ class DataPatternControler(QtCore.QObject):
         # Draw pattern and update info text
         self.draw_new_datapattern()
         self.update_infotext()
-        self.changes_saved = False
-        self.datapattern_changed_or_saved.emit()
+        self.datapattern_changed.emit()
 
     def get_datapattern(self):
         if self.datapattern is not None:
@@ -730,8 +755,6 @@ class DataPatternControler(QtCore.QObject):
             self.draw_new_datapattern()
             self.update_infotext()
             self.datapattern_opened.emit()
-            self.changes_saved = True
-            self.datapattern_changed_or_saved.emit()
 
             # update config
             open_path = os.path.dirname(filename[0])
@@ -767,9 +790,7 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_new_datapattern()
             self.update_infotext()
-            self.datapattern_opened.emit()
-            self.changes_saved = True
-            self.datapattern_changed_or_saved.emit()
+            self.datapattern_changed.emit()
 
             # update config
             open_path = os.path.dirname(filename[0])
@@ -795,8 +816,7 @@ class DataPatternControler(QtCore.QObject):
             return
 
         self.datapattern.io_save_json(filename[0])
-        self.changes_saved = True
-        self.datapattern_changed_or_saved.emit()
+        self.datapattern_saved.emit()
 
         # update config
         save_path = os.path.dirname(filename[0])
@@ -837,8 +857,7 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_new_datapattern()
             self.update_infotext()
-            self.changes_saved = True
-            self.datapattern_changed_or_saved.emit()
+            self.datapattern_changed.emit()
 
             # update config
             open_path = os.path.dirname(filename[0])
@@ -923,9 +942,6 @@ class DataPatternControler(QtCore.QObject):
             return False
         else:
             return True
-
-    def are_changes_saved(self):
-        return self.changes_saved
 
     def draw_new_datapattern(self):
         self.ticks = None
@@ -1030,8 +1046,7 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_datapattern()
             self.update_infotext()
-            self.changes_saved = False
-            self.datapattern_changed_or_saved.emit()
+            self.datapattern_changed.emit()
 
     def call_pb_maskpixel(self, pushbutton):
         self.pb_maskpixel = pushbutton
@@ -1064,8 +1079,7 @@ class DataPatternControler(QtCore.QObject):
         # Draw pattern and update info text
         self.draw_datapattern()
         self.update_infotext()
-        self.changes_saved = False
-        self.datapattern_changed_or_saved.emit()
+        self.datapattern_changed.emit()
 
     def call_pb_maskrectangle(self, pushbutton):
         self.pb_maskrectangle = pushbutton
@@ -1102,8 +1116,7 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_datapattern()
             self.update_infotext()
-            self.changes_saved = False
-            self.datapattern_changed_or_saved.emit()
+            self.datapattern_changed.emit()
 
             # update config
             config.parser['datapattern']['mask_bellow'] = str(value)
@@ -1123,8 +1136,7 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_datapattern()
             self.update_infotext()
-            self.changes_saved = False
-            self.datapattern_changed_or_saved.emit()
+            self.datapattern_changed.emit()
 
             # update config
             config.parser['datapattern']['mask_above'] = str(value)
@@ -1146,8 +1158,7 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_datapattern()
             self.update_infotext()
-            self.changes_saved = False
-            self.datapattern_changed_or_saved.emit()
+            self.datapattern_changed.emit()
 
             # update config
             config.parser['datapattern']['mask_edge'] = str(value)
@@ -1169,8 +1180,7 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_datapattern()
             self.update_infotext()
-            self.changes_saved = False
-            self.datapattern_changed_or_saved.emit()
+            self.datapattern_changed.emit()
 
             # update config
             config.parser['datapattern']['remove_edge'] = str(value)
@@ -1191,8 +1201,7 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_datapattern()
             self.update_infotext()
-            self.changes_saved = False
-            self.datapattern_changed_or_saved.emit()
+            self.datapattern_changed.emit()
 
             # update config
             config.parser['datapattern']['remove_central'] = str(value)
@@ -1213,8 +1222,7 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_datapattern()
             self.update_infotext()
-            self.changes_saved = False
-            self.datapattern_changed_or_saved.emit()
+            self.datapattern_changed.emit()
 
             # update config
             config.parser['datapattern']['expand_mask'] = str(value)
@@ -1228,8 +1236,7 @@ class DataPatternControler(QtCore.QObject):
         # Draw pattern and update info text
         self.draw_datapattern()
         self.update_infotext()
-        self.changes_saved = False
-        self.datapattern_changed_or_saved.emit()
+        self.datapattern_changed.emit()
 
     def call_pb_loadmask(self):
         if not self.datapattern_exits():
@@ -1255,8 +1262,7 @@ class DataPatternControler(QtCore.QObject):
         # Draw pattern and update info text
         self.draw_datapattern()
         self.update_infotext()
-        self.changes_saved = False
-        self.datapattern_changed_or_saved.emit()
+        self.datapattern_changed.emit()
 
     def call_pb_savemask(self):
         if not self.datapattern_exits():
@@ -1303,8 +1309,7 @@ class DataPatternControler(QtCore.QObject):
         # Draw pattern and update info text
         self.draw_datapattern()
         self.update_infotext()
-        self.changes_saved = False
-        self.datapattern_changed_or_saved.emit()
+        self.datapattern_changed.emit()
 
     def call_pb_compressmesh(self):
         if not self.datapattern_exits():
@@ -1322,8 +1327,7 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_new_datapattern()
             self.update_infotext()
-            self.changes_saved = False
-            self.datapattern_changed_or_saved.emit()
+            self.datapattern_changed.emit()
 
             # update config
             config.parser['datapattern']['compress_mesh'] = str(value)
@@ -1338,8 +1342,7 @@ class DataPatternControler(QtCore.QObject):
         # Draw pattern and update info text
         self.draw_datapattern()
         self.update_infotext()
-        self.changes_saved = False
-        self.datapattern_changed_or_saved.emit()
+        self.datapattern_changed.emit()
 
     def call_pb_orientchanneling(self, pushbutton):
         self.pb_orientchanneling = pushbutton
@@ -1375,8 +1378,7 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_datapattern()
             self.update_infotext()
-            self.changes_saved = False
-            self.datapattern_changed_or_saved.emit()
+            self.datapattern_changed.emit()
 
             # update config
             config.parser['datapattern']['angular_fit_range'] = str(value)
@@ -1399,16 +1401,12 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_datapattern()
             self.update_infotext()
-            self.changes_saved = False
-            self.datapattern_changed_or_saved.emit()
-        else:
+        else:  # Cancelled.
             pass
-            # print('Cancelled')
 
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
-    # window = DataPattern_widget()
     window = DataPattern_window()
     window.show()
     print(window.size())

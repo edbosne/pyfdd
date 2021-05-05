@@ -119,11 +119,11 @@ class Fit:
         self._set_patterns_to_fit()
         self._parameters_dict['sub_pixels']['value'] = 1
 
-        self.set_inicial_values()
+        self.set_initial_values()
         self.set_scale_values()
         self.set_bound_values()
 
-    def set_inicial_values(self, dx=1., dy=1., phi=5., total_cts=1., sigma=0., **kwargs):#f_p1=0.25, f_p2=0.25, f_p3=0.25):
+    def set_initial_values(self, dx=1., dy=1., phi=5., total_cts=1., sigma=0., **kwargs):#f_p1=0.25, f_p2=0.25, f_p3=0.25):
         # parameter keys 'dx', 'dy', 'phi', 'total_cts', 'sigma', 'f_p1', 'f_p2', 'f_p3'
         self._parameters_dict['dx']['p0'] = dx
         self._parameters_dict['dy']['p0'] = dy
