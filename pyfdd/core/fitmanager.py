@@ -909,19 +909,25 @@ class FitManager:
             else:
                 if key == 'dx':
                     p0 += (datapattern.center[0],)
+                    p_fix += (False,)
                 elif key == 'dy':
                     p0 += (datapattern.center[1],)
+                    p_fix += (False,)
                 elif key == 'phi':
                     p0 += (datapattern.angle,)
+                    p_fix += (False,)
                 elif key == 'total_cts':
                     counts = datapattern.pattern_matrix.sum()
                     p0 += (counts,)
+                    p_fix += (True,)  # Defaults to fixed
                 elif key == 'sigma':
                     p0 += (0.1,)
+                    p_fix += (True,)  # Defaults to fixed
                 else:
                     # assuming a pattern fraction
                     p0 += (min(0.15, 0.5 / n_sites),)
-                p_fix += (False,)
+                    p_fix += (False,)
+
 
         return p0, p_fix
 

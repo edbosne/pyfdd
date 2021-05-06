@@ -530,7 +530,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
         self.parameter_objects = []
         self.init_parameters()
-        self.refresh_parameters()
+        self.refresh_parameters(reset=True)
 
         # Connect signals
         self.pb_fitconfig.clicked.connect(self.call_pb_fitconfig)

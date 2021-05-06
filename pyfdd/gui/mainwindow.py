@@ -83,6 +83,10 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         """
         self.fm_pending_update = pending
 
+        # If the fit manager tab is already open then update now
+        if self.maintabs.currentIndex() == 2:
+            self.update_fm()
+
     def get_datapattern(self):
         """
         Get the DataPattern object from its tab widget.
