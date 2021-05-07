@@ -71,7 +71,7 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
 
         # Instantiate datapattern controler
         self.dpcontroler = DataPatternControler(parent_widget=self, mpl_layout=self.mplvl, infotext_box=None)
-        self.dpcontroler.percentiles = [0, 1]
+        self.dpcontroler.percentiles = [0, 1]  # Force [0, 1] percentiles
 
         # Create a menubar entry for the datapattern
         self.menubar = self.mainwindow.menuBar()
@@ -80,6 +80,7 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
         # Variables
         self.simlib = None
         self.current_row = None
+        self.simlib_filename = ''
 
         # Connect signals
         # List
@@ -142,6 +143,9 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
             self.update_infotext()
             self.update_simlist()
             self.update_datapattern()
+            self.simlib_filename = lib_path[0]
+
+            # Emit opened signal
             self.simlibrary_opened.emit()
 
             # update config

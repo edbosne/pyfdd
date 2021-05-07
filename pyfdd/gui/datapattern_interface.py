@@ -502,10 +502,12 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         self.dpcontroler.datapattern_changed.connect(self.datapattern_changed.emit)
         self.dpcontroler.datapattern_saved.connect(self.datapattern_saved.emit)
 
-
         # Create a menubar entry for the datapattern
         self.menubar = self.mainwindow.menuBar()
         self.dp_menu = self.setup_menu()
+
+        # Variables
+        self.dp_filename = ''
 
         # Connect signals
         # Pattern manipulation
@@ -609,6 +611,9 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
 
     def are_changes_saved(self):
         return self.dpcontroler.are_changes_saved()
+
+    def set_dp_filename(self, filename: str):
+        self.dp_filename = filename
 
 
 class DataPatternControler(QtCore.QObject):
@@ -754,6 +759,11 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_new_datapattern()
             self.update_infotext()
+            # Give filename to data pattern widget for it to be displayed
+            if isinstance(self.parent_widget, DataPattern_widget):
+                self.parent_widget.set_dp_filename(filename[0])
+
+            # Emit opened signal
             self.datapattern_opened.emit()
 
             # update config
@@ -790,10 +800,16 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_new_datapattern()
             self.update_infotext()
+            # Give filename to data pattern widget for it to be displayed
+            if isinstance(self.parent_widget, DataPattern_widget):
+                self.parent_widget.set_dp_filename(filename[0][0])  # Only give first file for display
+
+            # Emit opened first then changed signal
+            self.datapattern_opened.emit()
             self.datapattern_changed.emit()
 
             # update config
-            open_path = os.path.dirname(filename[0])
+            open_path = os.path.dirname(filename[0][0])  # Use first file
             config.parser['datapattern']['open_path'] = open_path
 
     def save_dp_call(self):
@@ -816,6 +832,12 @@ class DataPatternControler(QtCore.QObject):
             return
 
         self.datapattern.io_save_json(filename[0])
+
+        # Give filename to data pattern widget for it to be displayed
+        if isinstance(self.parent_widget, DataPattern_widget):
+            self.parent_widget.set_dp_filename(filename[0])
+
+        # Emit saved signal
         self.datapattern_saved.emit()
 
         # update config

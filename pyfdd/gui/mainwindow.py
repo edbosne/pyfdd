@@ -1,5 +1,5 @@
 import sys
-# import os
+import os
 # import warnings
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -25,6 +25,15 @@ from pyfdd.gui.fitmanager_interface import FitManager_widget
 import pyfdd.gui.config as config
 
 
+class VLine(QtWidgets.QFrame):
+    """
+    A simple VLine, like the one you get from designer
+    """
+    def __init__(self):
+        super(VLine, self).__init__()
+        self.setFrameShape(self.VLine | self.Sunken)
+
+
 class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
     """ Class to use the data pattern widget in a separate window"""
     def __init__(self, *args, **kwargs):
@@ -38,7 +47,9 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         self.setupUi(self)
 
         # Add a status bar
-        self.statusBar()
+        self.sb_datapattern_name = None
+        self.sb_lib2dl_name = None
+        self.setup_statusbar()
 
         # Load configuration
         config.filename = 'pyfdd_config.ini'
@@ -66,6 +77,13 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         self.dp_w.datapattern_changed.connect(lambda: self._set_fm_pending_update(True))
         self.se_w.simlibrary_opened.connect(lambda: self._set_fm_pending_update(True))
 
+        # Update the filename
+        # Data pattern
+        self.dp_w.datapattern_opened.connect(self.update_dp_filename)
+        self.dp_w.datapattern_saved.connect(self.update_dp_filename)
+        # Sim explorer
+        self.se_w.simlibrary_opened.connect(self.update_lib_filename)
+
         # Add a star to the tab title if the tab is not saved
         # Data pattern
         self.dp_w.datapattern_opened.connect(self.dp_tab_title_update)
@@ -74,6 +92,43 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         # Fit manager
         self.fm_w.fitresults_changed.connect(self.fm_tab_title_update)
         self.fm_w.fitresults_saved.connect(self.fm_tab_title_update)
+
+    def setup_statusbar(self):
+        """
+        Add the status bar and set it up properly.
+        """
+        # Status bar
+        self.statusBar()
+
+        # Vertical line
+        self.statusBar().addPermanentWidget(VLine())
+        # Label with datapattern filename
+        self.sb_datapattern_name = QtWidgets.QLabel('Data Pattern file : ', parent=self)
+        self.statusBar().addPermanentWidget(self.sb_datapattern_name)
+
+        # Vertical line
+        self.statusBar().addPermanentWidget(VLine())
+        # Label with library filename
+        self.sb_lib2dl_name = QtWidgets.QLabel('Library file : ', parent=self)
+        self.statusBar().addPermanentWidget(self.sb_lib2dl_name)
+
+    def update_dp_filename(self):
+        """
+        Set the Data Pattern filename on the status bar.
+        :return:
+        """
+        filename = os.path.basename(self.dp_w.dp_filename)
+        assert isinstance(self.sb_datapattern_name, QtWidgets.QLabel)
+        self.sb_datapattern_name.setText('Data Pattern file : {}'.format(filename))
+
+    def update_lib_filename(self):
+        """
+        Set the 2dl library filename on the status bar.
+        :return:
+        """
+        filename = os.path.basename(self.se_w.simlib_filename)
+        assert isinstance(self.sb_lib2dl_name, QtWidgets.QLabel)
+        self.sb_lib2dl_name.setText('Library file : {}'.format(filename))
 
     def _set_fm_pending_update(self, pending: bool):
         """
