@@ -26,7 +26,7 @@ setup(
                       'numdifftools',
                       'pandas',
                       'seaborn',
-                      'PyQt5 >= 5.15.0, == 5.9.2 ; platform_system=="Windows"',
+                      'PyQt5 >= 5.15.0; platform_system=="Windows"',
                       'packaging'],
     python_requires='>=3',
     url='https://github.com/edbosne/pyfdd',
