@@ -16,7 +16,6 @@ import struct
 import warnings
 import copy
 
-
 import numpy as np
 
 from pyfdd.core.datapattern import DataPattern
