@@ -81,6 +81,36 @@ def make_tpx_quad_txt(sites, orientation, fractions, total_events, savename=None
         print('saved', savename)
 
 
+def make_assimetric_txt(sites, orientation, fractions, total_events, savename=None):
+    # Define detector
+    n_h_pixels = 10
+    n_v_pixels = 22
+    pixel_size = 1.3  # mm
+    distance = 315  # mm
+    xmesh, ymesh = create_detector_mesh(n_h_pixels, n_v_pixels, pixel_size, distance)
+
+    # Define Pattern Creator
+    pc = pyfdd.PatternCreator(lib, xmesh, ymesh, sites, sub_pixels=8, mask_out_of_range=True)
+
+    # Get orientation
+    dx = orientation['dx']
+    dy = orientation['dy']
+    phi = orientation['phi']
+
+    # total_events = 1e6  # use 1 for p.d.f., ignored if pattern_type = 'yield'
+    sigma = 0.05
+    pattern_type = 'montecarlo'  # use ideal, yield, montecarlo and poisson
+
+    # Create a data pattern
+    dp = pc.make_datapattern(dx, dy, phi, fractions, total_events, sigma=sigma, pattern_type=pattern_type)
+    data_matrix = dp.pattern_matrix.data.copy()
+
+    # Save
+    if savename is not None:
+        np.savetxt(savename, data_matrix, "%d")
+        print('saved', savename)
+
+
 if __name__ == '__main__':
 
     # Import library
@@ -111,4 +141,7 @@ if __name__ == '__main__':
     # Make and save txt patterns
     savename = os.path.join(test_files_path, "tpx_quad_array_2M.txt")
     make_tpx_quad_txt(simulations_n, orientation, fractions, total_events=2e6, savename=savename)
+
+    savename = os.path.join(test_files_path, "assimetric_array_1M.txt")
+    make_assimetric_txt(simulations_n, orientation, fractions, total_events=1e6, savename=savename)
 
