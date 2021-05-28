@@ -1,11 +1,8 @@
 *.ini
-*.txt
 __*/
 *.png
 my_scripts/
 gui/*.json
-*.2db
-test_pyfdd/test_files/
 =======
 # Byte-compiled / optimized / DLL files
 __pycache__/

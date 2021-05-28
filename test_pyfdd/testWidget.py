@@ -1,9 +1,8 @@
 __author__ = 'eric'
 
-from pyfdd.datapattern.CustomWidgets import *
+from pyfdd.core.datapattern.CustomWidgets import *
 import numpy as np
 import matplotlib.pyplot as plt
-
 
 fig = plt.figure(figsize=(8, 6))
 ax = fig.add_subplot(111)

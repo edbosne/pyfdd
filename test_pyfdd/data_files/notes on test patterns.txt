@@ -1,0 +1,8 @@
+All the patterns use:
+- Site 1, substitutional S #1, with a fraction of 0.3
+- Site 2, interstitial H #23, with a fraction of 0.2
+- The following orientation:
+    dx = -0.1
+    dy = 0.2
+    phi = 3
+    sigma = 0.05
