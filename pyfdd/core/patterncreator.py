@@ -265,7 +265,7 @@ class PatternCreator:
         # Each pattern in the stack (simulation yields) is multiplied by the respective fraction
         # Todo can the for be removed?
         for i in range(0, pattern_stack.shape[0]):
-            new_pattern += pattern_stack[i, :, :] * fractions[i]
+            new_pattern += pattern_stack[i, :, :] * fractions_with_random[i]
         self._pattern_current = new_pattern
 
     def _gaussian_conv(self, sigma=0):
