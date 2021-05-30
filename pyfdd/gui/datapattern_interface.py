@@ -3,6 +3,7 @@ import sys
 import os
 import warnings
 import json
+import io
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 # from PySide2 import QtCore, QtGui, QtWidgets, uic
@@ -577,10 +578,16 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         dp_menu.addAction(exportorigin_act)
 
         # Save as image
-        saveimage_act = QtWidgets.QAction('&Save Image', self)
+        saveimage_act = QtWidgets.QAction('&Save image', self)
         saveimage_act.setStatusTip('Save pattern as an image')
         saveimage_act.triggered.connect(self.dpcontroler.saveasimage_dp_call)
         dp_menu.addAction(saveimage_act)
+
+        # Copy to clipboard
+        copy_act = QtWidgets.QAction('&Copy to clipboard', self)
+        copy_act.setStatusTip('Copy pattern image to clipboard')
+        copy_act.triggered.connect(self.dpcontroler.call_copy_to_clipboard)
+        dp_menu.addAction(copy_act)
 
         # Separate io from manipulation
         dp_menu.addSeparator()
@@ -695,6 +702,12 @@ class DataPatternControler(QtCore.QObject):
         return self.changes_saved
 
     def addmpl(self, fig):
+
+        def clipboard_handler(event):
+            print('event.key', event.key)
+            if event.key == 'ctrl+c':
+                self.call_copy_to_clipboard()
+
         if self.mpl_layout is None:
             return
 
@@ -709,6 +722,7 @@ class DataPatternControler(QtCore.QObject):
 
         # connect status bar coordinates display
         self.mpl_canvas.mpl_connect('motion_notify_event', self.on_move)
+        self.mpl_canvas.mpl_connect('key_press_event', clipboard_handler)
 
     def refresh_mpl_color(self, new_mpl_bkg=None):
         # get background color from color from widget and convert it to RBG
@@ -1425,6 +1439,17 @@ class DataPatternControler(QtCore.QObject):
             self.update_infotext()
         else:  # Cancelled.
             pass
+
+    def call_copy_to_clipboard(self):
+        print('called copy')
+        # store the image in a buffer using savefig(), this has the
+        # advantage of applying all the default savefig parameters
+        # such as background color; those would be ignored if you simply
+        # grab the canvas using Qt
+        buf = io.BytesIO()
+        self.pltfig.savefig(buf, dpi=150, facecolor='white')
+        QtWidgets.QApplication.clipboard().setImage(QtGui.QImage.fromData(buf.getvalue()))
+        buf.close()
 
 
 def main():

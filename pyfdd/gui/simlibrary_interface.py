@@ -114,6 +114,12 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
         saveimage_act.triggered.connect(self.dpcontroler.saveasimage_dp_call)
         dp_menu.addAction(saveimage_act)
 
+        # Copy to clipboard
+        copy_act = QtWidgets.QAction('&Copy to clipboard', self)
+        copy_act.setStatusTip('Copy simulation image to clipboard')
+        copy_act.triggered.connect(self.dpcontroler.call_copy_to_clipboard)
+        dp_menu.addAction(copy_act)
+
         return dp_menu
 
     def open_2dl_call(self):
