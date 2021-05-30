@@ -940,6 +940,7 @@ class DataPattern:
         """
         # Do input verifications
         if self.real_size <= 1 and (self.nChipsX > 1 or self.nChipsY > 1):
+            # expect a larger real size
             warnings.warn('The value for the central pixel real size is set to ', self.real_size)
 
         # Calculate new dimentions
@@ -969,6 +970,7 @@ class DataPattern:
             fitregion_mask_update2[dock_i:dock_f, :] = fitregion_mask_update1[interY * 256:interY * 256 + 256, :]
 
         self.pattern_matrix = ma.array(data=temp_matrix2, mask=False)
+        (self.ny, self.nx) = self.pattern_matrix.shape
 
         # Update mesh
         self.manip_create_mesh()
@@ -1054,27 +1056,8 @@ class DataPattern:
 
         # Quad detector compression
         if (2 == self.nChipsX and 2 == self.nChipsY) and consider_single_chip is False:
-            # verify if zeroed central pixels are divided by factor
-            if 0 <= rm_central_pix:
-                # Ensure that the division rest is zero
-                central_gap = (2 * (self.real_size + rm_central_pix - 1))
-                rest = central_gap % factor
-                if rest != 0:
-                    rm_central_pix += (factor - rest) / 2
-                    warnings.warn("warning removed central pixels increased to " + str(rm_central_pix) +
-                                  ", rest is " + str(rest))
-
-            # verify if the rest of the matrix is divisable by factor
-            chip_size = 256  # size of a single timepix chip
-
-            if ny != self.nChipsY * (chip_size + self.real_size - 1) or \
-               nx != self.nChipsX * (chip_size + self.real_size - 1):
-                warnings.warn('Compression of a quad chip assumes a chip size of 256 pixels')
-
-            rest = (chip_size - rm_edge_pix - rm_central_pix) % factor
-            if rest != 0:
-                rm_edge_pix += rest
-                warnings.warn("warning removed edge pixels increased to " + str(rm_edge_pix))
+            rm_central_pix, rm_edge_pix = \
+                self._update_compress_factors_tpx_quad(factor, rm_central_pix, rm_edge_pix)
 
         # Compression of a single chip
         elif (1 == self.nChipsX and 1 == self.nChipsY) or consider_single_chip is True:
@@ -1119,6 +1102,47 @@ class DataPattern:
 
         return factor, rm_central_pix, rm_edge_pix
 
+    def _update_compress_factors_tpx_quad(self, factor, rm_central_pix, rm_edge_pix):
+
+        (ny, nx) = (self.ny, self.nx)
+
+        if nx != ny:
+            raise ValueError('A timepix quad needs to have the same number of horizontal and vertical pixels.')
+
+        # verify if the size of the matrix assumes a chip size of 256 pixels
+        chip_size = 256  # size of a single timepix chip
+
+        if ny != self.nChipsY * (chip_size + self.real_size - 1) or \
+                nx != self.nChipsX * (chip_size + self.real_size - 1):
+            apparent_size = (nx/self.nChipsX) + (1 - self.real_size)
+            raise ValueError('Compression of a quad chip assumes a chip size of 256 pixels.\n'
+                             'Single chip size seems to be {}'.format(apparent_size))
+
+        # verify if zeroed central pixels are divided by factor
+        if 0 <= rm_central_pix:
+            # Number of bins to remove from the actual matrix
+            rm_central_bins = self.real_size - 1 + rm_central_pix
+            # Ensure that the division rest is zero
+            central_gap = 2 * rm_central_bins
+            rest = central_gap % factor
+            if rest != 0:
+                if (factor - rest) / 2 == int((factor - rest) / 2):
+                    rm_central_pix += int((factor - rest) / 2)
+                else:
+                    # treat each side separately
+                    rest = rm_central_bins % factor
+                    rm_central_pix += int(factor - rest)
+                #warnings.warn("warning removed central pixels increased to " + str(rm_central_pix) +
+                #              ", rest is " + str(rest))
+
+        n_pixel_left = chip_size - rm_central_pix
+        rest = (n_pixel_left - rm_edge_pix) % factor
+        if rest != 0:
+            rm_edge_pix += rest
+            #warnings.warn("warning removed edge pixels increased to " + str(rm_edge_pix))
+
+        return rm_central_pix, rm_edge_pix
+
     def manip_convert_to_single_chip(self):
         """
         Convert the current DataPattern to a single chip.
@@ -1153,6 +1177,7 @@ class DataPattern:
             raise ValueError('consider_single_chip should be bool.')
 
         if (self.nChipsX > 1 or self.nChipsY > 1) and self.real_size <= 1:
+            # Larger real size expected
             warnings.warn('The value for the central pixel real size is set to ' + str(self.real_size))
 
         if rm_central_pix is not None:
