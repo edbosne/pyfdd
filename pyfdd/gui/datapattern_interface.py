@@ -41,20 +41,25 @@ class NavigationToolbar(NavigationToolbar2QT):
     toolitems = [t for t in NavigationToolbar2QT.toolitems if
                  t[0] in ('Home', 'Pan', 'Zoom')]
 
-    def _init_toolbar(self):
+    def __init__(self, canvas, parent_widget, coordinates=False):
+        super(NavigationToolbar, self).__init__(canvas=canvas,
+                                                parent=parent_widget,
+                                                coordinates=coordinates)
+
         # spacer widget for left
-        left_spacer = QtWidgets.QWidget()
+        left_spacer = QtWidgets.QWidget(parent=parent_widget)
         left_spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         #left_spacer.setStyleSheet("background-color:black;")
         # spacer widget for right
-        right_spacer = QtWidgets.QWidget()
+        right_spacer = QtWidgets.QWidget(parent=parent_widget)
         right_spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         #right_spacer.setContentsMargins(0,0,0,0)
         #right_spacer.setStyleSheet("background-color:black;")
         #self.setStyleSheet("background-color:white;")
 
-        self.addWidget(left_spacer)
-        NavigationToolbar2QT._init_toolbar(self)
+        # Insert spacer before home button
+        self.insertWidget(self._actions['home'], left_spacer)
+        #NavigationToolbar2QT._init_toolbar(self)
         self.addWidget(right_spacer)
 
 
@@ -134,16 +139,54 @@ class ColorScale_dialog(QtWidgets.QDialog, Ui_ColorScaleDialog):
         self.sb_max_percentile.setValue(self.dp_controler.percentiles[1]*100)
         self.sb_max_tick.setValue(self.dp_controler.ticks[1])
 
+        # Init and fill combo boxes
+        self.init_cb_colorbar(self.dp_controler.colormap)
+        self.init_cb_plot_type(self.dp_controler.plot_type)
+
         # Connect signals
         self.sb_min_percentile.valueChanged.connect(self.call_sb_min_percentile)
         self.sb_min_tick.valueChanged.connect(self.call_sb_min_tick)
         self.sb_max_percentile.valueChanged.connect(self.call_sb_max_percentile)
         self.sb_max_tick.valueChanged.connect(self.call_sb_max_tick)
+        self.cb_plot_type.currentIndexChanged.connect(self.call_cb_plot_type)
+        self.cb_colormap.currentIndexChanged.connect(self.call_cb_colormap)
         self.accepted.connect(self.update_config)
+
+    def init_cb_colorbar(self, current=''):
+
+        colormaps = [
+            'jet', 'jet_r',
+            'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
+            'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
+            'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn',
+            'PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
+            'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr', 'seismic']
+
+        self.cb_colormap.addItems(colormaps)
+
+        if current in colormaps:
+            index = colormaps.index(current)
+        else:
+            index = 0
+
+        self.cb_colormap.setCurrentIndex(index)
+
+    def init_cb_plot_type(self, current=''):
+
+        plot_types = ['pixels', 'contour']
+
+        if current in plot_types:
+            index = plot_types.index(current)
+        else:
+            index = 0
+
+        self.cb_plot_type.setCurrentIndex(index)
 
     def update_config(self):
         # update config
         config.parser['datapattern']['default_percentiles'] = json.dumps(self.dp_controler.percentiles)
+        config.parser['datapattern']['default_plot_type'] = json.dumps(self.dp_controler.plot_type)
+        config.parser['datapattern']['default_colormap'] = json.dumps(self.dp_controler.colormap)
 
     def update_plot(self):
         self.dp_controler.draw_datapattern()
@@ -170,6 +213,14 @@ class ColorScale_dialog(QtWidgets.QDialog, Ui_ColorScaleDialog):
 
     def call_sb_max_tick(self, value):
         self.dp_controler.ticks[1] = value
+        self.update_plot()
+
+    def call_cb_plot_type(self, index):
+        self.dp_controler.plot_type = self.cb_plot_type.itemText(index)
+        self.update_plot()
+
+    def call_cb_colormap(self, index):
+        self.dp_controler.colormap = self.cb_colormap.itemText(index)
         self.update_plot()
 
 
@@ -644,11 +695,17 @@ class DataPatternControler(QtCore.QObject):
 
         default_percentiles = [0.05, 0.99] if not config.parser.has_option('datapattern', 'default_percentiles') else \
             config.getlist('datapattern', 'default_percentiles')
+        default_plot_type = 'pixels' if not config.parser.has_option('datapattern', 'default_plot_type') else \
+            config.getlist('datapattern', 'default_plot_type')
+        default_colormap = 'jet' if not config.parser.has_option('datapattern', 'default_colormap') else \
+            config.getlist('datapattern', 'default_colormap')
 
         # initiate variables
         self.datapattern = None
         self.dp_plotter = None
         self.percentiles = default_percentiles
+        self.plot_type = default_plot_type
+        self.colormap = default_colormap
         self.ticks = None
         self.changes_saved = True
 
@@ -673,12 +730,15 @@ class DataPatternControler(QtCore.QObject):
         # self.pltfig = plt.figure() # don't use pyplot
         self.pltfig = mpl.figure.Figure()
         self.pltfig.set_facecolor(mpl_bkg)
-        self.plot_ax = self.pltfig.add_subplot(111)
+        #gs = self.pltfig.add_gridspec(1, 1, left=0.15, right=0.85, top=0.9, bottom=0.2)
+        gs = self.pltfig.add_gridspec(1, 1, left=0.11, right=0.95, top=0.92, bottom=0.15)
+        self.plot_ax = self.pltfig.add_subplot(gs[0])
+        #self.plot_ax = self.pltfig.add_subplot(111)
         self.plot_ax.set_aspect('equal')
         self.colorbar_ax = None
         self.addmpl(self.pltfig)
         # call tight_layout after addmpl
-        self.pltfig.tight_layout()
+        #self.pltfig.tight_layout()
 
         # Connect signals
         # Changed the DP saved status
@@ -994,15 +1054,19 @@ class DataPatternControler(QtCore.QObject):
         if self.ticks is None:
             self.ticks = self.dp_plotter.get_ticks(self.percentiles)
 
-        self.dp_plotter.draw(self.plot_ax, ticks=self.ticks, **self.plot_labels)
+        self.dp_plotter.draw(self.plot_ax,
+                             ticks=self.ticks,
+                             colormap=self.colormap,
+                             plot_type=self.plot_type,
+                             **self.plot_labels)
         self.plot_ax, self.colorbar_ax = self.dp_plotter.get_axes()
 
         # call a few times to keep the figure from moving
-        self.pltfig.tight_layout()
-        self.pltfig.tight_layout()
-        self.pltfig.tight_layout()
-        self.pltfig.tight_layout()
-        self.pltfig.tight_layout()
+        #self.pltfig.tight_layout()
+        #self.pltfig.tight_layout()
+        #self.pltfig.tight_layout()
+        #self.pltfig.tight_layout()
+        #self.pltfig.tight_layout()
         self.mpl_canvas.draw()
         # self.plot_ax.set_aspect('equal')
 

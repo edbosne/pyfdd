@@ -59,6 +59,7 @@ class MpxHist:
     """
     Class to hold useful methods for dealing with histograms in the datapattern program
     """
+    # TODO make creating a hist and getting tick values faster
 
     def __init__(self, values):
         """
@@ -243,9 +244,12 @@ class DataPatternPlotter:
         :return:
         """
         if self.colorbar_ax is not None:
+            fig = ml.axis.Axis.get_figure(self.ax)
+            #fig.delaxes(fig.axes[1])
             self.colorbar_ax.remove()
         if self.ax is not None:
             self.ax.clear()
+            self.ax.reset_position()
 
     def get_axes(self):
         """
