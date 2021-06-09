@@ -66,7 +66,7 @@ class Ui_ParameterEditDialog(object):
 
     def retranslateUi(self, ParameterEditDialog):
         _translate = QtCore.QCoreApplication.translate
-        ParameterEditDialog.setWindowTitle(_translate("ParameterEditDialog", "Dialog"))
+        ParameterEditDialog.setWindowTitle(_translate("ParameterEditDialog", "Fit Parameter"))
         self.label_2.setText(_translate("ParameterEditDialog", "Range min."))
         self.label_4.setText(_translate("ParameterEditDialog", "Step modifier"))
         self.label.setText(_translate("ParameterEditDialog", "Initial value"))

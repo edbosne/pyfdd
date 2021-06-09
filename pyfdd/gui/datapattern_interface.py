@@ -28,6 +28,7 @@ from pyfdd.gui.qt_designer.buildmesh_dialog import Ui_BuildMeshDialog
 from pyfdd.gui.qt_designer.colorscale_dialog import Ui_ColorScaleDialog
 from pyfdd.gui.qt_designer.setlabels_dialog import Ui_SetLabelsDialog
 from pyfdd.gui.qt_designer.importsettings_dialog import Ui_ImportSettingsDialog
+from pyfdd.gui.qt_designer.editorientation_dialog import Ui_EditOrientationDialog
 import pyfdd.gui.config as config
 
 
@@ -487,6 +488,33 @@ class ImportSettings_dialog(QtWidgets.QDialog, Ui_ImportSettingsDialog):
         """
         return self.import_config[self.selected_import].copy()
 
+class EditOrientation_dialog(QtWidgets.QDialog, Ui_EditOrientationDialog):
+    """ Class to edit the orientation settings."""
+    def __init__(self, parent_widget, dp_controler):
+        super(EditOrientation_dialog, self).__init__(parent_widget)
+        self.setupUi(self)
+
+        if not isinstance(dp_controler, DataPatternControler):
+            raise ValueError('Parrent widget needs to be of the DataPatternControler type.')
+
+        self.parent_widget = parent_widget
+        self.dp_controler = dp_controler
+
+        x, y = self.dp_controler.datapattern.center
+        phi = self.dp_controler.datapattern.angle
+
+        self.le_x.setText('{:.2f}'.format(x))
+        self.le_y.setText('{:.2f}'.format(y))
+        self.le_phi.setText('{:.2f}'.format(phi))
+
+    def get_settings(self):
+        x = float(self.le_x.text())
+        y = float(self.le_y.text())
+        phi = float(self.le_phi.text())
+
+        return x, y, phi
+
+
 
 class DataPattern_window(QtWidgets.QMainWindow):
     """ Class to use the data pattern widget in a separate window"""
@@ -566,6 +594,7 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         self.pb_buildmesh.clicked.connect(self.dpcontroler.call_pb_buildmesh)
         self.pb_compressmesh.clicked.connect(self.dpcontroler.call_pb_compressmesh)
         self.pb_orientchanneling.clicked.connect(lambda:self.dpcontroler.call_pb_orientchanneling(self.pb_orientchanneling))
+        self.pb_editorientation.clicked.connect(self.dpcontroler.call_pb_editorientation)
         self.pb_fitrange.clicked.connect(self.dpcontroler.call_pb_angularfitrange)
 
         # Mask signals
@@ -803,7 +832,7 @@ class DataPatternControler(QtCore.QObject):
         self.update_infotext()
         self.datapattern_changed.emit()
 
-    def get_datapattern(self):
+    def get_datapattern(self) -> (pyfdd.DataPattern, None):
         if self.datapattern is not None:
             return self.datapattern.copy()
         else:
@@ -1456,6 +1485,27 @@ class DataPatternControler(QtCore.QObject):
         else:
             self.ang_wid = None
             self.use_crosscursor_in_axes(False)
+
+    def call_pb_editorientation(self):
+
+        if not self.datapattern_exits():
+            self.pb_orientchanneling.setChecked(False)
+            return
+
+        orientationedit_dialog = EditOrientation_dialog(parent_widget=self.parent_widget, dp_controler=self)
+
+        if orientationedit_dialog.exec_() == QtWidgets.QDialog.Accepted:
+            x, y, phi = orientationedit_dialog.get_settings()
+            # configuration keys {'label', 'detector type', 'orientation'}
+        else:  # Canceled
+            return
+
+        self.datapattern.set_pattern_angular_pos(center=(x, y), angle=phi)
+
+        # Draw pattern and update info text
+        # self.draw_datapattern()
+        self.update_infotext()
+        self.datapattern_changed.emit()
 
     def call_pb_angularfitrange(self):
         if not self.datapattern_exits():
