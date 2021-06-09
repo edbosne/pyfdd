@@ -21,7 +21,7 @@ setup(
               'examples',
               'ecsli_tools'],
     install_requires=['numpy',
-                      'matplotlib >= 3.3.0; matplotlib ~= 3.4',
+                      'matplotlib >= 3.3.0, ~= 3.4',
                       'scipy',
                       'numdifftools',
                       'pandas',
