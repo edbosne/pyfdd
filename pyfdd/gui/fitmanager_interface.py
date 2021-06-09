@@ -470,7 +470,8 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
 
         self.setupUi(self)
         self.mainwindow = mainwindow
-        self.setStyleSheet('QTextBrowser#tb_fit_report {font-family: Monospace}')
+        # The Courier font is monospaced and works for both Windows and Linux
+        self.setStyleSheet('QTextBrowser#tb_fit_report {font-family: Courier}')
 
         # Set config section
         if not config.parser.has_section('fitmanager'):
