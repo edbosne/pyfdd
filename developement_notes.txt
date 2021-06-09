@@ -55,5 +55,5 @@ python -m pip install https://github.com/edbosne/pyfdd/archive/qtui.zip
 ===== Packages =====
 PyQt5 under 5.14.* has problems compiling for windows. Use pyqt5 == 5.9.2 or pyqt5 >= 5.15.0.
 PyQt5 <5.15 has ui scalling problems on linux.
-Matplotlib==3.4.0 has problems compiling for windows
+Matplotlib==3.4.0 has problems compiling for windows (https://github.com/pyinstaller/pyinstaller/issues/5567)
 Matplotlib<3.3.0 causes problems when replotting a contour datapattern.
