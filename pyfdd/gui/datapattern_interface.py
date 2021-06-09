@@ -1489,7 +1489,6 @@ class DataPatternControler(QtCore.QObject):
     def call_pb_editorientation(self):
 
         if not self.datapattern_exits():
-            self.pb_orientchanneling.setChecked(False)
             return
 
         orientationedit_dialog = EditOrientation_dialog(parent_widget=self.parent_widget, dp_controler=self)
