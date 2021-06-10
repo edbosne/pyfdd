@@ -39,7 +39,7 @@ class TestDataPattern(unittest.TestCase):
 
         # Manipulation methods
         # -Orient
-        dp_timepix.manip_orient('rr,mh')  # TimepixQuad orientation
+        dp_timepix.manip_orient('cw, mh')  # TimepixQuad orientation
 
         # -Angular calibration
         dp_timepix.manip_create_mesh(pixel_size=0.055, distance=300)

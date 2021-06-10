@@ -55,8 +55,8 @@ dp = dp1 + dp2
 
 # Manipulation methods
 # -Orient
-dp.manip_orient('rr')  # PAD6 orientation
-# use 'rr','rl','mh',mv' for rotate right, rotate left, mirror horizontal and mirror vertical
+dp.manip_orient('cw')  # PAD6 orientation
+# use 'cw','cc','mh',mv' for rotate clockwise, rotate counterclockwise, mirror horizontal and mirror vertical
 # in the desired order
 
 # Mask

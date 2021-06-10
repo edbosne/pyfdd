@@ -909,7 +909,7 @@ class DataPattern:
     def manip_orient(self, command_str):
         """
         Orient pattern matrix by rotation and mirroring
-        :param command_str: A string of commands. Use rr,rl,mh,mv to rotate left, rotate right,
+        :param command_str: A string of commands. Use cw, cc, mh, mv to rotate clockwise, rotate counterclockwise,
         mirror horizontaly and mirror verticaly.
         :return:
         """
@@ -919,11 +919,11 @@ class DataPattern:
         temp_matrix = self.pattern_matrix.copy()
         command_str = command_str.lower().replace(' ', '').strip(',')
         for cmd in command_str.split(','):
-            if cmd == 'rl':
-                # rotate left
+            if cmd == 'cc':
+                # rotate counterclockwise
                 temp_matrix = np.rot90(temp_matrix, 3)
-            elif cmd == 'rr':
-                # rotate right
+            elif cmd == 'cw':
+                # rotate clockwise
                 temp_matrix = np.rot90(temp_matrix)
             elif cmd == 'mv':
                 # vertical mirror

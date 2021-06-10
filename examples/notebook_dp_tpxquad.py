@@ -63,9 +63,9 @@ dp.set_mask(mask, expand_by=0) # Set expand by > 0 when pixels are not added tog
 dp.mask_std(4)
 
 # -Orient
-# use 'rr','rl','mh',mv' for rotate right, rotate left, mirror horizontal and mirror vertical
+# use 'cw','cc','mh',mv' for rotate clockwise, rotate counterclockwise, mirror horizontal and mirror vertical
 # in the desired order
-dp.manip_orient('rl,mh')  # TimepixQuad orientation
+dp.manip_orient('cc, mh')  # TimepixQuad orientation
 
 # -Angular calibration
 dp.manip_create_mesh(pixel_size=0.055, distance=315)

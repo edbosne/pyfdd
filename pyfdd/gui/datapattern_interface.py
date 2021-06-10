@@ -311,11 +311,11 @@ class ImportSettings_dialog(QtWidgets.QDialog, Ui_ImportSettingsDialog):
         # Pad EC-Sli
         self.default_import_config[1]['label'] = self.default_config_labels[1]
         self.default_import_config[1]['detector type'] = 'single'
-        self.default_import_config[1]['orientation'] = 'rr'
+        self.default_import_config[1]['orientation'] = 'cw'
         # Tpx quad
         self.default_import_config[2]['label'] = self.default_config_labels[2]
         self.default_import_config[2]['detector type'] = 'quad'
-        self.default_import_config[2]['orientation'] = 'rl, mh'
+        self.default_import_config[2]['orientation'] = 'cc, mh'
         # New configuration
         self.default_import_config[3]['label'] = self.default_config_labels[3]
 
@@ -341,7 +341,7 @@ class ImportSettings_dialog(QtWidgets.QDialog, Ui_ImportSettingsDialog):
 
         # set regular expression validator
         reg_ex = QtCore.QRegExp(
-            r'^(\s*(rr|rl|mh|mv)\s*)(,\s*(rr|rl|mh|mv)\s*)*$')  # accepts commands like rr,rr,rl,mh,mv
+            r'^(\s*(cw|cc|mh|mv)\s*)(,\s*(cw|cc|mh|mv)\s*)*$')  # accepts commands like cw,cc,mh,mv
         input_validator = QtGui.QRegExpValidator(reg_ex, parent=self.le_orientation_commands)
         self.le_orientation_commands.setValidator(input_validator)
 
