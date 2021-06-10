@@ -251,7 +251,6 @@ class TestDataPattern(unittest.TestCase):
         self.assertTrue(np.alltrue(dp.ymesh == ymesh_res))
 
 
-
 if __name__ == '__main__':
     unittest.main()
 

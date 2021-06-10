@@ -916,26 +916,33 @@ class DataPattern:
         if not isinstance(command_str, str):
             raise ValueError('command_str must be a string.')
 
+        # Starting values
         temp_matrix = self.pattern_matrix.copy()
         new_nx, new_ny = self.nx, self.ny
         new_xmesh, new_ymesh = self.get_xymesh()
+
+        # Remove spaces and commas at the edges
         command_str = command_str.lower().replace(' ', '').strip(',')
         for cmd in command_str.split(','):
             if cmd == 'cw':
                 # rotate clockwise
                 temp_matrix = np.rot90(temp_matrix, 3)
+                # Rotate mesh
                 temp_xmesh = new_xmesh.copy()
                 new_xmesh = np.rot90(new_ymesh, 3)
                 new_ymesh = np.rot90(temp_xmesh, 1)
+                # New pattern dimentions
                 temp_nx = new_nx
                 new_nx = new_ny
                 new_ny = temp_nx
             elif cmd == 'cc':
                 # rotate counterclockwise
                 temp_matrix = np.rot90(temp_matrix)
+                # Rotate mesh
                 temp_xmesh = new_xmesh.copy()
                 new_xmesh = np.rot90(new_ymesh, 3)
                 new_ymesh = np.rot90(temp_xmesh, 1)
+                # New pattern dimentions
                 temp_nx = new_nx
                 new_nx = new_ny
                 new_ny = temp_nx
@@ -950,8 +957,11 @@ class DataPattern:
             else:
                 print('Orientation command \'{}\' not understood'.format(cmd))
 
+        # Set the new dimentions and new mesh
         self.nx, self.ny = new_nx, new_ny
         self.set_xymesh(new_xmesh, new_ymesh)
+
+        # Set the new matrix
         self.pattern_matrix = temp_matrix
 
     def manip_correct_central_pix(self):
