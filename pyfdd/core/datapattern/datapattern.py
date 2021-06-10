@@ -917,14 +917,28 @@ class DataPattern:
             raise ValueError('command_str must be a string.')
 
         temp_matrix = self.pattern_matrix.copy()
+        new_nx, new_ny = self.nx, self.ny
+        new_xmesh, new_ymesh = self.get_xymesh()
         command_str = command_str.lower().replace(' ', '').strip(',')
         for cmd in command_str.split(','):
-            if cmd == 'cc':
-                # rotate counterclockwise
-                temp_matrix = np.rot90(temp_matrix, 3)
-            elif cmd == 'cw':
+            if cmd == 'cw':
                 # rotate clockwise
+                temp_matrix = np.rot90(temp_matrix, 3)
+                temp_xmesh = new_xmesh.copy()
+                new_xmesh = np.rot90(new_ymesh, 3)
+                new_ymesh = np.rot90(temp_xmesh, 1)
+                temp_nx = new_nx
+                new_nx = new_ny
+                new_ny = temp_nx
+            elif cmd == 'cc':
+                # rotate counterclockwise
                 temp_matrix = np.rot90(temp_matrix)
+                temp_xmesh = new_xmesh.copy()
+                new_xmesh = np.rot90(new_ymesh, 3)
+                new_ymesh = np.rot90(temp_xmesh, 1)
+                temp_nx = new_nx
+                new_nx = new_ny
+                new_ny = temp_nx
             elif cmd == 'mv':
                 # vertical mirror
                 temp_matrix = np.flipud(temp_matrix)
@@ -935,6 +949,9 @@ class DataPattern:
                 continue
             else:
                 print('Orientation command \'{}\' not understood'.format(cmd))
+
+        self.nx, self.ny = new_nx, new_ny
+        self.set_xymesh(new_xmesh, new_ymesh)
         self.pattern_matrix = temp_matrix
 
     def manip_correct_central_pix(self):

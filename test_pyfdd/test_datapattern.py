@@ -156,6 +156,101 @@ class TestDataPattern(unittest.TestCase):
         dp = DataPattern(pattern_array=pattern, nChipsX=2, nChipsY=2, real_size=3)
         dp.manip_compress(factor=22, rm_central_pix=0, rm_edge_pix=0)
 
+    def test_manip_orient(self):
+
+        # Square pattern
+        # 0 1
+        # 2 3
+        pattern_sq = np.arange(4).reshape((2,2))
+        xmesh = np.array([[-1, 1], [-1, 1]])
+        ymesh = np.array([[1, 1], [-1, -1]])
+
+        # No rotation
+        dp = DataPattern(pattern_array=pattern_sq)
+        dp.set_xymesh(xmesh, ymesh)
+        dp.manip_orient('')
+        self.assertTrue(np.alltrue(dp.pattern_matrix == pattern_sq))
+        self.assertTrue(np.alltrue(dp.xmesh == xmesh))
+        self.assertTrue(np.alltrue(dp.ymesh == ymesh))
+
+        # Rotate clockwise
+        dp = DataPattern(pattern_array=pattern_sq)
+        dp.set_xymesh(xmesh, ymesh)
+        dp.manip_orient('cw')
+        result = np.array([[2, 0], [3, 1]])
+        self.assertTrue(np.alltrue(dp.pattern_matrix == result))
+        self.assertTrue(np.alltrue(dp.xmesh == xmesh))
+        self.assertTrue(np.alltrue(dp.ymesh == ymesh))
+
+        # Rotate counterclockwise
+        dp = DataPattern(pattern_array=pattern_sq)
+        dp.set_xymesh(xmesh, ymesh)
+        dp.manip_orient('cc')
+        result = np.array([[1, 3], [0, 2]])
+        self.assertTrue(np.alltrue(dp.pattern_matrix == result))
+        self.assertTrue(np.alltrue(dp.xmesh == xmesh))
+        self.assertTrue(np.alltrue(dp.ymesh == ymesh))
+
+        # Mirror horizontaly
+        dp = DataPattern(pattern_array=pattern_sq)
+        dp.set_xymesh(xmesh, ymesh)
+        dp.manip_orient('mh')
+        result = np.array([[1, 0], [3, 2]])
+        self.assertTrue(np.alltrue(dp.pattern_matrix == result))
+        self.assertTrue(np.alltrue(dp.xmesh == xmesh))
+        self.assertTrue(np.alltrue(dp.ymesh == ymesh))
+
+        # Mirror verticaly
+        dp = DataPattern(pattern_array=pattern_sq)
+        dp.set_xymesh(xmesh, ymesh)
+        dp.manip_orient('mv')
+        result = np.array([[2, 3], [0, 1]])
+        self.assertTrue(np.alltrue(dp.pattern_matrix == result))
+        self.assertTrue(np.alltrue(dp.xmesh == xmesh))
+        self.assertTrue(np.alltrue(dp.ymesh == ymesh))
+
+        # Rectangular pattern
+        # 0 1
+        # 2 3
+        # 4 5
+        pattern_sq = np.arange(6).reshape((3, 2))
+        xmesh = np.array([[-1, 1], [-1, 1], [-1, 1]])
+        ymesh = np.array([[1, 1], [0, 0], [-1, -1]])
+
+        # Rotate clockwise
+        dp = DataPattern(pattern_array=pattern_sq)
+        dp.set_xymesh(xmesh, ymesh)
+        dp.manip_orient('cw')
+        result = np.array([[4, 2, 0], [5, 3, 1]])
+        xmesh_res = np.array([[-1, 0, 1], [-1, 0, 1]])
+        ymesh_res = np.array([[1, 1, 1], [-1, -1, -1]])
+        self.assertTrue(np.alltrue(dp.pattern_matrix == result))
+        self.assertTrue(np.alltrue(dp.xmesh == xmesh_res))
+        self.assertTrue(np.alltrue(dp.ymesh == ymesh_res))
+
+        # Rotate counterclockwise
+        dp = DataPattern(pattern_array=pattern_sq)
+        dp.set_xymesh(xmesh, ymesh)
+        dp.manip_orient('cc')
+        result = np.array([[1, 3, 5], [0, 2, 4]])
+        xmesh_res = np.array([[-1, 0, 1], [-1, 0, 1]])
+        ymesh_res = np.array([[1, 1, 1], [-1, -1, -1]])
+        self.assertTrue(np.alltrue(dp.pattern_matrix == result))
+        self.assertTrue(np.alltrue(dp.xmesh == xmesh_res))
+        self.assertTrue(np.alltrue(dp.ymesh == ymesh_res))
+
+        # Multiple rotations (same results as counterclockwise)
+        dp = DataPattern(pattern_array=pattern_sq)
+        dp.set_xymesh(xmesh, ymesh)
+        dp.manip_orient('cw, cw, cw, cw, cc')
+        result = np.array([[1, 3, 5], [0, 2, 4]])
+        xmesh_res = np.array([[-1, 0, 1], [-1, 0, 1]])
+        ymesh_res = np.array([[1, 1, 1], [-1, -1, -1]])
+        self.assertTrue(np.alltrue(dp.pattern_matrix == result))
+        self.assertTrue(np.alltrue(dp.xmesh == xmesh_res))
+        self.assertTrue(np.alltrue(dp.ymesh == ymesh_res))
+
+
 
 if __name__ == '__main__':
     unittest.main()
