@@ -598,10 +598,14 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         self.pb_fitrange.clicked.connect(self.dpcontroler.call_pb_angularfitrange)
 
         # Mask signals
+        # bg_mask_group can not be excluse in order to allow control over the toggled buttons.
+        self.bg_mask_group.setExclusive(False)
+        self.bg_mask_group.buttonClicked.connect(self.untoggle_other_pb)
+        self.bg_manip_group.buttonClicked.connect(self.untoggle_other_pb)
+        self.bg_vis_group.buttonClicked.connect(self.untoggle_other_pb)
         self.pb_maskpixel.clicked.connect(lambda: self.dpcontroler.call_pb_maskpixel(self.pb_maskpixel))
         self.pb_maskrectangle.clicked.connect(lambda: self.dpcontroler.call_pb_maskrectangle(self.pb_maskrectangle))
-        self.pb_maskpixel.clicked.connect(self.untoggle_pb_maskrectangle)
-        self.pb_maskrectangle.clicked.connect(self.untoggle_pb_maskpixel)
+        self.bg_mask_group.buttonClicked.connect(self.untoggle_other_pb)
         self.pb_maskbelow.clicked.connect(self.dpcontroler.call_pb_maskbelow)
         self.pb_maskabove.clicked.connect(self.dpcontroler.call_pb_maskabove)
         self.pb_maskedge.clicked.connect(self.dpcontroler.call_pb_maskedge)
@@ -680,15 +684,27 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
 
         return dp_menu
 
+    def untoggle_other_pb(self, qtpushbutton):
+        assert isinstance(qtpushbutton, QtWidgets.QPushButton)
+        if qtpushbutton == self.pb_maskrectangle:
+            self.untoggle_pb_maskpixel()
+        elif qtpushbutton == self.pb_maskpixel:
+            self.untoggle_pb_maskrectangle()
+        else:
+            self.untoggle_pb_maskpixel()
+            self.untoggle_pb_maskrectangle()
+
     def untoggle_pb_maskrectangle(self):
         if self.pb_maskrectangle.isChecked():
             self.pb_maskrectangle.setChecked(False)
-            self.dpcontroler.call_pb_maskrectangle(self.pb_maskrectangle)
+            if self.dpcontroler.datapattern is not None:
+                self.dpcontroler.call_pb_maskrectangle(self.pb_maskrectangle)
 
     def untoggle_pb_maskpixel(self):
         if self.pb_maskpixel.isChecked():
             self.pb_maskpixel.setChecked(False)
-            self.dpcontroler.call_pb_maskpixel(self.pb_maskpixel)
+            if self.dpcontroler.datapattern is not None:
+                self.dpcontroler.call_pb_maskpixel(self.pb_maskpixel)
 
     def set_datapattern(self, datapattern):
         self.dpcontroler.set_datapattern(datapattern)
