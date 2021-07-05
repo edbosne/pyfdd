@@ -32,7 +32,7 @@ pyqt5==5.9.2
 
 ===== PyInstaller =====
 
-pyinstaller main.py --hidden-import scipy.special.cython_special --hidden-import scipy.spatial.transform._rotation_groups --hidden-import=pkg_resources.py2_warn --onefile --name PyFDD
+pyinstaller main.py --onefile --name PyFDD
 
 main.py:
 
