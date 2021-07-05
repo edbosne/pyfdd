@@ -535,6 +535,7 @@ class DataPattern:
     def set_xymesh(self, xmesh, ymesh):
         """
         Set the X and Y mesh.
+        Resets any pattern orientation previously set.
         :param xmesh: Two dimmentional array of mesh coordinates.
         :param ymesh: Two dimmentional array of mesh coordinates.
         """
@@ -553,6 +554,9 @@ class DataPattern:
         self.is_mesh_defined = True
         self.xmesh = np.array(xmesh)
         self.ymesh = np.array(ymesh)
+
+        # reset angular position
+        self.set_pattern_angular_pos(center=(0, 0), angle=0)
 
     # ===== - IO Methods - =====
     def _io_load(self, filename):
@@ -1275,12 +1279,12 @@ class DataPattern:
             self.reverse_x = reverse_x
 
         if pixel_size is not None and distance is not None:
-            self.xmesh, self.ymesh = create_detector_mesh(self.pattern_matrix.shape[1], self.pattern_matrix.shape[0],
+            xmesh, ymesh = create_detector_mesh(self.pattern_matrix.shape[1], self.pattern_matrix.shape[0],
                                                           self.pixel_size_mm, self.distance)
             self.is_mesh_defined = True
         else:
             if self.is_mesh_defined:
-                self.xmesh, self.ymesh = create_detector_mesh(self.pattern_matrix.shape[1],
+                xmesh, ymesh = create_detector_mesh(self.pattern_matrix.shape[1],
                                                               self.pattern_matrix.shape[0],
                                                               self.pixel_size_mm,
                                                               self.distance)
@@ -1288,9 +1292,11 @@ class DataPattern:
                 # create detector mesh
                 xm = np.arange(self.pattern_matrix.shape[1])
                 ym = np.arange(self.pattern_matrix.shape[0])
-                self.xmesh, self.ymesh = np.meshgrid(xm, ym)
+                xmesh, ymesh = np.meshgrid(xm, ym)
         if self.reverse_x:
-            self.xmesh = np.fliplr(self.xmesh)
+            xmesh = np.fliplr(xmesh)
+
+        self.set_xymesh(xmesh, ymesh)
 
     # ===== - Draw Methods - =====
     def draw(self, axes, **kwargs):
