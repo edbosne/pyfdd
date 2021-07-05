@@ -503,17 +503,16 @@ class EditOrientation_dialog(QtWidgets.QDialog, Ui_EditOrientationDialog):
         x, y = self.dp_controler.datapattern.center
         phi = self.dp_controler.datapattern.angle
 
-        self.le_x.setText('{:.2f}'.format(x))
-        self.le_y.setText('{:.2f}'.format(y))
-        self.le_phi.setText('{:.2f}'.format(phi))
+        self.le_xyphi.setText(f'({x:.2f}, {y:.2f}, {phi:.1f})')
 
     def get_settings(self):
-        x = float(self.le_x.text())
-        y = float(self.le_y.text())
-        phi = float(self.le_phi.text())
+        text = self.le_xyphi.text()
+        values = [float(x) for x in text.strip('()').split(',')]
+        x = values[0]
+        y = values[1]
+        phi = values[2]
 
         return x, y, phi
-
 
 
 class DataPattern_window(QtWidgets.QMainWindow):
