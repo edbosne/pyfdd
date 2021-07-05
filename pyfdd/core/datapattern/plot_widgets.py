@@ -5,9 +5,10 @@ from matplotlib.widgets import AxesWidget
 import matplotlib.axes
 import math
 
-class AngleMeasure(AxesWidget):
+
+class AngleMeasurement(AxesWidget):
     """
-    A special cursor that creates a line py pressing and dragging
+    A special axes widget that creates a line py pressing and dragging
 
     *AxesWidget* : matplotlib.widgets.AxesWidget
 
@@ -15,24 +16,29 @@ class AngleMeasure(AxesWidget):
     it.
     """
 
-    def __init__(self, ax, callonangle=print, **lineprops):
+    def __init__(self, ax, callonangle=None, callonmove=None, **lineprops):
         """
-        Add a cursor to *ax*.
+        Add an AngleMeasurement widget to *ax*.
 
         *ax* : matplotlib.axes.Axes
         *lineprops* is a dictionary of line properties.
         """
         AxesWidget.__init__(self, ax)
 
+        # Connect signals
         self.connect_event('button_press_event', self.on_press)
         self.connect_event('button_release_event', self.on_release)
         self.connect_event('motion_notify_event', self.on_motion)
 
+        # Call functions
         self.callonangle = callonangle
+        self.callonmove = callonmove
 
+        # Variables
         self.visible = False
         self.angle = 0
-        self.centerXY = [0, 0]
+        self.point1_xy = [0, 0]
+        self.point2_xy = [0, 0]
         self.xLine = [0, 0]
         self.yLine = [0, 0]
         self.dx = 0
@@ -51,10 +57,11 @@ class AngleMeasure(AxesWidget):
     def _update(self):
         self.canvas.draw_idle()
 
-    def _resetData(self):
+    def _reset_data(self):
         self.visible = False
         self.angle = 0
-        self.centerXY = [0, 0]
+        self.point1_xy = [0, 0]
+        self.point2_xy = [0, 0]
         self.xLine = [0, 0]
         self.yLine = [0, 0]
         self.dx = 0
@@ -62,13 +69,13 @@ class AngleMeasure(AxesWidget):
         self.line[0].set_visible(self.visible)
 
     def on_press(self, event):
-        'on button press the central position is saved and line set to visible'
+        """on button press the central position is saved and line set to visible"""
         if self.ignore(event):
             return
-        self._resetData()
+        self._reset_data()
         self.visible = True
         self.line[0].set_visible(self.visible)
-        self.centerXY = [event.xdata, event.ydata]
+        self.point1_xy = [event.xdata, event.ydata]
 
     def on_motion(self, event):
         """on mouse motion draw the angle line if visible"""
@@ -81,7 +88,7 @@ class AngleMeasure(AxesWidget):
         if not self.visible:
             return
         if event.inaxes != self.ax:
-            self._resetData()
+            self._reset_data()
 
             if self.needclear:
                 self.canvas.draw()
@@ -89,26 +96,29 @@ class AngleMeasure(AxesWidget):
             return
         self.needclear = True
 
-        x0, y0 = self.centerXY
-        dx = event.xdata - x0
-        dy = event.ydata - y0
+        self.point2_xy = [event.xdata, event.ydata]
+        x1, y1 = self.point1_xy
+        x2, y2 = self.point2_xy
+        dx = x2 - x1
+        dy = y2 - y1
         self.dx = dx
         self.dy = dy
 
-        if dx == 0:
-            self.xLine = [x0, x0]
-        else:
-            self.xLine = [x0 - dx, x0 + dx]
-
-        self.yLine = [y0 - dy, y0 + dy]
+        self.xLine = [x1 - dx, x1 + dx]
+        self.yLine = [y1 - dy, y1 + dy]
 
         self.line[0].set_xdata(self.xLine)
         self.line[0].set_ydata(self.yLine)
 
+        self.angle = math.degrees(math.atan2(self.dy, self.dx))
+
+        if self.callonmove is not None:
+            self.callonmove(self.point1_xy, self.angle)
+
         self._update()
 
     def on_release(self, event):
-        'on release print the angle and reset the data'
+        """on release print the angle and reset the data"""
         if self.ignore(event):
             return
         if not self.visible:
@@ -116,12 +126,14 @@ class AngleMeasure(AxesWidget):
         if self.dx == 0 and self.dy == 0:
             return
 
-        angle = math.atan2(self.dy, self.dx)
-        #print('the center is at position ({:0.2f}, {:0.2f})'.format(self.centerXY[0],self.centerXY[1]))
-        #print('the angle is', math.floor(math.degrees(angle)*10)/10.0)
+        self.angle = math.degrees(math.atan2(self.dy, self.dx))
 
-        self.callonangle(self.centerXY, math.degrees(angle))
+        if self.callonangle is not None:
+            self.callonangle(self.point1_xy, self.angle)
 
-        self._resetData()
-
+        self._reset_data()
         self._update()
+
+    def get_values(self):
+
+        return self.point1_xy, self.angle

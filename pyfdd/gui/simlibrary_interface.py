@@ -9,7 +9,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT #as NavigationToolbar
 from matplotlib.widgets import RectangleSelector
-from pyfdd.core.datapattern.CustomWidgets import AngleMeasure
+from pyfdd.core.datapattern.plot_widgets import AngleMeasurement
 import matplotlib.pyplot as plt  # do not use pyplot
 import matplotlib as mpl
 import seaborn as sns

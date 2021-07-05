@@ -1,6 +1,6 @@
 __author__ = 'eric'
 
-from pyfdd.core.datapattern.CustomWidgets import *
+from pyfdd.core.datapattern.plot_widgets import *
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -13,6 +13,6 @@ ax.set_xlim(-2, 2)
 ax.set_ylim(-2, 2)
 
 # set useblit = True on gtkagg for enhanced performance
-cursor = AngleMeasure(ax) #, color='blue', linewidth=8)
+cursor = AngleMeasurement(ax) #, color='blue', linewidth=8)
 
 plt.show()

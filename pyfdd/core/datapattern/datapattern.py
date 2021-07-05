@@ -24,7 +24,7 @@ from matplotlib.widgets import RectangleSelector
 
 # Imports from project
 import pyfdd
-from pyfdd.core.datapattern.CustomWidgets import AngleMeasure
+from pyfdd.core.datapattern.plot_widgets import AngleMeasurement
 
 
 def create_detector_mesh(n_h_pixels, n_v_pixels, pixel_size=None, distance=None, d_theta=None):
@@ -278,7 +278,7 @@ class DataPatternPlotter:
             raise ValueError('No axes are defined')
         self.datapattern.center = (0, 0)
         self.datapattern.angle = 0
-        self.ang_wid = AngleMeasure(self.ax, self.datapattern.set_pattern_angular_pos)
+        self.ang_wid = AngleMeasurement(self.ax, self.datapattern.set_pattern_angular_pos)
 
     def onselect_RS(self, eclick, erelease):
         # eclick and erelease are matplotlib events at press and release
