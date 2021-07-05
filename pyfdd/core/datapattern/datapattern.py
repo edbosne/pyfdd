@@ -807,6 +807,7 @@ class DataPattern:
     def set_fit_region(self, distance=2.9, center=None, angle=None):
         """
         Set the valid fit region around the center.
+        If the distance is zero then the fit region is the whole pattern.
         :param distance: Angular distance that defines the region.
         :param center: (x, y) position of the center.
         :param angle: Angular orientation of the pattern.
@@ -820,21 +821,26 @@ class DataPattern:
         if len(center) != 2:
             raise ValueError('center must be of length 2.')
 
-        # Calculate the distance of each point in the pattern.
-        angle = angle * np.pi / 180
-        v1 = np.array([np.cos(angle), np.sin(angle)])
-        v2 = np.array([np.sin(angle), -np.cos(angle)])
+        if distance == 0:
+            # No fit region mask
+            condition = np.array(np.zeros(self.pattern_matrix.shape), dtype=np.bool)
 
-        xy = np.stack([self.xmesh - center[0], self.ymesh - center[1]], axis=-1)
+        else:
+            # Calculate the distance of each point in the pattern.
+            angle = angle * np.pi / 180
+            v1 = np.array([np.cos(angle), np.sin(angle)])
+            v2 = np.array([np.sin(angle), -np.cos(angle)])
 
-        distance1 = np.abs(np.dot(xy, v1))
-        distance2 = np.abs(np.dot(xy, v2))
+            xy = np.stack([self.xmesh - center[0], self.ymesh - center[1]], axis=-1)
 
-        # Compare the calculated distance with the distange range
-        if distance >= 0:
-            condition = ((distance1 > distance) | (distance2 > distance))
-        else:  # distance < 0
-            condition = ~((distance1 > -distance) | (distance2 > -distance))
+            distance1 = np.abs(np.dot(xy, v1))
+            distance2 = np.abs(np.dot(xy, v2))
+
+            # Compare the calculated distance with the distange range
+            if distance >= 0:
+                condition = ((distance1 > distance) | (distance2 > distance))
+            else:  # distance < 0
+                condition = ~((distance1 > -distance) | (distance2 > -distance))
 
         # Mask pixels that are outside of the fit region
         self.fitregion_mask = condition
