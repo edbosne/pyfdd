@@ -18,7 +18,7 @@
 ## Instalation
 
 To use PyFDD you must first have python3 and pip installed. If you download python from python.org and use a version
-\>=3.4 it will come with pip.
+\>=3.4 it will come with pip. pip version >= 19.3 is required.
 
 To install PyFDD on linux run,
 

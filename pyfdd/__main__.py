@@ -1,4 +1,5 @@
 import sys
+import os
 #from fbs_runtime.application_context.PyQt5 import ApplicationContext
 from PyQt5 import QtCore, QtGui, QtWidgets
 from pyfdd.gui.mainwindow import WindowedPyFDD
