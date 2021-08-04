@@ -174,11 +174,6 @@ class FitManager:
         else:
             ValueError('data_pattern input error')
 
-        self.print('\nData pattern added')
-        self.print('Initial orientation (x, y, phi) is (',
-              self.dp_pattern.center[0], ', ', self.dp_pattern.center[1], ',',
-              self.dp_pattern.angle, ')')
-
     def _print_settings(self, ft):
         """
         prints the settings that are in use during fit
