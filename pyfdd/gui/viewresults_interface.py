@@ -13,6 +13,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib as mpl
 import seaborn as sns
 import numpy as np
+import pandas as pd
 
 import pyfdd
 
@@ -37,6 +38,9 @@ class ViewResults_widget(QtWidgets.QWidget, Ui_ViewResultsWidget):
 
         super(ViewResults_widget, self).__init__(*args, **kwargs)
         self.setupUi(self)
+
+        if not isinstance(results_df, pd.DataFrame):
+            raise ValueError('results_df must be of type pandas.DataFrame.')
 
         self.results_df = results_df.copy()
         self.parent_widget = parent_widget

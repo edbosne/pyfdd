@@ -311,7 +311,7 @@ class ImportSettings_dialog(QtWidgets.QDialog, Ui_ImportSettingsDialog):
         # Pad EC-Sli
         self.default_import_config[1]['label'] = self.default_config_labels[1]
         self.default_import_config[1]['detector type'] = 'single'
-        self.default_import_config[1]['orientation'] = 'cw'
+        self.default_import_config[1]['orientation'] = 'cc'
         # Tpx quad
         self.default_import_config[2]['label'] = self.default_config_labels[2]
         self.default_import_config[2]['detector type'] = 'quad'
