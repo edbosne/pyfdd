@@ -200,7 +200,7 @@ class ColorScale_dialog(QtWidgets.QDialog, Ui_ColorScaleDialog):
 
     def update_ticks_from_percentiles_timer(self):
         # This timer is needed in order to only update the plot after the color scale edit is finished.
-        #self.qtimer.stop()  # start automaticaly resets the timer
+        # self.qtimer.stop()  # start automaticaly resets the timer
         self.qtimer.start(100)
 
     def update_ticks_from_percentiles(self):
