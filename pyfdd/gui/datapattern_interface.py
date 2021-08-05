@@ -144,6 +144,11 @@ class ColorScale_dialog(QtWidgets.QDialog, Ui_ColorScaleDialog):
         self.init_cb_colorbar(self.dp_controler.colormap)
         self.init_cb_plot_type(self.dp_controler.plot_type)
 
+        # Set a timer to update ticks from percentiles
+        self.qtimer = QtCore.QTimer(parent=self)
+        self.qtimer.setSingleShot(True)
+        self.qtimer.timeout.connect(self.update_ticks_from_percentiles)
+
         # Connect signals
         self.sb_min_percentile.valueChanged.connect(self.call_sb_min_percentile)
         self.sb_min_tick.valueChanged.connect(self.call_sb_min_tick)
@@ -193,6 +198,11 @@ class ColorScale_dialog(QtWidgets.QDialog, Ui_ColorScaleDialog):
         self.dp_controler.draw_datapattern()
         self.dp_controler.update_infotext()
 
+    def update_ticks_from_percentiles_timer(self):
+        # This timer is needed in order to only update the plot after the color scale edit is finished.
+        #self.qtimer.stop()  # start automaticaly resets the timer
+        self.qtimer.start(100)
+
     def update_ticks_from_percentiles(self):
 
         self.dp_controler.ticks = self.dp_controler.dp_plotter.get_ticks(self.dp_controler.percentiles)
@@ -202,11 +212,11 @@ class ColorScale_dialog(QtWidgets.QDialog, Ui_ColorScaleDialog):
 
     def call_sb_min_percentile(self, value):
         self.dp_controler.percentiles[0] = value / 100
-        self.update_ticks_from_percentiles()
+        self.update_ticks_from_percentiles_timer()
 
     def call_sb_max_percentile(self, value):
         self.dp_controler.percentiles[1] = value / 100
-        self.update_ticks_from_percentiles()
+        self.update_ticks_from_percentiles_timer()
 
     def call_sb_min_tick(self, value):
         self.dp_controler.ticks[0] = value
