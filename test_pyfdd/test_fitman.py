@@ -14,9 +14,9 @@ class TestFitManager(unittest.TestCase):
 
         fm = FitManager(cost_function='chi2', n_sites=2, sub_pixels=8)
         fm.set_pattern(dp_pad, lib)
-        fm.set_fixed_values(sigma=0.05)  # pad=0.094, tpx=0.064
-        fm.set_bounds(phi=(-20,20))
-        fm.set_initial_values(phi=0.5)
+        fm.fit_parameters.change_fixed_values(sigma=0.05)  # pad=0.094, tpx=0.064
+        fm.fit_parameters.change_bounds(phi=(-20,20))
+        fm.fit_parameters.change_initial_values(phi=0.5)
         fm.set_minimization_settings(profile='fine')
 
         p1 = 1

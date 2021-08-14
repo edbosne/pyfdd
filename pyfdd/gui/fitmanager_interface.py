@@ -324,7 +324,7 @@ class FitManawerWorker(QtCore.QObject):
                                        sub_pixels=sub_pixels)
 
         # Replace fitman print function
-        self.fitman.print = self.new_print
+        self.fitman._print = self.new_print
 
 
         # Set the pattern and library to fit with
