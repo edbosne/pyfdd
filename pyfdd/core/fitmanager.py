@@ -97,7 +97,7 @@ class FitManager:
         for i in range(self._n_sites):
             for k in self.columns_template:
                 self.columns_horizontal += (k.format(i + 1),)
-        self.columns_horizontal += ('success', 'orientation gradient')
+        self.columns_horizontal += ('success', 'orientation gradient', 'data in sim. range')
 
         self.columns_vertical = \
             ('value', 'D.O.F.', 'x', 'x_err', 'y', 'y_err', 'phi', 'phi_err',
@@ -105,7 +105,7 @@ class FitManager:
         self.columns_vertical += \
             ('site n', 'p', 'site description', 'site factor', 'site u1',
              'site fraction', 'fraction_err')
-        self.columns_vertical += ('success', 'orientation gradient')
+        self.columns_vertical += ('success', 'orientation gradient', 'data in sim. range')
 
         self.df_horizontal = pd.DataFrame(data=None, columns=self.columns_horizontal)
         self.df_vertical = pd.DataFrame(data=None)#, columns=self.columns_vertical) # columns are set during filling
@@ -292,10 +292,14 @@ class FitManager:
         # keys are 'pattern_1','pattern_2','pattern_3','sub_pixels','dx','dy','phi',
         # 'total_cts','sigma','f_p1','f_p2','f_p3'
         parameter_dict = ft._parameters_dict.copy()
-        append_dic = {}
+        append_dic = dict()
         append_dic['value'] = ft.results['fun']
         append_dic['success'] = ft.results['success']
         append_dic['orientation gradient'] = np.linalg.norm(ft.results['orientation jac'])
+        orientation_values = {'dx': parameter_dict['dx']['value'],
+                              'dy': parameter_dict['dy']['value'],
+                              'phi': parameter_dict['phi']['value']}
+        append_dic['data in sim. range'] = self.is_datapattern_inrange(orientation_values)
         append_dic['D.O.F.'] = ft.get_dof()
         append_dic['x'] = parameter_dict['dx']['value']
         append_dic['y'] = parameter_dict['dy']['value']
@@ -338,6 +342,10 @@ class FitManager:
         append_dic['value'] = ft.results['fun']
         append_dic['success'] = ft.results['success']
         append_dic['orientation gradient'] = np.linalg.norm(ft.results['orientation jac'])
+        orientation_values = {'dx': parameter_dict['dx']['value'],
+                              'dy': parameter_dict['dy']['value'],
+                              'phi': parameter_dict['phi']['value']}
+        append_dic['data in sim. range'] = self.is_datapattern_inrange(orientation_values)
         append_dic['D.O.F.'] = ft.get_dof()
         append_dic['x'] = parameter_dict['dx']['value']
         append_dic['y'] = parameter_dict['dy']['value']
@@ -392,7 +400,7 @@ class FitManager:
                     append_dic['fraction_err'] += np.nan
 
         temp_df = pd.concat([main_columns, pd.DataFrame.from_dict(append_dic)],
-                                     axis=1 ,ignore_index=False)
+                                     axis=1, ignore_index=False)
 
         self.df_vertical = self.df_vertical.append(temp_df, ignore_index=True, sort=False)
         self.df_vertical = self.df_vertical[list(self.columns_vertical)]
@@ -420,6 +428,8 @@ class FitManager:
             patterns_list += (np.atleast_1d(np.array(ar)),)
         assert len(patterns_list) >= 1
 
+        print(f'patterns_list {patterns_list}')
+
         def recursive_call(patterns_list, sites = ()):
             #print('patterns_list, sites -', patterns_list, sites)
             if len(patterns_list) > 0:
@@ -429,6 +439,7 @@ class FitManager:
             else:
                 # visualization is by default off in run_fits
                 self._single_fit(sites, verbose=verbose, pass_results=pass_results, get_errors=get_errors)
+
         try:
             recursive_call(patterns_list)
         except:

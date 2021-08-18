@@ -381,6 +381,7 @@ class FitManawerWorker(QtCore.QObject):
 
         # Run fits
         # remember to set get_errors to True if you want them. This increases the fit time.
+        print(f'self.sites_to_fit {self.sites_to_fit}')
         self.fitman.run_fits(*self.sites_to_fit, get_errors=self.get_errors)
 
         # Emit fitman for output
