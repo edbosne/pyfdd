@@ -49,7 +49,6 @@ class SimExplorer_window(QtWidgets.QMainWindow):
         config.write()
 
 
-
 class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
     """ Data pattern widget class"""
 
