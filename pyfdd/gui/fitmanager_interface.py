@@ -256,7 +256,7 @@ class SiteRange:
         else:
             self.lb_name = QtWidgets.QLabel(parent=parent_widget)
             self.lb_name.setText(name)
-            self.lb_name.setMaximumSize(QtCore.QSize(70, 16777215)) #double digit names need more space
+            self.lb_name.setMaximumSize(QtCore.QSize(70, 16777215))  # double digit names need more space
 
         if le_siterange is not None:
             self.le_siterange = le_siterange
@@ -326,11 +326,10 @@ class FitManawerWorker(QtCore.QObject):
         # Replace fitman print function
         self.fitman._print = self.new_print
 
-
         # Set the pattern and library to fit with
         self.fitman.set_pattern(datapattern, simlibrary)
 
-        parameter_keys = self.fitman.parameter_keys
+        parameter_keys = self.fitman.fit_parameters.get_keys()
 
         # Verify all keys match
         for key, parameter in zip(parameter_keys, parameter_objects):
@@ -341,22 +340,22 @@ class FitManawerWorker(QtCore.QObject):
         for key, parameter in zip(parameter_keys, parameter_objects):
             if parameter.fixed:
                 fixed_values[key] = parameter.initial_value
-        self.fitman.set_fixed_values(**fixed_values)
+        self.fitman.fit_parameters.change_fixed_values(**fixed_values)
 
         # Change default bounds
         bounds = {key: parameter.bounds
                   for key, parameter in zip(parameter_keys, parameter_objects)}
-        self.fitman.set_bounds(**bounds)
+        self.fitman.fit_parameters.change_bounds(**bounds)
 
         # Change default step modifier
         step_modifier = {key: parameter.step_modifier
                          for key, parameter in zip(parameter_keys, parameter_objects)}
-        self.fitman.set_step_modifier(**step_modifier)
+        self.fitman.fit_parameters.change_step_modifier(**step_modifier)
 
         # Change initial values
         initial_values = {key: parameter.initial_value
                           for key, parameter in zip(parameter_keys, parameter_objects)}
-        self.fitman.set_initial_values(**initial_values)
+        self.fitman.fit_parameters.change_initial_values(**initial_values)
 
         # Set a minization profile
         if fitconfig['min_profile'] is Profile.custom:
@@ -428,13 +427,13 @@ class FitManager_window(QtWidgets.QMainWindow):
     @staticmethod
     def get_datapattern():
         datapattern = pyfdd.DataPattern(
-            '/home/eric/cernbox/PyCharm/PyFDD/test_pyfdd/test_files/pad_dp_2M.json')
+            './test_pyfdd/test_files/pad_dp_2M.json')
         return datapattern
 
     @staticmethod
     def get_simlibrary():
         simlibrary = pyfdd.Lib2dl(
-            '/home/eric/cernbox/PyCharm/PyFDD/test_pyfdd/test_files/sb600g05.2dl')
+            './PyFDD/test_pyfdd/test_files/sb600g05.2dl')
         return simlibrary
 
     def title_update(self):
@@ -500,7 +499,6 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.simlibrary = None
         self.get_datapattern()
         self.get_simlibrary()
-        self.fitman = None # TODO remove the use of fitman instances
         self.changes_saved = True
 
         # Fitman thread variables
@@ -607,21 +605,15 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
             data_p = self.make_dummy_pattern()
 
         # Compute values
-        parameter_keys = pyfdd.FitManager.compute_parameter_keys(n_sites=self.fitconfig['n_sites'])
+        fitparameters = pyfdd.FitParameters(n_sites=self.fitconfig['n_sites'])
+        fitparameters.update_initial_values_with_datapattern(datapattern=data_p)
+        fitparameters.update_bounds_with_datapattern(datapattern=data_p)
 
-        temp_init_values, temp_fixed_values = \
-            pyfdd.FitManager.compute_initial_fit_values(datapattern=data_p,
-                                                        n_sites=self.fitconfig['n_sites'])
-        initial_values = dict()
-        fixed = dict()
-        for key, value in zip(parameter_keys, temp_init_values):
-            initial_values[key] = value
-        for key, value in zip(parameter_keys, temp_fixed_values):
-            fixed[key] = value
-
-        bounds = pyfdd.FitManager.compute_bounds(datapattern=data_p,
-                                                 n_sites=self.fitconfig['n_sites'])
-        step_modifier = pyfdd.FitManager.compute_step_modifier(n_sites=self.fitconfig['n_sites'])
+        parameter_keys = fitparameters.get_keys()
+        initial_values = fitparameters.get_initial_values()
+        fixed_values = fitparameters.get_fixed_values()
+        bounds = fitparameters.get_bounds()
+        step_modifier = fitparameters.get_step_modifier()
 
         # Apply new values to the interface
         for key, parameter in zip(parameter_keys, self.parameter_objects):
@@ -633,7 +625,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
                 parameter.reset_values_to(initial_value=initial_values[key],
                                           bounds=bounds[key],
                                           step_modifier=step_modifier[key],
-                                          fixed=fixed[key])
+                                          fixed=fixed_values[key])
 
     def init_sites_ranges(self):
         """ Create the first site range widget"""
