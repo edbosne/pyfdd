@@ -372,7 +372,7 @@ class DataPattern:
             if os.path.isfile(file_path):
                 self._io_load(file_path)
             else:
-                raise IOError('File does not exist: {}}'.format(file_path))
+                raise IOError('File does not exist: {}'.format(file_path))
         # Masks
         self.pixels_mask = np.array(np.zeros((self.ny, self.nx)), dtype=bool)
         self.fitregion_mask = np.array(np.zeros((self.ny, self.nx)), dtype=bool)

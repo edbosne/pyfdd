@@ -31,6 +31,11 @@ class SimExplorer_window(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         super(SimExplorer_window, self).__init__(*args, **kwargs)
 
+        # Load configuration
+        if config.parser is None:
+            config.filename = 'simexplorer_config.ini'
+            config.read()
+
         # Setup the window
         self.setWindowTitle("Simulations Explorer")
         self.statusBar()
@@ -39,6 +44,10 @@ class SimExplorer_window(QtWidgets.QMainWindow):
         dp_w = SimExplorer_widget(mainwindow=self)
         self.setCentralWidget(dp_w)
         self.resize(1150, 670)
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        config.write()
+
 
 
 class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):

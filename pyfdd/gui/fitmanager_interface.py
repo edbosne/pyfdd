@@ -410,6 +410,11 @@ class FitManager_window(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         super(FitManager_window, self).__init__(*args, **kwargs)
 
+        # Load configuration
+        if config.parser is None:
+            config.filename = 'fitmanager_config.ini'
+            config.read()
+
         # Setup the window
         self.window_title = "Fit Manager"
         self.setWindowTitle(self.window_title)
@@ -426,14 +431,15 @@ class FitManager_window(QtWidgets.QMainWindow):
 
     @staticmethod
     def get_datapattern():
+        print(os.getcwd())
         datapattern = pyfdd.DataPattern(
-            './test_pyfdd/test_files/pad_dp_2M.json')
+            '../../test_pyfdd/data_files/pad_dp_2M.json')
         return datapattern
 
     @staticmethod
     def get_simlibrary():
         simlibrary = pyfdd.Lib2dl(
-            './PyFDD/test_pyfdd/test_files/sb600g05.2dl')
+            '../../test_pyfdd/data_files/sb600g05.2dl')
         return simlibrary
 
     def title_update(self):
@@ -446,6 +452,9 @@ class FitManager_window(QtWidgets.QMainWindow):
             if self.window_title[-1] == "*":
                 self.window_title = self.window_title[0:-1]
         self.setWindowTitle(self.window_title)
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        config.write()
 
 
 class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
@@ -880,7 +889,6 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
-    # window = DataPattern_widget()
     window = FitManager_window()
     window.show()
     print(window.size())

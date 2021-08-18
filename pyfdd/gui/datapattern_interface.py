@@ -530,6 +530,11 @@ class DataPattern_window(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         super(DataPattern_window, self).__init__(*args, **kwargs)
 
+        # Load configuration
+        if config.parser is None:
+            config.filename = 'datapatter_config.ini'
+            config.read()
+
         # Setup the window
         self.window_title = "Data Pattern"
         self.setWindowTitle(self.window_title)
@@ -557,6 +562,9 @@ class DataPattern_window(QtWidgets.QMainWindow):
             if self.window_title[-1] == "*":
                 self.window_title = self.window_title[0:-1]
         self.setWindowTitle(self.window_title)
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        config.write()
 
 
 class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
