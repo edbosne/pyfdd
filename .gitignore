@@ -1,6 +1,5 @@
 *.ini
 __*/
-*.png
 my_scripts/
 gui/*.json
 =======
