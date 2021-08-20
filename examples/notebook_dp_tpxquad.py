@@ -23,7 +23,7 @@ from IPython.display import display
 
 pd.set_option('display.max_rows', 10000)
 pd.set_option('display.max_columns', 500)
-pd.set_option('display.max_colwidth', -1)
+pd.set_option('display.max_colwidth', None)
 
 
 # In[2]:
@@ -31,7 +31,6 @@ pd.set_option('display.max_colwidth', -1)
 
 filename1 = "/home/user/path/to/pattern_1.txt"
 filename2 = "/home/user/path/to/pattern_2.txt"
-filename = "/home/eric/cernbox/Betapix_CERN/2016/2016-04_Mg/raw002/pattern_d3_Npix0-50.txt"
 
 
 # ## Creating the DataPattern
@@ -89,8 +88,8 @@ dp.manip_compress(factor=8, rm_central_pix=2, rm_edge_pix=4)
 get_ipython().run_line_magic('matplotlib', 'notebook')
 fg = plt.figure()
 ax = fg.add_subplot('111')
-dp.draw(ax, percentiles=(0.04, 0.99))
-dp.get_angle_tool()
+dp_plotter = dp.draw(ax, percentiles=(0.04, 0.99))
+dp_plotter.get_angle_tool()
 
 
 # In[7]:

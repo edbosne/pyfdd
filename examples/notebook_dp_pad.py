@@ -7,9 +7,11 @@
 # 
 # 
 
-# In[4]:
+# In[1]:
 
 
+#import sys
+#sys.path.append("/home/eric/cernbox/PyCharm/PyFDD/")
 import pyfdd
 print('PyFDD version', pyfdd.__version__)
 
@@ -22,14 +24,13 @@ from IPython.display import display
 
 pd.set_option('display.max_rows', 10000)
 pd.set_option('display.max_columns', 500)
-pd.set_option('display.max_colwidth', -1)
+pd.set_option('display.max_colwidth', None)
 
 
 # In[2]:
 
 
-filename1 = "/home/user/path/to/pattern_1.2db"
-filename2 = "/home/user/path/to/pattern_2.2db"
+filename = "../test_pyfdd/data_files/pad_dp_2M.txt"
 
 
 # ## Creating the DataPattern
@@ -41,14 +42,14 @@ filename2 = "/home/user/path/to/pattern_2.2db"
 # In[3]:
 
 
-dp1 = pyfdd.DataPattern(file_path=filename1)
-dp2 = pyfdd.DataPattern(file_path=filename2)
+dp1 = pyfdd.DataPattern(file_path=filename)
+dp2 = dp1*1.5
 dp = dp1 + dp2
 
 
 # ## Manipulation of the data pattern
 
-# In[43]:
+# In[4]:
 
 
 # Manipulation methods
@@ -73,14 +74,14 @@ dp.remove_edge_pixel(1)
 
 # ## Set the angular orientation for the pattern
 
-# In[44]:
+# In[5]:
 
 
-get_ipython().run_line_magic('matplotlib', 'notebook')
+get_ipython().run_line_magic('matplotlib', 'inline')
 fg = plt.figure()
-ax = fg.add_subplot('111')
-dp.draw(ax, percentiles=(0.01, 0.99), plot_type='pixels')
-#dp.get_angle_tool()
+ax = fg.add_subplot(1,1,1)
+dp_plotter = dp.draw(ax, percentiles=(0.01, 0.99), plot_type='pixels')
+#dp_plotter.get_angle_tool()  # use with %matplotlib notebook
 
 
 # In[6]:
@@ -94,8 +95,8 @@ dp.set_fit_region(distance=2.8)
 
 # ## Save as json file
 
-# In[8]:
+# In[7]:
 
 
-dp.io_save_json('/home/user/pad_datapattern.json')
+dp.io_save_json('pad_datapattern.json')
 
