@@ -45,7 +45,7 @@ if __name__ == '__main__':
 # On windows:
 python -m venv env
 env\Scrips\activate.bat
-pip install https://github.com/edbosne/pyfdd/archive/qtui.zip
+pip install https://github.com/edbosne/pyfdd/archive/master.zip
 pip install pyinstaller
 
 ===== Install branch =====
