@@ -97,7 +97,7 @@ class CreatorParametter(FitParameter):
     def call_pb_edit(self):
         new_initial_value, ok = QtWidgets.QInputDialog.getDouble(self.parent, 'Parameter Value',
                                                      f'Insert the value for {self.name}\t\t\t',
-                                                     value=self.initial_value)
+                                                     value=self.initial_value, decimals=2)
         if ok:
             self.initial_value = new_initial_value
             self.update_description()
