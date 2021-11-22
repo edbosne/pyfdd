@@ -1,11 +1,9 @@
-
 import sys
 import os
 import warnings
 from enum import Enum, IntEnum
 import numpy as np
 import json
-
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic, sip
 # from PySide2 import QtCore, QtGui, QtWidgets, uic
@@ -105,7 +103,7 @@ class FitConfig_dialog(QtWidgets.QDialog, Ui_FitConfigDialog):
 
 class ParameterEdit_dialog(QtWidgets.QDialog, Ui_ParameterEditDialog):
     def __init__(self, parent_widget, parameter):
-        assert isinstance(parameter, Parameter)
+        assert isinstance(parameter, FitParameter)
         super(ParameterEdit_dialog, self).__init__(parent_widget)
         self.setupUi(self)
 
@@ -146,7 +144,7 @@ class ParameterEdit_dialog(QtWidgets.QDialog, Ui_ParameterEditDialog):
         return self.cb_fixed.isChecked()
 
 
-class Parameter:
+class FitParameter:
     def __init__(self, parent_widget, key='', name='par', initial_value=0, bounds=(None, None),
                  step_modifier=1, fixed=False, pb_edit=None, lb_name=None, lb_description=None):
         self.parent = parent_widget
@@ -245,7 +243,7 @@ class Parameter:
 
 
 class SiteRange:
-    def __init__(self, parent_widget, key='', name='par', str_value='1',
+    def __init__(self, parent_widget, key='', name='par', str_value='1', multiple_sites=True,
                  lb_name=None, le_siterange=None):
         self.parent = parent_widget
         self.key = key
@@ -265,8 +263,15 @@ class SiteRange:
             self.le_siterange.setText(str_value)
 
         # set regular expression validator
-        reg_ex = QtCore.QRegExp(
-            r'^(\s*\d+\s*(-\s*\d+\s*)?)(,\s*\d+\s*(-\s*\d+\s*)?)*$')  # accepts ranges ex.: 1,2,3, 6-9
+        if multiple_sites:
+            # accepts ranges ex.: 1,2,3, 6-9
+            reg_ex = QtCore.QRegExp(
+                r'^(\s*\d+\s*(-\s*\d+\s*)?)(,\s*\d+\s*(-\s*\d+\s*)?)*$')
+        else:
+            # accepts single numbers ex.: 1,2,3
+            reg_ex = QtCore.QRegExp(
+                r'^(\s*\d+\s*)?$')
+
         input_validator = QtGui.QRegExpValidator(reg_ex, parent=self.le_siterange)
         self.le_siterange.setValidator(input_validator)
 
@@ -302,13 +307,252 @@ class SiteRange:
         return result
 
 
+class FitParameterDynamicLayout:
+    def __init__(self, parent_widget, grid_layout, exclude=None, fitparameter_type=FitParameter):
+
+        # Variables
+        self.parent = parent_widget
+        self.parameters_layout = grid_layout
+        self.fitparameter_type = fitparameter_type
+        self.exclude = list() if exclude is None else exclude
+        self.base_par = 0
+
+        # Parameters
+        # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
+        self.n_sites_in_stack = 1
+        self.parameter_objects = []
+        self.init_parameters()
+        self.refresh_parameters(reset=True)
+
+    def init_parameters(self):
+        # Parameters
+        # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
+        # dx
+        if 'dx' not in self.exclude:
+            par = self.fitparameter_type(parent_widget=self.parent, key='dx', name='dx', initial_value=0,
+                               bounds=[None, None], step_modifier=1, fixed=False,
+                               pb_edit=self.parent.pb_dx,
+                               lb_name=self.parent.lb_dx_name,
+                               lb_description=self.parent.lb_dx)
+            self.parameter_objects.append(par)
+            self.base_par += 1
+        # dy
+        if 'dy' not in self.exclude:
+            par = self.fitparameter_type(parent_widget=self.parent, key='dy', name='dy', initial_value=0,
+                               bounds=[None, None], step_modifier=1, fixed=False,
+                               pb_edit=self.parent.pb_dy,
+                               lb_name=self.parent.lb_dy_name,
+                               lb_description=self.parent.lb_dy)
+            self.parameter_objects.append(par)
+            self.base_par += 1
+        # phi
+        if 'phi' not in self.exclude:
+            par = self.fitparameter_type(parent_widget=self.parent, key='phi', name='phi', initial_value=0,
+                                         bounds=[None, None], step_modifier=1, fixed=False,
+                                         pb_edit=self.parent.pb_phi,
+                                         lb_name=self.parent.lb_phi_name,
+                                         lb_description=self.parent.lb_phi)
+            self.parameter_objects.append(par)
+            self.base_par += 1
+        # total_cts
+        if 'total_cts' not in self.exclude:
+            par = self.fitparameter_type(parent_widget=self.parent, key='total_cts', name='total cts', initial_value=0,
+                                         bounds=[None, None], step_modifier=1, fixed=False,
+                                         pb_edit=self.parent.pb_total_cts,
+                                         lb_name=self.parent.lb_total_cts_name,
+                                         lb_description=self.parent.lb_total_cts)
+            self.parameter_objects.append(par)
+            self.base_par += 1
+        # sigma
+        if 'sigma' not in self.exclude:
+            par = self.fitparameter_type(parent_widget=self.parent, key='sigma', name='sigma', initial_value=0,
+                                         bounds=[None, None], step_modifier=1, fixed=False,
+                                         pb_edit=self.parent.pb_sigma,
+                                         lb_name=self.parent.lb_sigma_name,
+                                         lb_description=self.parent.lb_sigma)
+            self.parameter_objects.append(par)
+            self.base_par += 1
+        # f_p1
+        if 'f_p1' not in self.exclude:
+            par = self.fitparameter_type(parent_widget=self.parent, key='f_p1', name='fraction #1', initial_value=0,
+                                         bounds=[None, None], step_modifier=1, fixed=False,
+                                         pb_edit=self.parent.pb_f1,
+                                         lb_name=self.parent.lb_f1_name,
+                                         lb_description=self.parent.lb_f1)
+            self.parameter_objects.append(par)
+
+    def refresh_parameters(self, datapattern: pyfdd.DataPattern = None, reset: bool = False):
+        """
+        Refresh the parameters acoording to the current data pattern and library.
+        :param reset: If true all paremeters that were changed by the user are reset.
+        :param datapattern: DataPattern to use for initial values.
+        :return:
+        """
+
+        if isinstance(datapattern, pyfdd.DataPattern):
+            data_p = datapattern
+        else:
+            data_p = self.make_dummy_pattern()
+
+        # Compute values
+        fitparameters = pyfdd.FitParameters(n_sites=self.n_sites_in_stack)
+        fitparameters.update_initial_values_with_datapattern(datapattern=data_p)
+        fitparameters.update_bounds_with_datapattern(datapattern=data_p)
+
+        parameter_keys = fitparameters.get_keys()
+        for rmkey in self.exclude:  # remove keys in exclude
+            if rmkey in parameter_keys:
+                parameter_keys.remove(rmkey)
+        initial_values = fitparameters.get_initial_values()
+        fixed_values = fitparameters.get_fixed_values()
+        bounds = fitparameters.get_bounds()
+        step_modifier = fitparameters.get_step_modifier()
+
+        # Apply new values to the interface
+        for key, parameter in zip(parameter_keys, self.parameter_objects):
+            assert parameter.key == key
+            if not reset and parameter.was_changed:
+                # Keep the value introduced by the user
+                continue
+            else:
+                parameter.reset_values_to(initial_value=initial_values[key],
+                                          bounds=bounds[key],
+                                          step_modifier=step_modifier[key],
+                                          fixed=fixed_values[key])
+
+    def update_n_sites_widgets(self, n_sites):
+        if 'reset' not in self.exclude:
+            self.parameters_layout.removeWidget(self.parent.pb_reset)
+
+        if n_sites > self.n_sites_in_stack:
+            # add widgets
+            while n_sites > self.n_sites_in_stack:
+                self.n_sites_in_stack += 1
+
+                # Parameters
+                pkey = 'f_p' + str(self.n_sites_in_stack)
+                # f_px
+                fraction_name = 'fraction #{}'.format(self.n_sites_in_stack)
+                par = FitParameter(parent_widget=self.parent, key=pkey, name=fraction_name, initial_value=0,
+                                   bounds=(None, None),
+                                   step_modifier=1, fixed=False)
+                par.add_to_gridlayout(self.parameters_layout, row_num=self.base_par + self.n_sites_in_stack)
+                self.parameter_objects.append(par)
+            self.refresh_parameters()
+
+        if n_sites < self.n_sites_in_stack:
+            while n_sites < self.n_sites_in_stack:
+                self.n_sites_in_stack -= 1
+                self.parameter_objects.pop()
+
+        if 'reset' not in self.exclude:
+            self.parameters_layout.addWidget(self.parent.pb_reset, self.base_par + 1 + self.n_sites_in_stack, 2)
+
+    @staticmethod
+    def make_dummy_pattern():
+        pattern = np.random.poisson(1000, (22, 22))
+        dp = pyfdd.DataPattern(pattern_array=pattern)
+        dp.manip_create_mesh(pixel_size=1.4, distance=300)
+        return dp
+
+    def get_parameter_keys(self):
+        parameter_keys = []
+        for parameter in self.parameter_objects:
+            parameter_keys.append(parameter.key)
+        return parameter_keys
+
+    def get_fixed_values(self):
+        parameter_keys = self.get_parameter_keys()
+
+        fixed_values = dict()
+        for key, parameter in zip(parameter_keys, self.parameter_objects):
+            if parameter.fixed:
+                fixed_values[key] = parameter.initial_value
+        return fixed_values
+
+    def get_bounds(self):
+        parameter_keys = self.get_parameter_keys()
+
+        bounds = {key: parameter.bounds
+                  for key, parameter in zip(parameter_keys, self.parameter_objects)}
+        return bounds
+
+    def get_step_modifier(self):
+        parameter_keys = self.get_parameter_keys()
+
+        step_modifier = {key: parameter.step_modifier
+                         for key, parameter in zip(parameter_keys, self.parameter_objects)}
+        return step_modifier
+
+    def get_initial_values(self):
+        parameter_keys = self.get_parameter_keys()
+
+        # Change initial values
+        initial_values = {key: parameter.initial_value
+                          for key, parameter in zip(parameter_keys, self.parameter_objects)}
+        return initial_values
+
+
+class SiteRangeDynamicLayout:
+    def __init__(self, parent_widget, grid_layout, lb_f1_name, le_site1, multiple_sites=True):
+
+        assert isinstance(lb_f1_name, QtWidgets.QWidget)
+        assert isinstance(le_site1, QtWidgets.QWidget)
+
+        # Variables
+        self.multiple_sites = multiple_sites
+        self.parent_widget = parent_widget
+
+        # Expected existing widgets
+        self.lb_f1_name = lb_f1_name
+        self.le_site1 = le_site1
+        self.sitesrange_layout = grid_layout
+
+        # Sites ranges
+        self.n_sites_in_stack = 1
+        self.sites_range_objects = []
+        self.init_sites_ranges()
+
+    def init_sites_ranges(self):
+        """ Create the first site range widget"""
+        srange = SiteRange(parent_widget=self, key='sr1', name='Site #1', multiple_sites=self.multiple_sites,
+                           lb_name=self.lb_f1_name,
+                           le_siterange=self.le_site1)
+        self.sites_range_objects.append(srange)
+
+    def update_n_sites_widgets(self, n_sites):
+        if n_sites > self.n_sites_in_stack:
+            # add widgets
+            while n_sites > self.n_sites_in_stack:
+                self.n_sites_in_stack += 1
+                # Sites ranges
+                srkey = 'sr' + str(self.n_sites_in_stack)
+                # srx
+                site_name = 'Site #{}'.format(self.n_sites_in_stack)
+                srange = SiteRange(parent_widget=self.parent_widget, key=srkey, name=site_name, multiple_sites=True)
+                srange.add_to_gridlayout(self.sitesrange_layout, row_num=1 + self.n_sites_in_stack)
+                self.sites_range_objects.append(srange)
+
+        if n_sites < self.n_sites_in_stack:
+            while n_sites < self.n_sites_in_stack:
+                self.n_sites_in_stack -= 1
+                self.sites_range_objects.pop()
+
+    def get_sites_for_fit(self):
+        sites_to_fit = [site_range.get_range_as_list() for site_range in self.sites_range_objects]
+        return sites_to_fit
+
+
 class FitManawerWorker(QtCore.QObject):
     finished = QtCore.pyqtSignal()
     progress_msg = QtCore.pyqtSignal(str)
     output_fitman = QtCore.pyqtSignal(pyfdd.FitManager)
 
-    def __init__(self, datapattern, simlibrary, fitconfig, parameter_objects, sites_range_objects):
+    def __init__(self, datapattern, simlibrary, fitconfig, dynamic_parameter_objects, dynamic_site_ranges_objects):
         super(FitManawerWorker, self).__init__()
+
+        assert isinstance(dynamic_parameter_objects, FitParameterDynamicLayout)
+        assert isinstance(dynamic_site_ranges_objects, SiteRangeDynamicLayout)
 
         self._isRunning = True
 
@@ -332,29 +576,22 @@ class FitManawerWorker(QtCore.QObject):
         parameter_keys = self.fitman.fit_parameters.get_keys()
 
         # Verify all keys match
-        for key, parameter in zip(parameter_keys, parameter_objects):
-            assert parameter.key == key
+        assert parameter_keys == dynamic_parameter_objects.get_parameter_keys()
 
         # Set a fixed value if needed
-        fixed_values = {}
-        for key, parameter in zip(parameter_keys, parameter_objects):
-            if parameter.fixed:
-                fixed_values[key] = parameter.initial_value
+        fixed_values = dynamic_parameter_objects.get_fixed_values()
         self.fitman.fit_parameters.change_fixed_values(**fixed_values)
 
         # Change default bounds
-        bounds = {key: parameter.bounds
-                  for key, parameter in zip(parameter_keys, parameter_objects)}
+        bounds = dynamic_parameter_objects.get_bounds()
         self.fitman.fit_parameters.change_bounds(**bounds)
 
         # Change default step modifier
-        step_modifier = {key: parameter.step_modifier
-                         for key, parameter in zip(parameter_keys, parameter_objects)}
+        step_modifier = dynamic_parameter_objects.get_step_modifier()
         self.fitman.fit_parameters.change_step_modifier(**step_modifier)
 
         # Change initial values
-        initial_values = {key: parameter.initial_value
-                          for key, parameter in zip(parameter_keys, parameter_objects)}
+        initial_values = dynamic_parameter_objects.get_initial_values()
         self.fitman.fit_parameters.change_initial_values(**initial_values)
 
         # Set a minization profile
@@ -368,15 +605,15 @@ class FitManawerWorker(QtCore.QObject):
         self.fitman.set_minimization_settings(profile=min_profile, options=fit_options)
 
         # Set a pattern or range of patterns to fit
-        self.sites_to_fit = [site_range.get_range_as_list() for site_range in sites_range_objects]
+        self.sites_to_fit = dynamic_site_ranges_objects.get_sites_for_fit()
 
     def is_datapattern_inrange(self):
         return self.fitman.is_datapattern_inrange()
 
     @QtCore.pyqtSlot()
     def run(self):
-        self.new_print('*'*80)
-        self.new_print(' '*30 + 'PyFDD version {}'.format(pyfdd.__version__))
+        self.new_print('*' * 80)
+        self.new_print(' ' * 30 + 'PyFDD version {}'.format(pyfdd.__version__))
         self.new_print('*' * 80)
 
         # Run fits
@@ -408,6 +645,7 @@ class FitManawerWorker(QtCore.QObject):
 
 class FitManager_window(QtWidgets.QMainWindow):
     """ Class to use the data pattern widget in a separate window"""
+
     def __init__(self, *args, **kwargs):
         super(FitManager_window, self).__init__(*args, **kwargs)
 
@@ -432,7 +670,6 @@ class FitManager_window(QtWidgets.QMainWindow):
 
     @staticmethod
     def get_datapattern():
-        print(os.getcwd())
         datapattern = pyfdd.DataPattern(
             '../../test_pyfdd/data_files/pad_dp_2M.json')
         return datapattern
@@ -493,13 +730,8 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.menubar = self.mainwindow.menuBar()
         self.dp_menu = self.setup_menu()
 
-        # Dinamic widgets
-        self.n_sites_widget_stack = []
-        self.fractions_widget_stack = []
-        self.n_sites_in_stack = 1
-
         # Popup widgets that need a reference in self
-        self.viewresults_window = None
+        self.viewresults_window = None  # todo multiple windows can be opened, but where are the references stored?
         self.dp_external = []
 
         # Variables
@@ -533,18 +765,21 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
             self.fitconfig['min_profile'] = Profile(self.fitconfig['min_profile'])
 
         # Sites ranges
-        self.sites_range_objects = []
-        self.init_sites_ranges()
+        self.dynamic_site_ranges = SiteRangeDynamicLayout(parent_widget=self,
+                                                          grid_layout=self.sitesrange_layout,
+                                                          lb_f1_name=self.lb_f1_name,
+                                                          le_site1=self.le_site1,
+                                                          multiple_sites=True)
 
         # Parameters
         # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
-        self.parameter_objects = []
-        self.init_parameters()
-        self.refresh_parameters(reset=True)
+        self.dynamic_parameters = FitParameterDynamicLayout(parent_widget=self,
+                                                            grid_layout=self.parameters_layout,
+                                                            exclude=None)
 
         # Connect signals
         self.pb_fitconfig.clicked.connect(self.call_pb_fitconfig)
-        self.pb_reset.clicked.connect(lambda: self.refresh_parameters(reset=True))
+        self.pb_reset.clicked.connect(lambda: self.dynamic_parameters.refresh_parameters(reset=True))
         self.pb_abortfits.setEnabled(False)
         self.pb_runfits.clicked.connect(self.call_pb_runfits)
         self.pb_abortfits.clicked.connect(self.call_pb_abortfits)
@@ -560,89 +795,6 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
     def setup_menu(self):
         # nothing to do here at the moment
         return None
-
-    @staticmethod
-    def make_dummy_pattern():
-        pattern = np.random.poisson(1000, (22, 22))
-        dp = pyfdd.DataPattern(pattern_array=pattern)
-        dp.manip_create_mesh(pixel_size=1.4, distance=300)
-        return dp
-
-    def init_parameters(self):
-        # Parameters
-        # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
-        # dx
-        par = Parameter(parent_widget=self, key='dx', name='dx', initial_value=0, bounds=[None, None],
-                        step_modifier=1, fixed=False, pb_edit=self.pb_dx, lb_name=self.lb_dx_name,
-                        lb_description=self.lb_dx)
-        self.parameter_objects.append(par)
-        # dy
-        par = Parameter(parent_widget=self, key='dy', name='dy', initial_value=0, bounds=[None, None],
-                        step_modifier=1, fixed=False, pb_edit=self.pb_dy, lb_name=self.lb_dy_name,
-                        lb_description=self.lb_dy)
-        self.parameter_objects.append(par)
-        # phi
-        par = Parameter(parent_widget=self, key='phi', name='phi', initial_value=0, bounds=[None, None],
-                        step_modifier=1, fixed=False, pb_edit=self.pb_phi, lb_name=self.lb_phi_name,
-                        lb_description=self.lb_phi)
-        self.parameter_objects.append(par)
-        # total_cts
-        par = Parameter(parent_widget=self, key='total_cts', name='total cts', initial_value=0, bounds=[None, None],
-                        step_modifier=1, fixed=False, pb_edit=self.pb_total_cts, lb_name=self.lb_total_cts_name,
-                        lb_description=self.lb_total_cts)
-        self.parameter_objects.append(par)
-        # sigma
-        par = Parameter(parent_widget=self, key='sigma', name='sigma', initial_value=0, bounds=[None, None],
-                        step_modifier=1, fixed=False, pb_edit=self.pb_sigma, lb_name=self.lb_sigma_name,
-                        lb_description=self.lb_sigma)
-        self.parameter_objects.append(par)
-        # f_p1
-        par = Parameter(parent_widget=self, key='f_p1', name='fraction #1', initial_value=0, bounds=[None, None],
-                        step_modifier=1, fixed=False, pb_edit=self.pb_f1, lb_name=self.lb_f1_name,
-                        lb_description=self.lb_f1)
-        self.parameter_objects.append(par)
-
-    def refresh_parameters(self, reset: bool = False):
-        """
-        Refresh the parameters acoording to the current data pattern and library.
-        :param reset: If true all paremeters that were changed by the user are reset.
-        :return:
-        """
-
-        if isinstance(self.datapattern, pyfdd.DataPattern):
-            data_p = self.datapattern
-        else:
-            data_p = self.make_dummy_pattern()
-
-        # Compute values
-        fitparameters = pyfdd.FitParameters(n_sites=self.fitconfig['n_sites'])
-        fitparameters.update_initial_values_with_datapattern(datapattern=data_p)
-        fitparameters.update_bounds_with_datapattern(datapattern=data_p)
-
-        parameter_keys = fitparameters.get_keys()
-        initial_values = fitparameters.get_initial_values()
-        fixed_values = fitparameters.get_fixed_values()
-        bounds = fitparameters.get_bounds()
-        step_modifier = fitparameters.get_step_modifier()
-
-        # Apply new values to the interface
-        for key, parameter in zip(parameter_keys, self.parameter_objects):
-            assert parameter.key == key
-            if not reset and parameter.was_changed:
-                # Keep the value introduced by the user
-                continue
-            else:
-                parameter.reset_values_to(initial_value=initial_values[key],
-                                          bounds=bounds[key],
-                                          step_modifier=step_modifier[key],
-                                          fixed=fixed_values[key])
-
-    def init_sites_ranges(self):
-        """ Create the first site range widget"""
-        srange = SiteRange(parent_widget=self, key='sr1', name='Site #1',
-                           lb_name=self.lb_f1_name,
-                           le_siterange=self.le_site1)
-        self.sites_range_objects.append(srange)
 
     def update_infotext(self):
 
@@ -661,7 +813,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
 
         text = base_text.format(dp_set, lib_set, cost_func,
                                 get_errors, n_sites,
-                                sub_pixels,min_profile)
+                                sub_pixels, min_profile)
 
         self.infotext.setText(text)
 
@@ -712,8 +864,8 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
 
         # Step 3: Create a worker object
         self.fitman_worker = FitManawerWorker(self.datapattern, self.simlibrary,
-                                         self.fitconfig, self.parameter_objects,
-                                         self.sites_range_objects)
+                                              self.fitconfig, self.dynamic_parameters,
+                                              self.dynamic_site_ranges)
 
         # Do checks before starting
         # Check if the fit range is correct
@@ -771,7 +923,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
 
         if self.fitman_output is not None:
             self.viewresults_window = ViewResults_widget(results_df=self.fitman_output.df_horizontal,
-                                                    parent_widget=self)
+                                                         parent_widget=self)
             self.viewresults_window.show()
         else:
             QtWidgets.QMessageBox.warning(self, 'Warning message', 'Results are not ready.')
@@ -798,9 +950,9 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         if self.fitman_output is not None:
             items = ("counts", "yield", "probability")
             normalization, ok = QtWidgets.QInputDialog.getItem(self, "Choose normalization",
-                                                   "Normalization:", items, 0, False)
+                                                               "Normalization:", items, 0, False)
             if ok and normalization:
-                datapattern = self.fitman_output.get_pattern_from_last_fit( normalization=normalization)
+                datapattern = self.fitman_output.get_pattern_from_last_fit(normalization=normalization)
                 datapattern.clear_mask()
                 new_dp_window = DataPattern_window()
                 new_dp_window.set_datapattern(datapattern)
@@ -815,7 +967,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         if self.fitman_output is not None:
             items = ("counts", "yield", "probability")
             normalization, ok = QtWidgets.QInputDialog.getItem(self, "Choose normalization",
-                                                      "Normalization:", items, 0, False)
+                                                               "Normalization:", items, 0, False)
             if ok and normalization:
                 datapattern_data = self.fitman_output.get_datapattern(normalization=normalization)
                 datapattern_fit = self.fitman_output.get_pattern_from_last_fit(normalization=normalization)
@@ -832,11 +984,11 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         if self.fitman_output is not None:
             items = ("counts", "yield", "probability")
             normalization, ok = QtWidgets.QInputDialog.getItem(self, "Choose normalization",
-                                                      "Normalization:", items, 0, False)
+                                                               "Normalization:", items, 0, False)
             if ok and normalization:
                 items = ('ideal', 'poisson', 'montecarlo')
                 generator, ok = QtWidgets.QInputDialog.getItem(self, "Choose generator",
-                                                                   "Generator:", items, 0, False)
+                                                               "Generator:", items, 0, False)
                 if ok and generator:
                     datapattern = self.fitman_output.get_datapattern(normalization=normalization,
                                                                      substitute_masked_with=generator)
@@ -855,37 +1007,8 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.refresh_parameters()
 
     def update_n_sites_widgets(self):
-        self.parameters_layout.removeWidget(self.pb_reset)
-        if self.fitconfig['n_sites'] > self.n_sites_in_stack:
-            # add widgets
-            while self.fitconfig['n_sites'] > self.n_sites_in_stack:
-                self.n_sites_in_stack += 1
-                # Sites ranges
-                srkey = 'sr' + str(self.n_sites_in_stack)
-                # srx
-                site_name = 'Site #{}'.format(self.n_sites_in_stack)
-                srange = SiteRange(parent_widget=self, key=srkey, name=site_name)
-                srange.add_to_gridlayout(self.sitesrange_layout, row_num=1 + self.n_sites_in_stack)
-                self.sites_range_objects.append(srange)
-
-                # Parameters
-                pkey = 'f_p' + str(self.n_sites_in_stack)
-                # f_px
-                fraction_name = 'fraction #{}'.format(self.n_sites_in_stack)
-                par = Parameter(parent_widget=self, key=pkey, name=fraction_name, initial_value=0,
-                                bounds=(None, None),
-                                step_modifier=1, fixed=False)
-                par.add_to_gridlayout(self.parameters_layout, row_num=5 + self.n_sites_in_stack)
-                self.parameter_objects.append(par)
-            self.refresh_parameters()
-
-        if self.fitconfig['n_sites'] < self.n_sites_in_stack:
-            while self.fitconfig['n_sites'] < self.n_sites_in_stack:
-                self.n_sites_in_stack -= 1
-                self.sites_range_objects.pop()
-                self.parameter_objects.pop()
-
-        self.parameters_layout.addWidget(self.pb_reset, 5 + 1 + self.n_sites_in_stack, 2)
+        self.dynamic_site_ranges.update_n_sites_widgets(self.fitconfig['n_sites'])
+        self.dynamic_parameters.update_n_sites_widgets(self.fitconfig['n_sites'])
 
 
 def main():

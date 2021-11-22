@@ -226,11 +226,12 @@ class FitParameters:
             if key in self._parameter_keys:
                 if isinstance(kwargs[key], bool):
                     self._fixed_values[key] = kwargs[key]
-                elif isinstance(kwargs[key], (int, float)):
+                elif isinstance(kwargs[key], (int, float, np.integer, np.float)):
                     self._initial_values[key] = kwargs[key]
                     self._fixed_values[key] = True
                 else:
-                    raise ValueError(f'{key} argument value needs to be of type bool or float.')
+                    raise ValueError(f'{key} argument value needs to be of type bool or float. '
+                                     f'{key} is of type {type(kwargs[key])} instead.')
 
             else:
                 raise ValueError('key word ' + key + 'is not recognized! \n' +
