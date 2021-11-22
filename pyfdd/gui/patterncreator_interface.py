@@ -180,7 +180,7 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         self.dp_external = []
 
         # Variables
-        self.tr_gen_method = {'channeling_yiel': 'Channeling yield',
+        self.tr_gen_method = {'channeling_yield': 'Channeling yield',
                               'ideal': 'Ideal',
                               'poisson': 'Poisson noise',
                               'monte_carlo': 'Monte Carlo'}
@@ -188,6 +188,7 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         self.simlibrary = None
         self.get_simlibrary()
         self.changes_saved = True
+        self.pattern_mesh = None
 
         # Fit configuration
         default_creatorconfig = {'n_sites': 1,
@@ -228,8 +229,8 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         #self.pb_viewfitdiff.clicked.connect(self.call_pb_viewfitdiff)
         #self.pb_filldata.clicked.connect(self.call_pb_filldata)
 
-        #self.update_infotext()
-        #self.update_n_sites_widgets()
+        self.update_infotext()
+        self.update_n_sites_widgets()
 
         # Pattern visualization
         self.pb_colorscale.clicked.connect(self.dpcontroler.call_pb_colorscale)
@@ -325,22 +326,25 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
 
     def update_infotext(self):
 
-        base_text = 'Data pattern set: {}; Library set: {}\n' \
-                    'Cost function: {}; Get errors: {}\n' \
+        base_text = 'Pattern mesh set: {}; Library set: {}\n' \
                     'Number of sites: {}; Sub-pixels: {}\n' \
-                    'Miniminazion profile: {}'
+                    'Normalization: {}\n' \
+                    'Generator method: {}'
 
-        dp_set = False if self.datapattern is None else True
+        mesh_set = False if self.pattern_mesh is None else True
         lib_set = False if self.simlibrary is None else True
-        cost_func = self.tr_costfunc[self.creatorconfig['cost_func'].name]
-        get_errors = self.creatorconfig['get_errors']
         n_sites = self.creatorconfig['n_sites']
         sub_pixels = self.creatorconfig['sub_pixels']
-        min_profile = self.creatorconfig['min_profile'].name
+        normalization = self.creatorconfig['normalization']
+        gen_method_code = self.creatorconfig['gen_method'].name
+        gen_method = self.tr_gen_method[gen_method_code]
 
-        text = base_text.format(dp_set, lib_set, cost_func,
-                                get_errors, n_sites,
-                                sub_pixels,min_profile)
+        text = base_text.format(mesh_set,
+                                lib_set,
+                                n_sites,
+                                sub_pixels,
+                                normalization,
+                                gen_method)
 
         self.infotext.setText(text)
 
@@ -366,12 +370,22 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         creatorconfig_dialog = CreatorConfig_dialog(parent_widget=self, current_config=self.creatorconfig)
         if creatorconfig_dialog.exec_() == QtWidgets.QDialog.Accepted:
             self.creatorconfig = creatorconfig_dialog.get_config()
-            #self.update_infotext()
-            #self.update_n_sites_widgets()
+            self.update_infotext()
+            self.update_n_sites_widgets()
             config.parser['patterncreator']['creatorconfig'] = json.dumps(self.creatorconfig)
         else:
             # Canceled
             pass
+
+    def update_all(self):
+        self.get_datapattern()
+        self.get_simlibrary()
+        self.update_infotext()
+        self.refresh_parameters()
+
+    def update_n_sites_widgets(self):
+        self.dynamic_site_ranges.update_n_sites_widgets(self.creatorconfig['n_sites'])
+        self.dynamic_parameters.update_n_sites_widgets(self.creatorconfig['n_sites'])
 
 
 def main():

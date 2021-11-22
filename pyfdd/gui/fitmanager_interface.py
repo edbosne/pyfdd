@@ -433,7 +433,7 @@ class FitParameterDynamicLayout:
                 pkey = 'f_p' + str(self.n_sites_in_stack)
                 # f_px
                 fraction_name = 'fraction #{}'.format(self.n_sites_in_stack)
-                par = FitParameter(parent_widget=self.parent, key=pkey, name=fraction_name, initial_value=0,
+                par = self.fitparameter_type(parent_widget=self.parent, key=pkey, name=fraction_name, initial_value=0,
                                    bounds=(None, None),
                                    step_modifier=1, fixed=False)
                 par.add_to_gridlayout(self.parameters_layout, row_num=self.base_par + self.n_sites_in_stack)
@@ -529,7 +529,8 @@ class SiteRangeDynamicLayout:
                 srkey = 'sr' + str(self.n_sites_in_stack)
                 # srx
                 site_name = 'Site #{}'.format(self.n_sites_in_stack)
-                srange = SiteRange(parent_widget=self.parent_widget, key=srkey, name=site_name, multiple_sites=True)
+                srange = SiteRange(parent_widget=self.parent_widget, key=srkey, name=site_name,
+                                   multiple_sites=self.multiple_sites)
                 srange.add_to_gridlayout(self.sitesrange_layout, row_num=1 + self.n_sites_in_stack)
                 self.sites_range_objects.append(srange)
 
