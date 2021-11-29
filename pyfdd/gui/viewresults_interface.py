@@ -3,7 +3,6 @@ import sys
 import os
 import warnings
 from enum import Enum, IntEnum
-import numpy as np
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic, sip
