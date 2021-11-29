@@ -14,6 +14,7 @@ import matplotlib as mpl
 import seaborn as sns
 import numpy as np
 import pandas as pd
+import pandas.plotting._matplotlib  # Necessary import to avoid crashes on windows with pyinstaller
 
 import pyfdd
 
