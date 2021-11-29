@@ -8,7 +8,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets, uic
 # from PySide2 import QtCore, QtGui, QtWidgets, uic
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT #as NavigationToolbar
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT  # as NavigationToolbar
 from matplotlib.widgets import RectangleSelector
 from pyfdd.core.datapattern.plot_widgets import AngleMeasurement
 import matplotlib.pyplot as plt  # do not use pyplot
@@ -76,8 +76,8 @@ class CreatorParametter(FitParameter):
 
         for kw in kwargs.keys():
             if kw in ('bounds', 'step_modifier', 'fixed'):
-                 # Ignore
-                 pass
+                # Ignore
+                pass
             else:
                 raise ValueError('Unexpected keyword argument, {}'.format(kw))
 
@@ -96,8 +96,8 @@ class CreatorParametter(FitParameter):
 
     def call_pb_edit(self):
         new_initial_value, ok = QtWidgets.QInputDialog.getDouble(self.parent, 'Parameter Value',
-                                                     f'Insert the value for {self.name}\t\t\t',
-                                                     value=self.initial_value, decimals=2)
+                                                                 f'Insert the value for {self.name}\t\t\t',
+                                                                 value=self.initial_value, decimals=2)
         if ok:
             self.initial_value = new_initial_value
             self.update_description()
@@ -108,6 +108,7 @@ class CreatorParametter(FitParameter):
 
 class PatternCreator_window(QtWidgets.QMainWindow):
     """ Class to use the data pattern widget in a separate window"""
+
     def __init__(self, *args, **kwargs):
         super(PatternCreator_window, self).__init__(*args, **kwargs)
 
@@ -219,15 +220,15 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
 
         # Connect signals
         self.pb_creatorconfig.clicked.connect(self.call_pb_creatorconfig)
-        #self.pb_reset.clicked.connect(lambda: self.refresh_parameters(reset=True))
-        #self.pb_abortfits.setEnabled(False)
-        #self.pb_runfits.clicked.connect(self.call_pb_runfits)
-        #self.pb_abortfits.clicked.connect(self.call_pb_abortfits)
-        #self.pb_viewresults.clicked.connect(self.call_pb_viewresults)
-        #self.pb_savetable.clicked.connect(self.call_pb_savetable)
-        #self.pb_viewfit.clicked.connect(self.call_pb_viewlastfit)
-        #self.pb_viewfitdiff.clicked.connect(self.call_pb_viewfitdiff)
-        #self.pb_filldata.clicked.connect(self.call_pb_filldata)
+        # self.pb_reset.clicked.connect(lambda: self.refresh_parameters(reset=True))
+        # self.pb_abortfits.setEnabled(False)
+        # self.pb_runfits.clicked.connect(self.call_pb_runfits)
+        # self.pb_abortfits.clicked.connect(self.call_pb_abortfits)
+        # self.pb_viewresults.clicked.connect(self.call_pb_viewresults)
+        # self.pb_savetable.clicked.connect(self.call_pb_savetable)
+        # self.pb_viewfit.clicked.connect(self.call_pb_viewlastfit)
+        # self.pb_viewfitdiff.clicked.connect(self.call_pb_viewfitdiff)
+        # self.pb_filldata.clicked.connect(self.call_pb_filldata)
 
         self.update_infotext()
         self.update_n_sites_widgets()
