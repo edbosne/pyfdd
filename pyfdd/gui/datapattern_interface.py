@@ -987,7 +987,7 @@ class DataPatternControler(QtCore.QObject):
         filename = QtWidgets.QFileDialog.getOpenFileName(self.parent_widget,
                                                          'Import matrix file',
                                                          directory=open_path,
-                                                         filter='Import matrix (*.txt *.csv *.2db)',
+                                                         filter='Import matrix (*.txt *.2db)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if filename == ('', ''):  # Cancel
             return
