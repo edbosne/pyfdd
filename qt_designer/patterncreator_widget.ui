@@ -493,14 +493,14 @@ p, li { white-space: pre-wrap; }
         </property>
         <layout class="QGridLayout" name="gridLayout_4">
          <item row="0" column="0">
-          <widget class="QPushButton" name="pushButton">
+          <widget class="QPushButton" name="pb_buildmesh">
            <property name="text">
             <string>Build Angular Mesh</string>
            </property>
           </widget>
          </item>
          <item row="0" column="1">
-          <widget class="QPushButton" name="pushButton_2">
+          <widget class="QPushButton" name="pb_get_mesh_from_dp">
            <property name="text">
             <string>Get Mesh from DP</string>
            </property>

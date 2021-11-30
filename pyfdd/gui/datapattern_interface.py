@@ -236,38 +236,54 @@ class ColorScale_dialog(QtWidgets.QDialog, Ui_ColorScaleDialog):
 
 
 class BuildMesh_dialog(QtWidgets.QDialog, Ui_BuildMeshDialog):
-    def __init__(self, parent_widget, dp_controler):
+    def __init__(self, parent_widget, dp_controler=None, config_section='datapattern', npixels_active=False):
         super(BuildMesh_dialog, self).__init__(parent_widget)
         self.parent_widget = parent_widget
         self.dp_controler = dp_controler
         self.setupUi(self)
 
-        default_mesh_settings = {'pixel size': 0.055,
+        self.npixels_active = npixels_active
+        self.config_section = config_section  # example: 'datapattern', 'patterncreator'
+
+        default_mesh_settings = {'horizontal pixels': 256,
+                                 'vertical pixels': 256,
+                                 'pixel size': 0.055,
                                  'distance': 315.0,
                                  'angular step': 0.1,
                                  'selected': 'detector'}
 
         self.mesh_settings = default_mesh_settings if not \
-            config.parser.has_option('datapattern', 'mesh_settings') else \
-            config.getdict('datapattern', 'mesh_settings')
+            config.parser.has_option(self.config_section, 'mesh_settings') else \
+            config.getdict(self.config_section, 'mesh_settings')
+
+        datapattern = self.dp_controler.get_datapattern() if self.dp_controler is not None else None
+        if datapattern is not None:
+            self.mesh_settings['horizontal pixels'] = datapattern.nx
+            self.mesh_settings['vertical pixels'] = datapattern.ny
 
         self.load_mesh_settings()
 
         # Connect signals
         self.le_pixelsize.textEdited.connect(self.set_detector_config)
         self.le_distance.textEdited.connect(self.set_detector_config)
-        self.le_angstep.textEdited.connect(self.set_step_config)
+        self.le_angular_step.textEdited.connect(self.set_step_config)
         self.accepted.connect(self.update_config)
 
     def update_config(self):
         # update config
-        config.parser['datapattern']['mesh_settings'] = json.dumps(self.get_settings())
+        config.parser[self.config_section]['mesh_settings'] = json.dumps(self.get_settings())
 
     def load_mesh_settings(self):
 
+        # Enable or disable number of pixels line edit
+        self.le_horizontal_pixels.setEnabled(self.npixels_active)
+        self.le_vertical_pixels.setEnabled(self.npixels_active)
+
+        self.le_horizontal_pixels.setText(str(self.mesh_settings['horizontal pixels']))
+        self.le_vertical_pixels.setText(str(self.mesh_settings['vertical pixels']))
         self.le_pixelsize.setText(str(self.mesh_settings['pixel size']))
         self.le_distance.setText(str(self.mesh_settings['distance']))
-        self.le_angstep.setText(str(self.mesh_settings['angular step']))
+        self.le_angular_step.setText(str(self.mesh_settings['angular step']))
         if self.mesh_settings['selected'] == 'detector':
             self.rb_detector.setChecked(True)
             self.rb_step.setChecked(False)
@@ -281,9 +297,11 @@ class BuildMesh_dialog(QtWidgets.QDialog, Ui_BuildMeshDialog):
 
     def get_settings(self):
         settings = dict()
+        settings['horizontal pixels'] = int(self.le_horizontal_pixels.text())
+        settings['vertical pixels'] = int(self.le_vertical_pixels.text())
         settings['pixel size'] = float(self.le_pixelsize.text())
         settings['distance'] = float(self.le_distance.text())
-        settings['angular step'] = float(self.le_angstep.text())
+        settings['angular step'] = float(self.le_angular_step.text())
         if self.rb_detector.isChecked() and not self.rb_step.isChecked():
             settings['selected'] = 'detector'
         elif not self.rb_detector.isChecked() and self.rb_step.isChecked():
@@ -1455,7 +1473,8 @@ class DataPatternControler(QtCore.QObject):
         if not self.datapattern_exits():
             return
 
-        buildmesh_dialog = BuildMesh_dialog(parent_widget=self.parent_widget, dp_controler=self)
+        buildmesh_dialog = BuildMesh_dialog(parent_widget=self.parent_widget, dp_controler=self,
+                                            config_section='datapattern', npixels_active=False)
 
         if buildmesh_dialog.exec_() == QtWidgets.QDialog.Accepted:
             output = buildmesh_dialog.get_settings()

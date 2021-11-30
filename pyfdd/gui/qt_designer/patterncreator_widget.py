@@ -214,12 +214,12 @@ class Ui_PatternCreatorWidget(object):
         self.groupBox_4.setObjectName("groupBox_4")
         self.gridLayout_4 = QtWidgets.QGridLayout(self.groupBox_4)
         self.gridLayout_4.setObjectName("gridLayout_4")
-        self.pushButton = QtWidgets.QPushButton(self.groupBox_4)
-        self.pushButton.setObjectName("pushButton")
-        self.gridLayout_4.addWidget(self.pushButton, 0, 0, 1, 1)
-        self.pushButton_2 = QtWidgets.QPushButton(self.groupBox_4)
-        self.pushButton_2.setObjectName("pushButton_2")
-        self.gridLayout_4.addWidget(self.pushButton_2, 0, 1, 1, 1)
+        self.pb_buildmesh = QtWidgets.QPushButton(self.groupBox_4)
+        self.pb_buildmesh.setObjectName("pb_buildmesh")
+        self.gridLayout_4.addWidget(self.pb_buildmesh, 0, 0, 1, 1)
+        self.pb_get_mesh_from_dp = QtWidgets.QPushButton(self.groupBox_4)
+        self.pb_get_mesh_from_dp.setObjectName("pb_get_mesh_from_dp")
+        self.gridLayout_4.addWidget(self.pb_get_mesh_from_dp, 0, 1, 1, 1)
         self.pg_generatepattern = QtWidgets.QPushButton(self.groupBox_4)
         self.pg_generatepattern.setObjectName("pg_generatepattern")
         self.gridLayout_4.addWidget(self.pg_generatepattern, 1, 0, 1, 2)
@@ -253,7 +253,7 @@ class Ui_PatternCreatorWidget(object):
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
 "</style></head><body style=\" font-family:\'Ubuntu\'; font-size:9pt; font-weight:400; font-style:normal;\">\n"
-"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\';\">Library set: False; Pattern mesh set: False</span></p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\';\">Pattern mesh set: False; Library set: False</span></p>\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\';\">Number of sites: 1; Sub-pixels: 1</span></p>\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:\'Noto Sans\';\">Normalization: 1</span></p>\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Generator method: Channeling yield</p></body></html>"))
@@ -280,8 +280,8 @@ class Ui_PatternCreatorWidget(object):
         self.lb_phi_name.setText(_translate("PatternCreatorWidget", "phi"))
         self.lb_dx.setText(_translate("PatternCreatorWidget", "0"))
         self.groupBox_4.setTitle(_translate("PatternCreatorWidget", "Control"))
-        self.pushButton.setText(_translate("PatternCreatorWidget", "Build Angular Mesh"))
-        self.pushButton_2.setText(_translate("PatternCreatorWidget", "Get Mesh from DP"))
+        self.pb_buildmesh.setText(_translate("PatternCreatorWidget", "Build Angular Mesh"))
+        self.pb_get_mesh_from_dp.setText(_translate("PatternCreatorWidget", "Get Mesh from DP"))
         self.pg_generatepattern.setText(_translate("PatternCreatorWidget", "Generate Pattern"))
         self.pb_opendatapattern.setText(_translate("PatternCreatorWidget", "Open in a DataPattern window"))
         self.pb_setticks.setTitle(_translate("PatternCreatorWidget", "Pattern Visualization"))

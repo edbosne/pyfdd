@@ -31,7 +31,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="lineEdit">
+       <widget class="QLineEdit" name="le_horizontal_pixels">
         <property name="maximumSize">
          <size>
           <width>50</width>
@@ -48,7 +48,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="lineEdit_2">
+       <widget class="QLineEdit" name="le_vertical_pixels">
         <property name="maximumSize">
          <size>
           <width>50</width>
@@ -161,7 +161,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QLineEdit" name="le_angstep">
+       <widget class="QLineEdit" name="le_angular_step">
         <property name="maximumSize">
          <size>
           <width>50</width>

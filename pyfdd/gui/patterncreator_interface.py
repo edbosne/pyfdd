@@ -17,6 +17,7 @@ import seaborn as sns
 import numpy as np
 
 import pyfdd
+from pyfdd.core.datapattern.datapattern import create_detector_mesh
 
 # Load the ui created with PyQt creator
 # First, convert .ui file to .py with,
@@ -25,7 +26,7 @@ import pyfdd
 from pyfdd.gui.qt_designer.patterncreator_widget import Ui_PatternCreatorWidget
 from pyfdd.gui.qt_designer.creatorconfig_dialog import Ui_CreatorConfigDialog
 from pyfdd.gui.fitmanager_interface import FitParameter, SiteRange, FitParameterDynamicLayout, SiteRangeDynamicLayout
-from pyfdd.gui.datapattern_interface import DataPatternControler
+from pyfdd.gui.datapattern_interface import DataPatternControler, BuildMesh_dialog
 import pyfdd.gui.config as config
 
 
@@ -37,6 +38,7 @@ class GenMethod(IntEnum):
 
 
 class CreatorConfig_dialog(QtWidgets.QDialog, Ui_CreatorConfigDialog):
+
     def __init__(self, parent_widget, current_config):
         assert isinstance(current_config, dict)
         super(CreatorConfig_dialog, self).__init__(parent_widget)
@@ -189,7 +191,9 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         self.simlibrary = None
         self.get_simlibrary()
         self.changes_saved = True
-        self.pattern_mesh = None
+        self.pattern_mesh_isset = None
+        self.pattern_xmesh = None
+        self.pattern_ymesh = None
 
         # Fit configuration
         default_creatorconfig = {'n_sites': 1,
@@ -220,6 +224,7 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
 
         # Connect signals
         self.pb_creatorconfig.clicked.connect(self.call_pb_creatorconfig)
+        self.pb_buildmesh.clicked.connect(self.call_pb_buildmesh)
         # self.pb_reset.clicked.connect(lambda: self.refresh_parameters(reset=True))
         # self.pb_abortfits.setEnabled(False)
         # self.pb_runfits.clicked.connect(self.call_pb_runfits)
@@ -332,7 +337,7 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
                     'Normalization: {}\n' \
                     'Generator method: {}'
 
-        mesh_set = False if self.pattern_mesh is None else True
+        mesh_set = False if self.pattern_mesh_isset is None else True
         lib_set = False if self.simlibrary is None else True
         n_sites = self.creatorconfig['n_sites']
         sub_pixels = self.creatorconfig['sub_pixels']
@@ -377,6 +382,41 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         else:
             # Canceled
             pass
+
+    def call_pb_buildmesh(self):
+
+        buildmesh_dialog = BuildMesh_dialog(parent_widget=self, dp_controler=None,
+                                            config_section='patterncreator', npixels_active=True)
+
+        if buildmesh_dialog.exec_() == QtWidgets.QDialog.Accepted:
+            output = buildmesh_dialog.get_settings()
+            # Todo self datapattern should not be used here
+            n_h = output['horizontal pixels']
+            n_v = output['vertical pixels']
+            if output['selected'] == 'detector':
+                pixel_size = output['pixel size']
+                distance = output['distance']
+                self.pattern_xmesh, self.pattern_ymesh = \
+                    create_detector_mesh(n_h_pixels=n_h, n_v_pixels=n_v,
+                                         pixel_size=pixel_size, distance=distance)
+                self.pattern_mesh_isset = True
+
+            elif output['selected'] == 'step':
+                angular_step = output['angular step']
+                self.pattern_xmesh, self.pattern_ymesh = \
+                    create_detector_mesh(n_h_pixels=n_h, n_v_pixels=n_v,
+                                         d_theta=angular_step)
+                self.pattern_mesh_isset = True
+            else:
+                warnings.warn('Non valid selection')
+        else:
+            pass
+            # print('Cancelled')
+
+        buildmesh_dialog.deleteLater()
+
+        # Update info text
+        self.update_infotext()
 
     def update_all(self):
         self.get_datapattern()
