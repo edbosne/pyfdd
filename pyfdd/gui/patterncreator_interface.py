@@ -34,7 +34,7 @@ class GenMethod(IntEnum):
     channeling_yield = 0
     ideal = 1
     poisson = 2
-    monte_carlo = 3
+    montecarlo = 3
 
 
 class CreatorConfig_dialog(QtWidgets.QDialog, Ui_CreatorConfigDialog):
@@ -214,7 +214,7 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         self.tr_gen_method = {'channeling_yield': 'Channeling yield',
                               'ideal': 'Ideal',
                               'poisson': 'Poisson noise',
-                              'monte_carlo': 'Monte Carlo'}
+                              'montecarlo': 'Monte Carlo'}
 
         self.simlibrary = None
         self.get_simlibrary()
@@ -254,6 +254,7 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         self.pb_creatorconfig.clicked.connect(self.call_pb_creatorconfig)
         self.pb_buildmesh.clicked.connect(self.call_pb_buildmesh)
         self.pb_get_mesh_from_dp.clicked.connect(self.call_pb_get_mesh_from_dp)
+        self.pb_generatepattern.clicked.connect(self.call_pb_generatepattern)
 
         self.update_infotext()
         self.update_n_sites_widgets()
@@ -465,6 +466,55 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         # Update info text
         self.update_infotext()
 
+    def call_pb_generatepattern(self):
+
+        # Initial checks
+        if not self.pattern_mesh_isset:
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'The Pattern mesh is not set.')
+            return
+
+        if self.simlibrary is None:
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'The Simulations Library is not set.')
+            return
+
+        # Get values
+        n_sites = self.creatorconfig['n_sites']
+        sub_pixels = self.creatorconfig['sub_pixels']
+        normalization = self.creatorconfig['normalization']
+        gen_method = self.creatorconfig['gen_method'].name
+        gen_method = 'yield' if gen_method == 'channeling_yield' else gen_method
+
+        sites = self.dynamic_site_ranges.get_sites_for_fit()
+        sites = [s[0] for s in sites]  # remove sublist
+        initial_values = self.dynamic_parameters.get_initial_values()
+
+        dx = initial_values['dx']
+        dy = initial_values['dy']
+        phi = initial_values['phi']
+        fractions_per_sim = list()
+        for fn in range(len(sites)):
+            fraction_number = fn + 1
+            fraction_name = 'f_p{}'.format(fraction_number)
+            fractions_per_sim.append(initial_values[fraction_name])
+
+        sigma = initial_values['sigma']
+
+        gen = pyfdd.PatternCreator(self.simlibrary,
+                                   self.pattern_xmesh,
+                                   self.pattern_ymesh,
+                                   simulations=sites,
+                                   sub_pixels=sub_pixels,
+                                   mask_out_of_range=True)
+
+        pattern = gen.make_pattern(dx, dy, phi, fractions_per_sim,
+                                   total_events=normalization,
+                                   sigma=sigma,
+                                   pattern_type=gen_method)
+
+        generated_pattern = pyfdd.DataPattern(pattern_array=pattern)
+        generated_pattern.set_xymesh(self.pattern_xmesh, self.pattern_ymesh)
+
+        self.dpcontroler.set_datapattern(generated_pattern)
 
     def update_all(self):
         self.get_datapattern()
