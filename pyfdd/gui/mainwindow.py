@@ -22,6 +22,7 @@ from pyfdd.gui.qt_designer.windowedpyfdd import Ui_WindowedPyFDD
 from pyfdd.gui.datapattern_interface import DataPattern_widget
 from pyfdd.gui.simlibrary_interface import SimExplorer_widget
 from pyfdd.gui.fitmanager_interface import FitManager_widget
+from pyfdd.gui.patterncreator_interface import PatternCreator_widget
 import pyfdd.gui.config as config
 
 
@@ -59,15 +60,18 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         self.dp_w = DataPattern_widget(self.maintabs, mainwindow=self)
         self.se_w = SimExplorer_widget(self.maintabs, mainwindow=self)
         self.fm_w = FitManager_widget(self.maintabs, mainwindow=self)
+        self.pc_w = PatternCreator_widget(self.maintabs, mainwindow=self)
 
         # Creat the tabs for the widgets
         self.dp_tab_title = 'Data Pattern'
         self.se_tab_title = 'Simulations Library'
         self.fm_tab_title = 'Fit Manager'
+        self.pc_tab_title = 'Pattern Creator'
 
         self.maintabs.addTab(self.dp_w, 'Data Pattern')
         self.maintabs.addTab(self.se_w, 'Simulations Library')
         self.maintabs.addTab(self.fm_w, 'Fit Manager')
+        self.maintabs.addTab(self.pc_w, 'Pattern Creator')
 
         # Connect signals
         # Update fit manager tab if data pattern or library is changed
@@ -76,6 +80,13 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         self.dp_w.datapattern_opened.connect(lambda: self._set_fm_pending_update(True))
         self.dp_w.datapattern_changed.connect(lambda: self._set_fm_pending_update(True))
         self.se_w.simlibrary_opened.connect(lambda: self._set_fm_pending_update(True))
+
+        # Update pattern creator tab if data pattern or library is changed
+        self.pc_pending_update = False
+        self.maintabs.currentChanged.connect(self.update_pc)
+        self.dp_w.datapattern_opened.connect(lambda: self._set_pc_pending_update(True))
+        self.dp_w.datapattern_changed.connect(lambda: self._set_pc_pending_update(True))
+        self.se_w.simlibrary_opened.connect(lambda: self._set_pc_pending_update(True))
 
         # Update the filename
         # Data pattern
@@ -142,6 +153,18 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         if self.maintabs.currentIndex() == 2:
             self.update_fm()
 
+    def _set_pc_pending_update(self, pending: bool):
+        """
+        Set True is a pending update is missing for the pattern creator.
+        :param pending: Boolean value to set the pending update.
+        :return:
+        """
+        self.pc_pending_update = pending
+
+        # If the fit manager tab is already open then update now
+        if self.maintabs.currentIndex() == 3:
+            self.update_pc()
+
     def get_datapattern(self):
         """
         Get the DataPattern object from its tab widget.
@@ -167,6 +190,16 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         if tab == 2 and self.fm_pending_update:  # Fit manager tab == 2
             self.fm_w.update_all()
             self._set_fm_pending_update(False)
+
+    def update_pc(self, tab=3):
+        """
+        Update the pattern creator.
+        :param tab: Tab index. Pattern creator is expected on tab == 3
+        :return:
+        """
+        if tab == 3 and self.pc_pending_update:  # Pattern creator tab == 3
+            self.pc_w.update_all()
+            self._set_pc_pending_update(False)
 
     def dp_tab_title_update(self):
         """

@@ -126,9 +126,16 @@ class CreatorParametter(FitParameter):
         self.lb_description.setText(text)
 
     def call_pb_edit(self):
+        if self.name == 'sigma' or self.name.startswith('fraction'):
+            minimum = 0
+        else:
+            minimum = -9999
+
         new_initial_value, ok = QtWidgets.QInputDialog.getDouble(self.parent, 'Parameter Value',
                                                                  f'Insert the value for {self.name}\t\t\t',
-                                                                 value=self.initial_value, decimals=2)
+                                                                 value=self.initial_value,
+                                                                 min=minimum,
+                                                                 decimals=2)
         if ok:
             self.initial_value = new_initial_value
             self.update_description()
@@ -288,71 +295,6 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
 
         return dp_menu
 
-    def init_parameters(self):
-        # Parameters
-        # ('dx','dy','phi','total_cts','sigma','f_p1','f_p2','f_p3')
-        # dx
-        par = CreatorParametter(parent_widget=self, key='dx', name='dx',
-                                pb_edit=self.pb_dx, lb_name=self.lb_dx_name,
-                                lb_description=self.lb_dx)
-        self.parameter_objects.append(par)
-        # dy
-        par = CreatorParametter(parent_widget=self, key='dy', name='dy',
-                                pb_edit=self.pb_dy, lb_name=self.lb_dy_name,
-                                lb_description=self.lb_dy)
-        self.parameter_objects.append(par)
-        # phi
-        par = CreatorParametter(parent_widget=self, key='phi', name='phi',
-                                pb_edit=self.pb_phi, lb_name=self.lb_phi_name,
-                                lb_description=self.lb_phi)
-        self.parameter_objects.append(par)
-        # sigma
-        par = CreatorParametter(parent_widget=self, key='sigma', name='sigma',
-                                pb_edit=self.pb_sigma, lb_name=self.lb_sigma_name,
-                                lb_description=self.lb_sigma)
-        self.parameter_objects.append(par)
-        # f_p1
-        par = CreatorParametter(parent_widget=self, key='f_p1', name='fraction #1',
-                                pb_edit=self.pb_f1, lb_name=self.lb_f1_name,
-                                lb_description=self.lb_f1)
-        self.parameter_objects.append(par)
-
-    def refresh_parameters(self, reset: bool = False):
-        """
-        Refresh the parameters acoording to the current data pattern and library.
-        :param reset: If true all paremeters that were changed by the user are reset.
-        :return:
-        """
-
-        # Compute values
-        fitparameters = pyfdd.FitParameters(n_sites=self.creatorconfig['n_sites'])
-
-        parameter_keys = fitparameters.get_keys()
-        parameter_keys.remove('total_cts')
-        initial_values = fitparameters.get_initial_values()
-        fixed_values = fitparameters.get_fixed_values()
-        bounds = fitparameters.get_bounds()
-        step_modifier = fitparameters.get_step_modifier()
-
-        # Apply new values to the interface
-        for key, parameter in zip(parameter_keys, self.parameter_objects):
-            assert parameter.key == key
-            if not reset and parameter.was_changed:
-                # Keep the value introduced by the user
-                continue
-            else:
-                parameter.reset_values_to(initial_value=initial_values[key],
-                                          bounds=bounds[key],
-                                          step_modifier=step_modifier[key],
-                                          fixed=fixed_values[key])
-
-    def init_sites_ranges(self):
-        """ Create the first site range widget"""
-        srange = SiteRange(parent_widget=self, key='sr1', name='Site #1', multiple_sites=False,
-                           lb_name=self.lb_f1_name,
-                           le_siterange=self.le_site1)
-        self.sites_range_objects.append(srange)
-
     def update_infotext(self):
 
         base_text = 'Pattern mesh set: {}; Library set: {}\n' \
@@ -458,7 +400,9 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         vertical_pixel = self.datapattern.ny
         angular_step = (self.pattern_xmesh[0, -1] - self.pattern_xmesh[0, 0]) / (horizontal_pixels - 1)
         angular_step = np.round(angular_step, decimals=2)
-        mesh_setting = config.getdict('patterncreator', 'mesh_settings')
+        mesh_setting = config.getdict('patterncreator', 'mesh_settings') if \
+            config.parser.has_option('patterncreator', 'mesh_settings') else \
+            dict()
         mesh_setting['horizontal pixels'] = horizontal_pixels
         mesh_setting['vertical pixels'] = vertical_pixel
         mesh_setting['angular step'] = angular_step
@@ -536,7 +480,6 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         self.get_datapattern()
         self.get_simlibrary()
         self.update_infotext()
-        self.refresh_parameters()
 
     def update_n_sites_widgets(self):
         self.dynamic_site_ranges.update_n_sites_widgets(self.creatorconfig['n_sites'])
