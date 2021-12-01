@@ -443,7 +443,7 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         self.get_datapattern()
 
         if self.datapattern is None:
-            QtWidgets.QMessageBox.warning(self.parent_widget, 'Warning message', 'The DataPattern does not exist.')
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'The DataPattern does not exist.')
             return
 
         self.pattern_xmesh, self.pattern_ymesh = \
