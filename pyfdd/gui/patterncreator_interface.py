@@ -26,7 +26,8 @@ from pyfdd.core.datapattern.datapattern import create_detector_mesh
 from pyfdd.gui.qt_designer.patterncreator_widget import Ui_PatternCreatorWidget
 from pyfdd.gui.qt_designer.creatorconfig_dialog import Ui_CreatorConfigDialog
 from pyfdd.gui.fitmanager_interface import FitParameter, SiteRange, FitParameterDynamicLayout, SiteRangeDynamicLayout
-from pyfdd.gui.datapattern_interface import DataPatternControler, BuildMesh_dialog
+from pyfdd.gui.datapattern_interface import DataPatternControler, BuildMesh_dialog, DataPattern_window
+
 import pyfdd.gui.config as config
 
 
@@ -255,6 +256,7 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         self.pb_buildmesh.clicked.connect(self.call_pb_buildmesh)
         self.pb_get_mesh_from_dp.clicked.connect(self.call_pb_get_mesh_from_dp)
         self.pb_generatepattern.clicked.connect(self.call_pb_generatepattern)
+        self.pb_opendatapattern.clicked.connect(self.call_pb_opendatapattern)
 
         self.update_infotext()
         self.update_n_sites_widgets()
@@ -515,6 +517,20 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         generated_pattern.set_xymesh(self.pattern_xmesh, self.pattern_ymesh)
 
         self.dpcontroler.set_datapattern(generated_pattern)
+
+    def call_pb_opendatapattern(self):
+
+        datapattern = self.dpcontroler.get_datapattern()
+
+        if datapattern is not None:
+            new_dp_window = DataPattern_window()
+            new_dp_window.set_datapattern(datapattern)
+            new_dp_window.setWindowTitle('Generated Pattern')
+            new_dp_window.show()
+            self.dp_external.append(new_dp_window)
+
+        else:
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'A pattern has not been generated.')
 
     def update_all(self):
         self.get_datapattern()
