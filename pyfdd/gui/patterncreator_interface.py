@@ -55,6 +55,14 @@ class CreatorConfig_dialog(QtWidgets.QDialog, Ui_CreatorConfigDialog):
         input_validator = QtGui.QRegExpValidator(reg_ex, parent=self.le_normalization)
         self.le_normalization.setValidator(input_validator)
 
+        # Set up le normalization
+        self.call_enable_normalization()
+        self.call_normalization_min()
+
+        # Connect signals
+        self.cb_gen_method.currentIndexChanged.connect(self.call_enable_normalization)
+        self.cb_gen_method.currentIndexChanged.connect(self.call_normalization_min)
+
     def load_config(self, config):
         self.sb_numsites.setValue(config['n_sites'])
         self.sb_subpixels.setValue(config['sub_pixels'])
@@ -62,13 +70,33 @@ class CreatorConfig_dialog(QtWidgets.QDialog, Ui_CreatorConfigDialog):
         self.cb_gen_method.setCurrentIndex(config['gen_method'])
 
     def get_config(self):
+        n_sites = self.sb_numsites.value()
+        sub_pixels = self.sb_subpixels.value()
+        gen_method = GenMethod(self.cb_gen_method.currentIndex())
+        # Don't set up a normalization if what you are looking for is channeling yield.
+        normalization = float(self.le_normalization.text()) if not gen_method == 0 else 0
+
         self.new_config = {
-            'n_sites': self.sb_numsites.value(),
-            'sub_pixels': self.sb_subpixels.value(),
-            'normalization': float(self.le_normalization.text()),
-            'gen_method': GenMethod(self.cb_gen_method.currentIndex())}
+            'n_sites': n_sites,
+            'sub_pixels': sub_pixels,
+            'normalization': normalization,
+            'gen_method': gen_method}
 
         return self.new_config
+
+    def call_enable_normalization(self):
+
+        if self.cb_gen_method.currentText() == 'Channeling yield':
+            self.le_normalization.setEnabled(False)
+        else:
+            self.le_normalization.setEnabled(True)
+
+    def call_normalization_min(self):
+
+        if not self.cb_gen_method.currentText() == 'Channeling yield':
+            normalization = float(self.le_normalization.text())
+            if normalization <= 0:
+                self.le_normalization.setText('1')
 
 
 class CreatorParametter(FitParameter):
@@ -225,15 +253,7 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         # Connect signals
         self.pb_creatorconfig.clicked.connect(self.call_pb_creatorconfig)
         self.pb_buildmesh.clicked.connect(self.call_pb_buildmesh)
-        # self.pb_reset.clicked.connect(lambda: self.refresh_parameters(reset=True))
-        # self.pb_abortfits.setEnabled(False)
-        # self.pb_runfits.clicked.connect(self.call_pb_runfits)
-        # self.pb_abortfits.clicked.connect(self.call_pb_abortfits)
-        # self.pb_viewresults.clicked.connect(self.call_pb_viewresults)
-        # self.pb_savetable.clicked.connect(self.call_pb_savetable)
-        # self.pb_viewfit.clicked.connect(self.call_pb_viewlastfit)
-        # self.pb_viewfitdiff.clicked.connect(self.call_pb_viewfitdiff)
-        # self.pb_filldata.clicked.connect(self.call_pb_filldata)
+        self.pb_get_mesh_from_dp.clicked.connect(self.call_pb_get_mesh_from_dp)
 
         self.update_infotext()
         self.update_n_sites_widgets()
@@ -342,6 +362,7 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         n_sites = self.creatorconfig['n_sites']
         sub_pixels = self.creatorconfig['sub_pixels']
         normalization = self.creatorconfig['normalization']
+        normalization = normalization if not normalization == 0 else '---'  # Change normalization 0 to '---'
         gen_method_code = self.creatorconfig['gen_method'].name
         gen_method = self.tr_gen_method[gen_method_code]
 
@@ -390,7 +411,6 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
 
         if buildmesh_dialog.exec_() == QtWidgets.QDialog.Accepted:
             output = buildmesh_dialog.get_settings()
-            # Todo self datapattern should not be used here
             n_h = output['horizontal pixels']
             n_v = output['vertical pixels']
             if output['selected'] == 'detector':
@@ -417,6 +437,34 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
 
         # Update info text
         self.update_infotext()
+
+    def call_pb_get_mesh_from_dp(self):
+
+        self.get_datapattern()
+
+        if self.datapattern is None:
+            QtWidgets.QMessageBox.warning(self.parent_widget, 'Warning message', 'The DataPattern does not exist.')
+            return
+
+        self.pattern_xmesh, self.pattern_ymesh = \
+            self.datapattern.get_xymesh()
+        self.pattern_mesh_isset = True
+
+        # update config
+        horizontal_pixels = self.datapattern.nx
+        vertical_pixel = self.datapattern.ny
+        angular_step = (self.pattern_xmesh[0, -1] - self.pattern_xmesh[0, 0]) / (horizontal_pixels - 1)
+        angular_step = np.round(angular_step, decimals=2)
+        mesh_setting = config.getdict('patterncreator', 'mesh_settings')
+        mesh_setting['horizontal pixels'] = horizontal_pixels
+        mesh_setting['vertical pixels'] = vertical_pixel
+        mesh_setting['angular step'] = angular_step
+        mesh_setting['selected'] = 'step'
+        config.parser['patterncreator']['mesh_settings'] = json.dumps(mesh_setting)
+
+        # Update info text
+        self.update_infotext()
+
 
     def update_all(self):
         self.get_datapattern()
