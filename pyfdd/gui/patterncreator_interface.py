@@ -396,13 +396,21 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         self.pattern_mesh_isset = True
 
         # update config
+
         horizontal_pixels = self.datapattern.nx
         vertical_pixel = self.datapattern.ny
         angular_step = (self.pattern_xmesh[0, -1] - self.pattern_xmesh[0, 0]) / (horizontal_pixels - 1)
         angular_step = np.round(angular_step, decimals=2)
+
+        default_mesh_settings = {'horizontal pixels': 256,
+                                 'vertical pixels': 256,
+                                 'pixel size': 0.055,
+                                 'distance': 315.0,
+                                 'angular step': 0.1,
+                                 'selected': 'detector'}
         mesh_setting = config.getdict('patterncreator', 'mesh_settings') if \
             config.parser.has_option('patterncreator', 'mesh_settings') else \
-            dict()
+            default_mesh_settings
         mesh_setting['horizontal pixels'] = horizontal_pixels
         mesh_setting['vertical pixels'] = vertical_pixel
         mesh_setting['angular step'] = angular_step

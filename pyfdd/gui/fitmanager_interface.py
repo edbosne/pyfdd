@@ -1005,7 +1005,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.get_datapattern()
         self.get_simlibrary()
         self.update_infotext()
-        self.refresh_parameters()
+        self.dynamic_parameters.refresh_parameters(datapattern=self.datapattern)
 
     def update_n_sites_widgets(self):
         self.dynamic_site_ranges.update_n_sites_widgets(self.fitconfig['n_sites'])
