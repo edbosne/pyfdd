@@ -65,7 +65,7 @@ class PatternCreator:
         self._detector_xmesh_expanded = np.array([])
         self._detector_ymesh_expanded = np.array([])
         if self._sub_pixels > 1:
-            self._expande_detector_mesh()
+            self._expand_detector_mesh()
 
         # mesh used in calculations
         self._detector_xmesh_temp = np.array([])
@@ -311,7 +311,7 @@ class PatternCreator:
         y = np.arange(self._yfirst_lib2dl, self._ylast_lib2dl + 0.5*self._ystep_lib2dl, self._ystep_lib2dl)
         self._sim_xmesh, self._sim_ymesh = np.meshgrid(x, y)
 
-    def _expande_detector_mesh(self):
+    def _expand_detector_mesh(self):
 
         xstep = self._detector_xmesh[0, 1] - self._detector_xmesh[0, 0]
         ystep = self._detector_ymesh[1, 0] - self._detector_ymesh[0, 0]
