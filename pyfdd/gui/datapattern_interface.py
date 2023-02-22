@@ -83,7 +83,7 @@ class SetLabels_dialog(QtWidgets.QDialog, Ui_SetLabelsDialog):
         self.new_labels = dict()
 
         for key in labels_suggestions.keys():
-            if self.dp_controler.plot_labels[key] is '':
+            if self.dp_controler.plot_labels[key] == '':
                 self.new_labels[key] = labels_suggestions[key]
             else:
                 self.new_labels[key] = self.dp_controler.plot_labels[key]
