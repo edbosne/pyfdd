@@ -1287,22 +1287,25 @@ class DataPattern:
         if pixel_size is not None and distance is not None:
             xmesh, ymesh = create_detector_mesh(self.pattern_matrix.shape[1], self.pattern_matrix.shape[0],
                                                           self.pixel_size_mm, self.distance)
-            self.is_mesh_defined = True
+            is_mesh_defined = True
         else:
             if self.is_mesh_defined:
                 xmesh, ymesh = create_detector_mesh(self.pattern_matrix.shape[1],
                                                               self.pattern_matrix.shape[0],
                                                               self.pixel_size_mm,
                                                               self.distance)
+                is_mesh_defined = True
             else:
                 # create detector mesh
                 xm = np.arange(self.pattern_matrix.shape[1])
                 ym = np.arange(self.pattern_matrix.shape[0])
                 xmesh, ymesh = np.meshgrid(xm, ym)
+                is_mesh_defined = False
         if self.reverse_x:
             xmesh = np.fliplr(xmesh)
 
         self.set_xymesh(xmesh, ymesh)
+        self.is_mesh_defined = is_mesh_defined
 
     # ===== - Draw Methods - =====
     def draw(self, axes, **kwargs):
