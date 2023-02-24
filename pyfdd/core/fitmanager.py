@@ -444,6 +444,7 @@ class FitManager:
             recursive_call(patterns_list)
         except:
             # Reset current fit object
+            print('Recursive call did not work')
             self.current_fit_obj = None
 
     def run_single_fit(self, *args, verbose=1,
@@ -476,7 +477,7 @@ class FitManager:
     def _single_fit(self, sites, get_errors=False, pass_results=False,
                     verbose=1, verbose_graphics=False):
 
-        if not isinstance(sites, collections.Sequence):
+        if not isinstance(sites, collections.abc.Sequence):
             if isinstance(sites, (int, np.integer)):
                 sites = (sites,)
             else:

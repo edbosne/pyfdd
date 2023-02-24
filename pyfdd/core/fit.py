@@ -36,7 +36,7 @@ class Fit:
         if not isinstance(lib, Lib2dl):
             raise ValueError('lib is not an instance of Lib2dl')
 
-        if not isinstance(sites, collections.Sequence):
+        if not isinstance(sites, collections.abc.Sequence):
             if isinstance(sites, (int, np.integer)):
                 sites = (sites,)
             else:

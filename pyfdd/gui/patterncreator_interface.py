@@ -337,6 +337,26 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
     def are_changes_saved(self):
         return self.changes_saved
 
+    def set_creatorconfig_values(self, n_sites=None, sub_pixels=None, normalization=None, gen_method=None):
+        if n_sites is not  None:
+            self.creatorconfig['n_sites'] = n_sites
+        if sub_pixels is not None:
+            self.creatorconfig['sub_pixels'] = sub_pixels
+        if normalization is not None:
+            self.creatorconfig['normalization'] = normalization
+        if gen_method is not None:
+            self.creatorconfig['gen_method'] = gen_method
+
+        self.update_infotext()
+        self.update_n_sites_widgets()
+        config.parser['patterncreator']['creatorconfig'] = json.dumps(self.creatorconfig)
+
+    def set_sites(self, sites_list):
+        self.dynamic_site_ranges.set_sites(sites_list)
+
+    def set_parameters(self, parameters_dict):
+        self.dynamic_parameters.update_initial_values(parameters_dict=parameters_dict)
+
     def call_pb_creatorconfig(self):
 
         creatorconfig_dialog = CreatorConfig_dialog(parent_widget=self, current_config=self.creatorconfig)

@@ -19,6 +19,7 @@ from pyfdd.gui.qt_designer.fitconfig_dialog import Ui_FitConfigDialog
 from pyfdd.gui.qt_designer.parameteredit_dialog import Ui_ParameterEditDialog
 from pyfdd.gui.viewresults_interface import ViewResults_widget
 from pyfdd.gui.datapattern_interface import DataPattern_window
+
 import pyfdd.gui.config as config
 
 
@@ -487,10 +488,20 @@ class FitParameterDynamicLayout:
     def get_initial_values(self):
         parameter_keys = self.get_parameter_keys()
 
-        # Change initial values
+        # Get initial values
         initial_values = {key: parameter.initial_value
                           for key, parameter in zip(parameter_keys, self.parameter_objects)}
         return initial_values
+
+    def update_initial_values(self, parameters_dict):
+        parameter_keys = self.get_parameter_keys()
+
+        # Update initial values
+        for key, parameter in zip(parameter_keys, self.parameter_objects):
+            if key in parameters_dict.keys():
+                parameter.initial_value = parameters_dict[key]
+                parameter.update_description()
+
 
 
 class SiteRangeDynamicLayout:
@@ -542,6 +553,13 @@ class SiteRangeDynamicLayout:
     def get_sites_for_fit(self):
         sites_to_fit = [site_range.get_range_as_list() for site_range in self.sites_range_objects]
         return sites_to_fit
+
+    def set_sites(self, sites_list):
+        if len(sites_list) != len(self.sites_range_objects):
+            raise ValueError('The number of sites in the list needs to me the same as the number of site objects')
+
+        for site_range, site_int in zip(self.sites_range_objects, sites_list):
+            site_range.le_siterange.setText(str(site_int))
 
 
 class FitManawerWorker(QtCore.QObject):
@@ -789,6 +807,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         self.pb_viewfit.clicked.connect(self.call_pb_viewlastfit)
         self.pb_viewfitdiff.clicked.connect(self.call_pb_viewfitdiff)
         self.pb_filldata.clicked.connect(self.call_pb_filldata)
+        self.pb_to_patcreator.clicked.connect(self.call_pb_topatterncreator)
 
         self.update_infotext()
         self.update_n_sites_widgets()
@@ -1000,6 +1019,36 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
                     self.dp_external.append(new_dp_window)
         else:
             QtWidgets.QMessageBox.warning(self, 'Warning message', 'Results are not ready.')
+
+    def call_pb_topatterncreator(self):
+        if not hasattr(self.mainwindow, 'pc_w'):
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'Main Window does not have a Pattern Creator Widget')
+            return
+
+        if self.fitman_output is not None:
+            n_sites = self.fitconfig['n_sites']
+            sub_pixels = self.fitconfig['sub_pixels']
+            last_output = self.fitman_output.df_horizontal.iloc[-1]
+            sites_list = []
+            parameters_dict = dict()
+            out_keys = ['x', 'y', 'phi', 'sigma']  # ,'f_p1','f_p2','f_p3'
+            par_keys = ['dx', 'dy', 'phi', 'sigma']  # ,'f_p1','f_p2','f_p3'
+            for par_k, out_k in zip(par_keys, out_keys):
+                parameters_dict[par_k] = last_output[out_k]
+                'site{:d} fraction'
+            for n in range(n_sites):
+                sites_list.append(last_output[f'p{(n+1):d}'])
+                parameters_dict[f'f_p{(n+1):d}'] = last_output[f'site{(n+1):d} fraction']
+
+            self.mainwindow.pc_w.set_creatorconfig_values(n_sites=n_sites, sub_pixels=sub_pixels)
+            self.mainwindow.pc_w.set_sites(sites_list)
+            self.mainwindow.pc_w.set_parameters(parameters_dict)
+            self.mainwindow.maintabs.setCurrentIndex(3)  # Move to pattern creator tab
+
+        else:
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'Results are not ready.')
+
+
 
     def update_all(self):
         self.get_datapattern()
