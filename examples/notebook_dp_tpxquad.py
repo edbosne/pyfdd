@@ -12,7 +12,7 @@
 
 import pyfdd
 print('PyFDD version', pyfdd.__version__)
-from ecsli_tools import *
+from specific_tools import *
 
 import matplotlib.pyplot as plt
 import numpy as np

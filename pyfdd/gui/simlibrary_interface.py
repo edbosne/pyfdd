@@ -110,11 +110,11 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
         # Separate input from output
         dp_menu.addSeparator()
 
-        # Export as ascii pattern matrix
-        exportascii_act = QtWidgets.QAction('&Export ascii', self)
-        exportascii_act.setStatusTip('Export as an ascii file')
-        exportascii_act.triggered.connect(self.dpcontroler.exportascii_dp_call)
-        dp_menu.addAction(exportascii_act)
+        # Export pattern matrix
+        export_act = QtWidgets.QAction('&Export pattern', self)
+        export_act.setStatusTip('Export as an .txt .csv or .2db file')
+        export_act.triggered.connect(self.dpcontroler.export_dp_call)
+        dp_menu.addAction(export_act)
 
         # Save as image
         saveimage_act = QtWidgets.QAction('&Save Image', self)

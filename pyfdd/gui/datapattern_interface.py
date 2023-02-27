@@ -31,6 +31,8 @@ from pyfdd.gui.qt_designer.importsettings_dialog import Ui_ImportSettingsDialog
 from pyfdd.gui.qt_designer.editorientation_dialog import Ui_EditOrientationDialog
 import pyfdd.gui.config as config
 
+from specific_tools import make_array_from_scatterdata
+
 
 # Set style
 sns.set_style('white')
@@ -685,15 +687,15 @@ class DataPattern_widget(QtWidgets.QWidget, Ui_DataPatternWidget):
         dp_menu.addAction(save_act)
 
         # Export as ascii pattern matrix
-        exportascii_act = QtWidgets.QAction('&Export ascii', self)
-        exportascii_act.setStatusTip('Export as an ascii file')
-        exportascii_act.triggered.connect(self.dpcontroler.exportascii_dp_call)
+        exportascii_act = QtWidgets.QAction('&Export pattern', self)
+        exportascii_act.setStatusTip('Export as an .txt .csv or .2db file')
+        exportascii_act.triggered.connect(self.dpcontroler.export_dp_call)
         dp_menu.addAction(exportascii_act)
 
         # Export as origin pattern matrix
-        exportorigin_act = QtWidgets.QAction('&Export binary', self)
-        exportorigin_act.setStatusTip('Export as a binary file')
-        exportorigin_act.triggered.connect(self.dpcontroler.exportorigin_dp_call)
+        exportorigin_act = QtWidgets.QAction('&Process data', self)
+        exportorigin_act.setStatusTip('Process data into a 2D pattern')
+        exportorigin_act.triggered.connect(self.dpcontroler.processdata_dp_call)
         dp_menu.addAction(exportorigin_act)
 
         # Save as image
@@ -999,13 +1001,66 @@ class DataPatternControler(QtCore.QObject):
         save_path = os.path.dirname(filename[0])
         config.parser['datapattern']['save_path'] = save_path
 
+    def processdata_dp_call(self):
+        open_path = '' if not config.parser.has_option('datapattern', 'open_path') else \
+            config.get('datapattern', 'open_path')
+        filename = QtWidgets.QFileDialog.getOpenFileName(self.parent_widget,
+                                                         'Import matrix file',
+                                                         directory=open_path,
+                                                         filter='ClusterViewer ScatterData (*)',
+                                                         options=QtWidgets.QFileDialog.DontUseNativeDialog)
+        if filename == ('', ''):  # Cancel
+            return
+
+        # Process data
+        data_array = np.array([])
+        try:
+            match filename[1]:
+                case 'ClusterViewer ScatterData (*)':
+                    data_array = make_array_from_scatterdata(filename[0])
+        except:
+            QtWidgets.QMessageBox.warning(self.parent_widget, 'Warning message',
+                                          'Error while processing the data.')
+            return
+
+        # Get Import settings
+        importsettings_dialog = ImportSettings_dialog(parent_widget=self.parent_widget)
+        import_config = {}
+        if importsettings_dialog.exec_() == QtWidgets.QDialog.Accepted:
+            import_config = importsettings_dialog.get_settings()
+            # configuration keys {'label', 'detector type', 'orientation'}
+        else:  # Canceled
+            return
+
+        # Create DataPattern
+        try:
+            if import_config['detector type'] == 'single':
+                self.datapattern = pyfdd.DataPattern(pattern_array=data_array, nChipsX=1, nChipsY=1, real_size=1)
+            elif import_config['detector type'] == 'quad':
+                self.datapattern = pyfdd.DataPattern(pattern_array=data_array, nChipsX=2, nChipsY=2, real_size=3)
+                self.datapattern.manip_correct_central_pix()
+            # Orient
+            self.datapattern.manip_orient(import_config['orientation'])
+        except:
+            QtWidgets.QMessageBox.warning(self.parent_widget, 'Warning message',
+                                          'Error while importing the data.')
+        else:
+            # Draw pattern and update info text
+            self.draw_new_datapattern()
+            self.update_infotext()
+            self.datapattern_changed.emit()
+
+            # update config
+            open_path = os.path.dirname(filename[0])
+            config.parser['datapattern']['open_path'] = open_path
+
     def import_dp_call(self):
         open_path = '' if not config.parser.has_option('datapattern', 'open_path') else \
             config.get('datapattern', 'open_path')
         filename = QtWidgets.QFileDialog.getOpenFileName(self.parent_widget,
                                                          'Import matrix file',
                                                          directory=open_path,
-                                                         filter='Import matrix (*.txt *.2db)',
+                                                         filter='Import matrix (*.txt *.csv *.2db)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
         if filename == ('', ''):  # Cancel
             return
@@ -1040,7 +1095,7 @@ class DataPatternControler(QtCore.QObject):
             open_path = os.path.dirname(filename[0])
             config.parser['datapattern']['open_path'] = open_path
 
-    def exportascii_dp_call(self):
+    def export_dp_call(self):
         if not self.datapattern_exits():
             return
 
@@ -1050,33 +1105,19 @@ class DataPatternControler(QtCore.QObject):
         filename = QtWidgets.QFileDialog.getSaveFileName(self.parent_widget,
                                                          'Export DataPattern',
                                                          directory=save_path,
-                                                         filter='ASCII (*.txt)',
+                                                         filter='ASCII (*.txt);;CSV (*.csv);;Binary (*.2db)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
+
         if filename == ('', ''):  # Cancel
             return
 
-        self.datapattern.io_save_ascii(filename[0])
-
-        # update config
-        save_path = os.path.dirname(filename[0])
-        config.parser['datapattern']['save_path'] = save_path
-
-    def exportorigin_dp_call(self):
-        if not self.datapattern_exits():
-            return
-
-        save_path = '' if not config.parser.has_option('datapattern', 'save_path') else \
-            config.get('datapattern', 'save_path')
-
-        filename = QtWidgets.QFileDialog.getSaveFileName(self.parent_widget,
-                                                         'Export DataPattern',
-                                                         directory=save_path,
-                                                         filter='Binary (*.2db)',
-                                                         options=QtWidgets.QFileDialog.DontUseNativeDialog)
-        if filename == ('', ''):  # Cancel
-            return
-
-        self.datapattern.io_save_origin(filename[0])
+        match filename[1]:
+            case 'ASCII (*.txt)':
+                self.datapattern.io_save_ascii(filename[0])
+            case 'CSV (*.csv)':
+                self.datapattern.io_save_csv(filename[0])
+            case 'Binary (*.2db)':
+                self.datapattern.io_save_origin(filename[0])
 
         # update config
         save_path = os.path.dirname(filename[0])

@@ -30,6 +30,11 @@ class TestDataPattern(unittest.TestCase):
         dp_timepix = DataPattern(file_path=filepath, nChipsX=2, nChipsY=2, real_size=3)
         self.assertTrue(dp_timepix.pattern_matrix.size >= 0)
 
+    def test_init_from_csv(self):
+        filepath = 'data_files/tpx_quad_array_2M.csv'
+        dp_timepix = DataPattern(file_path=filepath, nChipsX=2, nChipsY=2, real_size=3)
+        self.assertTrue(dp_timepix.pattern_matrix.size >= 0)
+
     def test_manipulations(self):
 
         # Get a timepix array

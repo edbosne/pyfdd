@@ -574,6 +574,8 @@ class DataPattern:
         # Call the right load function
         if filetype == '.txt':
             self._io_load_ascii(filename)
+        elif filetype == '.csv':
+            self._io_load_csv(filename)
         elif filetype == '.2db':
             self._io_load_origin(filename)
         elif filetype == '.json':
@@ -606,6 +608,32 @@ class DataPattern:
             np.savetxt(filename, matrix, "%d")
         if number_format == 'float':
             np.savetxt(filename, matrix, "%f")
+
+    def _io_load_csv(self, filename):
+        """
+        Loads an csv file containing a 2D data matrix.
+        :param filename: Name or full path to the file.
+        """
+        self.pattern_matrix = ma.array(data=np.loadtxt(filename, delimiter=';'), mask=False)
+        (self.ny, self.nx) = self.pattern_matrix.shape
+
+    def io_save_csv(self, filename, ignore_mask=False, number_format='int'):
+        """
+        Saves the current pattern matrix to an ascii file.
+        :param filename: Name or full path to the file.
+        :param ignore_mask: If True data values are saved instead of a zero where the mask is on.
+        :param number_format: Set the number format, it can be set to 'int' or 'float'
+        :return:
+        """
+        if ignore_mask:
+            matrix = self.pattern_matrix.data
+        else:
+            matrix = self.pattern_matrix.filled(0)
+
+        if number_format == 'int':
+            np.savetxt(filename, matrix, "%d", delimiter=';')
+        if number_format == 'float':
+            np.savetxt(filename, matrix, "%f", delimiter=';')
 
     def _io_load_origin(self, filename):
         """

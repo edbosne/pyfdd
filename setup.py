@@ -19,7 +19,7 @@ setup(
               'pyfdd.gui',
               'pyfdd.gui.qt_designer',
               'examples',
-              'ecsli_tools'],
+              'specific_tools'],
     install_requires=['numpy',
                       'matplotlib >= 3.3.0, != 3.4.*',
                       'scipy',
