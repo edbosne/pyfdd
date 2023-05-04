@@ -82,7 +82,7 @@ class FitResults:
 
         self.data_list.append(results_entry)
 
-    def generate_results_table(self, layout='horizontal', simplify:bool = True):
+    def generate_results_table(self, layout='horizontal', simplify:bool = False):
         if layout not in ('horizontal', 'vertical'):
             raise ValueError(f"Argument 'layout' shoudl be either 'horizontal' or 'vertical' not {layout}.")
 
@@ -108,6 +108,9 @@ class FitResults:
             df = df.drop(columns=cols_to_drop)
             also_drop = ['orientation gradient', 'data in sim. range']
             df = df.drop(columns=also_drop)
+            df.round({'x':2, 'y':2, 'phi':2,'sigma':2})
+            cols_to_round = df.filter(like='fraction').columns
+            df.round({key: 2 for key in cols_to_round})
 
         return df
 
