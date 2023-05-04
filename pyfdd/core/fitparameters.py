@@ -226,7 +226,7 @@ class FitParameters:
             if key in self._parameter_keys:
                 if isinstance(kwargs[key], bool):
                     self._fixed_values[key] = kwargs[key]
-                elif isinstance(kwargs[key], (int, float, np.integer, np.float)):
+                elif isinstance(kwargs[key], (int, float, np.integer)):
                     self._initial_values[key] = kwargs[key]
                     self._fixed_values[key] = True
                 else:

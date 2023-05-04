@@ -81,7 +81,7 @@ class Fit:
 
     def _init_parameters_variables(self):
         parameter_template = \
-            {'p0':None, 'value':None, 'use':True, 'std':None, 'scale':1, 'bounds':(None,None)}
+            {'p0':None, 'value':None, 'use':True, 'std':None, 'scale':1, 'bounds':(None,None), 'std':np.nan}
         # parameters are, site 1 2 and 3,dx,dy,phi,total_cts,f_p1,f_p2,f_p3
         # keys are 'sub_pixels','dx','dy','phi',
         # 'total_cts','sigma','pattern_1', 'f_p1', 'pattern_2', 'f_p2', 'pattern_3', 'f_p3'
@@ -245,7 +245,7 @@ class Fit:
             self._parameters_dict[k]['use'] = True
             self._parameters_dict['f_p'+str(i+1)]['use'] = True
 
-# Fit methods
+##### Fit methods #####
 # methods for chi-square minimization
     def get_dof(self):
         """
@@ -268,6 +268,12 @@ class Fit:
                 n_param += 1
 
         return n_pixels - n_param
+
+    def get_parameters_dict(self):
+        if self._parameters_dict is not None:
+            return self._parameters_dict.copy()
+        else:
+            return None
 
     def chi_square(self, dx, dy, phi, total_events, fractions_sims, sigma=0):
         """
@@ -565,6 +571,7 @@ class Fit:
             f = lambda xx: self.chi_square_call(xx, enable_scale)
         else:
             raise ValueError('undefined function, should be likelihood or chi_square')
+        # TODO re-calculate Hessian on failure
         H = nd.Hessian(f, step=1e-4)
         hh = H(x)
         #print('Parameters order', self._parameters_order)
