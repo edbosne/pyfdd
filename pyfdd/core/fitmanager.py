@@ -108,9 +108,10 @@ class FitResults:
             df = df.drop(columns=cols_to_drop)
             also_drop = ['orientation gradient', 'data in sim. range']
             df = df.drop(columns=also_drop)
-            df.round({'x':2, 'y':2, 'phi':2,'sigma':2})
+            df = df.round({'value':2, 'x':2, 'y':2, 'phi':2,'sigma':2, 'counts':0})
             cols_to_round = df.filter(like='fraction').columns
-            df.round({key: 2 for key in cols_to_round})
+            dict_to_round = {key:3 for key in cols_to_round}
+            df = df.round(dict_to_round)
 
         return df
 
@@ -152,7 +153,7 @@ class FitResults:
                 self._lib.dict_2dl["Spectrums"][patt_num - 1]["Spectrum_description"]
             append_dic['site{:d} factor'.format(i + 1)] = self._lib.dict_2dl["Spectrums"][patt_num - 1]["factor"]
             append_dic['site{:d} u1'.format(i + 1)] = self._lib.dict_2dl["Spectrums"][patt_num - 1]["u1"]
-            append_dic['site{:d} fraction'.format(i + 1)] = parameter_dict['f_p{:d}'.format(i + 1)]['value']
+            append_dic['site{:d} fraction'.format(i + 1)] = float(parameter_dict['f_p{:d}'.format(i + 1)]['value'])
 
         # if get_errors:
         append_dic['x_err'] = parameter_dict['dx']['std']
@@ -164,7 +165,10 @@ class FitResults:
             append_dic['fraction{:d}_err'.format(i + 1)] = \
                 parameter_dict['f_p{:d}'.format(i + 1)]['std']
 
-        self.df_horizontal = self.df_horizontal.append(append_dic, ignore_index=True)
+        print(append_dic)
+        df_dictionary = pd.DataFrame([append_dic])
+        print(df_dictionary)
+        self.df_horizontal = pd.concat([self.df_horizontal, df_dictionary], ignore_index=True)
         self.df_horizontal = self.df_horizontal[list(self.columns_horizontal)]
 
     def _fill_vertical_results_dict(self, entry:dict):#p1=None, p2=None, p3=None):
@@ -178,9 +182,6 @@ class FitResults:
         append_dic['value'] = ft_results['fun']
         append_dic['success'] = ft_results['success']
         append_dic['orientation gradient'] = np.linalg.norm(ft_results['orientation jac'])
-        orientation_values = {'dx': parameter_dict['dx']['value'],
-                              'dy': parameter_dict['dy']['value'],
-                              'phi': parameter_dict['phi']['value']}
         append_dic['data in sim. range'] = entry['in_range']
         append_dic['D.O.F.'] = entry['dof']
         append_dic['x'] = parameter_dict['dx']['value']
@@ -197,7 +198,7 @@ class FitResults:
         append_dic['sigma_err'] = parameter_dict['sigma']['std']
 
         # print('append_dic ', append_dic)
-        main_columns = pd.DataFrame().append(append_dic, ignore_index=True)
+        main_columns = pd.DataFrame([append_dic])
 
         for i in range(self._n_sites):
             patt_num = entry['sites'][i]  # index of the pattern in dict_2dl is patt_num - 1
@@ -228,7 +229,7 @@ class FitResults:
         temp_df = pd.concat([main_columns, pd.DataFrame.from_dict(append_dic)],
                                      axis=1, ignore_index=False)
 
-        self.df_vertical = self.df_vertical.append(temp_df, ignore_index=True, sort=False)
+        self.df_vertical = pd.concat([self.df_vertical, temp_df], ignore_index=True, sort=False)
         self.df_vertical = self.df_vertical[list(self.columns_vertical)]
 
 

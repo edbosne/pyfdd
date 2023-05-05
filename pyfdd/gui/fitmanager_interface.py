@@ -942,7 +942,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
     def call_pb_viewresults(self):
 
         if self.fitman_output is not None:
-            self.viewresults_window = ViewResults_widget(results_df=self.fitman_output.df_horizontal,
+            self.viewresults_window = ViewResults_widget(fitman_output=self.fitman_output,
                                                          parent_widget=self)
             self.viewresults_window.show()
         else:

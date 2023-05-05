@@ -23,12 +23,13 @@ import pyfdd
 # import with absolute import locations
 from pyfdd.gui.pandasmodel import DataFrameModel
 from pyfdd.gui.qt_designer.viewresults_widget import Ui_ViewResultsWidget
+import pyfdd.gui.config as config
 
 
 class ViewResults_widget(QtWidgets.QWidget, Ui_ViewResultsWidget):
     """ Data pattern widget class"""
 
-    def __init__(self, *args, results_df, parent_widget=None, **kwargs):
+    def __init__(self, *args, fitman_output:pyfdd.FitManager, parent_widget=None, **kwargs):
         """
         Init method for the view results widget
         :param args:
@@ -36,20 +37,30 @@ class ViewResults_widget(QtWidgets.QWidget, Ui_ViewResultsWidget):
         :param kwargs:
         """
 
+        if not isinstance(fitman_output, pyfdd.FitManager):
+            raise TypeError(f'Argument fitman_output should be of type pyfdd.FitManager and not {type(fitman_output)}')
+
         super(ViewResults_widget, self).__init__(*args, **kwargs)
         self.setupUi(self)
 
-        if not isinstance(results_df, pd.DataFrame):
-            raise ValueError('results_df must be of type pandas.DataFrame.')
+        # Set config section
+        if not config.parser.has_section('viewresults'):
+            config.parser.add_section('viewresults')
 
-        self.results_df = results_df.copy()
+        # Load or create variables
+        self.simplify_table_view = False if not config.parser.has_option('viewresults', 'simplify_table_view') else \
+            config.getboolean('viewresults', 'simplify_table_view')
+
+        self.fitman = fitman_output
+        self.results_df = self.fitman.results.generate_results_table(layout='horizontal',
+                                                                       simplify =self.simplify_table_view)
         self.parent_widget = parent_widget
 
         # set the mpl widget background colour
         self.mplframe.setStyleSheet('background: palette(window);')
 
         # Set up matplotlib canvas
-        # get background color from color from widget and convert it to RBG
+        # get background color from widget and convert it to RBG
         pyqt_bkg = self.parent_widget.mainwindow.palette().color(QtGui.QPalette.Background).getRgbF()
         mpl_bkg = mpl.colors.rgb2hex(pyqt_bkg)
 
@@ -70,6 +81,10 @@ class ViewResults_widget(QtWidgets.QWidget, Ui_ViewResultsWidget):
         self.mpl_hlayout.addWidget(self.mpl_canvas_fractions)
         self.mpl_canvas_fractions.draw()
 
+        # Connect signals
+        self.pb_simplify.clicked.connect(self.call_pb_simplify_table)
+
+        self.update_pb_simplify()
         self.show_table()
         self.show_plots()
 
@@ -100,3 +115,18 @@ class ViewResults_widget(QtWidgets.QWidget, Ui_ViewResultsWidget):
         self.ResultsTable.setSizeAdjustPolicy(
             QtWidgets.QAbstractScrollArea.AdjustToContents)
         self.ResultsTable.resizeColumnsToContents()
+
+    def call_pb_simplify_table(self):
+        self.simplify_table_view = not self.simplify_table_view
+        self.results_df = self.fitman.results.generate_results_table(layout='horizontal',
+                                                                     simplify=self.simplify_table_view)
+        self.update_pb_simplify()
+        self.show_table()
+        # update config
+        config.parser['viewresults']['simplify_table_view'] = str(self.simplify_table_view)
+
+    def update_pb_simplify(self):
+        if self.simplify_table_view:
+            self.pb_simplify.setText("Advanced Table View")
+        else:
+            self.pb_simplify.setText("Simplified Table View")
