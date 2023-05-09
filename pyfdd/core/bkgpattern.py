@@ -43,23 +43,33 @@ class BkgPattern(DataPattern):
 
         self.correction_factor = data_count_rate / (data_count_rate - bkg_count_rate)
 
-    def generate_background(self, measurement_dp=None, as_datapattern=False):
+        return self.correction_factor
+
+    def get_smoothed_background(self, as_datapattern=False):  #, measurement_dp=None, as_datapattern=False):
 
         # Check if pattern have been calibrated and have a simular range
-        if measurement_dp is None:
-            measurement_dp=self
-        else:
-            if not isinstance(DataPattern, measurement_dp):
-                raise ValueError(f'Argument measurement_dp should be of type pyfdd.DataPattern, '
-                                 f'not {type(measurement_dp)}')
-            # self.verify_ranges(measurement_dp)
-            self.verify_shape(measurement_dp)
+        # if measurement_dp is None:
+        #     measurement_dp=self
+        # else:
+        #     if not isinstance(DataPattern, measurement_dp):
+        #         raise ValueError(f'Argument measurement_dp should be of type pyfdd.DataPattern, '
+        #                          f'not {type(measurement_dp)}')
+        #     # self.verify_ranges(measurement_dp)
+        #     self.verify_shape(measurement_dp)
 
         # Smooth background
         smoothed_background = self._gaussian_conv()
 
-        # Normalize
-        return smoothed_background
+        # Normalize to number of pixels
+        #smoothed_background *= (smoothed_background.size / smoothed_background.sum())
+        #assert smoothed_background.sum() == smoothed_background.size   # if this creates issues check the mask
+
+        if as_datapattern is False:
+            return smoothed_background
+        else:
+            dp = DataPattern(pattern_array=smoothed_background)
+            dp.set_xymesh(self.xmesh, self.ymesh)
+            return dp
 
     def verify_shape(self, measurement_dp:DataPattern):
         if not np.alltrue(measurement_dp.pattern_matrix.shape == self.pattern_matrix.shape):

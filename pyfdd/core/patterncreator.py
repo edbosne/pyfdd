@@ -17,6 +17,7 @@ from scipy.ndimage import gaussian_filter
 # Imports from project
 from pyfdd.core.lib2dl import Lib2dl
 from pyfdd.core.datapattern import DataPattern
+from pyfdd.core.bkgpattern import BkgPattern
 
 
 class PatternCreator:
@@ -25,16 +26,20 @@ class PatternCreator:
     Can create patterns for a specific detector configuration
     Can create ideal patterns, patterns with poisson noise and by Monte Carlo
     """
-    def __init__(self, lib, xmesh=None, ymesh=None, simulations=None, mask=ma.nomask, sub_pixels=1,
-                 mask_out_of_range=True):
+
+    def __init__(self, lib: Lib2dl, xmesh: np.ndarray = None, ymesh: np.ndarray = None, simulations=None,
+                 mask=ma.nomask, sub_pixels: int = 1, background_pattern: np.ndarray = None,
+                 background_factor: float = 1.0, mask_out_of_range: bool = True):
         """
         __init__ method for PatternCreator. Simulation and mesh are to be stated here.
-        mask_out_of_range false means that points that are out of the range of simulations are not masked,
-        :type lib: Lib2dl
         :param lib: A lib2dl type object that points to the desired library
         :param xmesh: The horizontal mesh of the detector
         :param ymesh: The vertical mesh of the detector
         :param simulations: List of simulations to be used for creating the pattern. Order is kept as stated.
+        :param mask: Mask for pixel matrix
+        :param sub_pixels: Number of divisions in pixels for calculating surface value
+        :param background_pattern: BkgPattern to be considered in the fit.
+        :param mask_out_of_range: False means that points that are out of the range of simulations are not masked,
         """
 
         if simulations:
@@ -100,6 +105,24 @@ class PatternCreator:
         self._pre_smooth_pattern_stack = np.ones(self._pattern_stack.shape)
         self._pre_smooth_sigma = None
         self._pattern_current = ma.array(np.ones(self._sim_xmesh.shape))
+
+        # Prepare background
+        if background_pattern is not None:
+            background_factor = float(background_factor)
+            if not isinstance(background_factor, float):
+                raise TypeError(f'background_factor should be of type float, not {type(background_factor)}')
+            if not background_factor >= 1.0:
+                raise ValueError(f'backgourd_factor needs to be a float value equal or larger than one.')
+
+            if not np.alltrue(background_pattern.shape == xmesh.shape) and \
+                    not np.alltrue(background_pattern.shape == ymesh.shape):
+                raise ValueError('The shape of background_pattern needs to be the same as that of the '
+                                 'creator angular mesh.')
+            self._background_pattern = ma.array(background_pattern)
+            self._background_is_set = True
+        else:
+            self._background_is_set = False
+        self._background_factor = background_factor
 
     def make_datapattern(self, dx, dy, phi, fractions, total_events, sigma=0, pattern_type='ideal'):
         """
@@ -176,6 +199,10 @@ class PatternCreator:
 
         # render pattern
         self._grid_interpolation()
+
+        # background
+        if self._background_is_set:
+            self._add_background()
 
         # If pattern type is yield return here
         if pattern_type == 'yield':
@@ -392,6 +419,21 @@ class PatternCreator:
             temp_pattern = ma.masked_equal(temp_pattern, 0)
 
         self._pattern_current = temp_pattern
+
+    def _add_background(self):
+
+        # Ensure they have the same mask
+        combined_mask = np.logical_or(self._pattern_current.mask, self._background_pattern.mask)
+        self._pattern_current.mask = combined_mask
+        self._background_pattern.mask = combined_mask
+
+        # Ensure the same normalization
+        self._background_pattern *= self._pattern_current.sum() / self._background_pattern.sum()
+
+        # add with respect to the correction factor
+        self._pattern_current = (1/self._background_factor) * self._pattern_current + \
+                                (1 - 1/self._background_factor) * self._background_pattern
+
 
     def _normalization(self, total_events=1):
 

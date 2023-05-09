@@ -30,13 +30,18 @@ class TestBkgPattern(unittest.TestCase):
         patt_arr = ((np.ones((256, 256))*horizontal_gradient)*vertical_gradient.T)
         bkg_patt = BkgPattern(pattern_array=patt_arr)
         bkg_patt.manip_create_mesh(0.055, 300)
-        bkg_patt.set_sigma(20)
-        smoothed_background = bkg_patt.generate_background()
+        bkg_patt.set_sigma(1)
+        smoothed_background = bkg_patt.get_smoothed_background()
 
         plt.figure()
         bkg_patt.draw(plt.subplot(111))
+
         plt.figure()
         plt.imshow(smoothed_background)
+
+        dp = bkg_patt.get_smoothed_background(as_datapattern=True)
+        plt.figure()
+        dp.draw(plt.subplot(111))
         plt.show()
 
         # Check if pattern have been calibrated and have a simular range
