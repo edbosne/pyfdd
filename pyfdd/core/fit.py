@@ -56,6 +56,9 @@ class Fit:
         self.data_pattern = None
         self.sim_pattern = None
         self.data_pattern_is_set = False
+        self.background_pattern = None
+        self.background_factor = 1
+        self.background_pattern_is_set = False
 
         # results and error bars
         self.results = None
@@ -232,11 +235,24 @@ class Fit:
         #print('bnds - ', bnds)
         return bnds
 
-    def set_data_pattern(self, XXmesh, YYmesh, pattern):
+    def set_data_pattern(self, XXmesh, YYmesh, pattern, background_pattern=None, background_factor=1):
+        if background_pattern is not None:
+            if not all((XXmesh.shape == YYmesh.shape, YYmesh.shape == pattern.shape,
+                        pattern.shape == background_pattern.shape)):
+                raise ValueError('All the input patterns need to have the same dimentions.')
+            self.background_pattern = background_pattern
+            self.background_factor = background_factor
+            self.background_pattern_is_set = True
+        else:  # Remove background
+            self.background_pattern = None
+            self.background_factor = 1
+            self.background_pattern_is_set = False
+
         self.XXmesh = XXmesh.copy()
         self.YYmesh = YYmesh.copy()
         self.data_pattern = pattern.copy()
         self.data_pattern_is_set = True
+
 
     def _set_patterns_to_fit(self):
         for i in np.arange(0, self._n_sites):
@@ -486,6 +502,8 @@ class Fit:
         self.pattern_generator = PatternCreator(self._lib, self.XXmesh, self.YYmesh, sites,
                                                 mask=self.data_pattern.mask,
                                                 sub_pixels=self._parameters_dict['sub_pixels']['value'],
+                                                background_pattern=self.background_pattern,
+                                                background_factor=self.background_factor,
                                                 mask_out_of_range = False)
 
         if not self._parameters_dict['sigma']['use']:

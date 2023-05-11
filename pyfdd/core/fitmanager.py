@@ -285,6 +285,9 @@ class FitManager:
         self.dp_pattern = None
         self.lib = None
         self.current_fit_obj = None
+        self.background_pattern = None
+        self.background_factor = 1
+        self.background_pattern_is_set = False
 
         # Fit settings
         self._n_sites = n_sites
@@ -323,12 +326,13 @@ class FitManager:
 
         self.done_param_verbose = True
 
-    def set_pattern(self, data_pattern, library):
+    def set_pattern(self, data_pattern, library, background_pattern=None, background_factor=1):
         """
         Set the pattern to fit.
         :param data_pattern: path or DataPattern
         :param library: path or Lib2dl
         """
+
         if isinstance(data_pattern, DataPattern):
             # all good
             self.dp_pattern = data_pattern
@@ -341,6 +345,17 @@ class FitManager:
             ValueError('data_pattern input error')
         self.fit_parameters.update_initial_values_with_datapattern(self.dp_pattern)
         self.fit_parameters.update_bounds_with_datapattern(self.dp_pattern)
+
+        if background_pattern is not None:
+            if not all((data_pattern.pattern_matrix.shape == background_pattern.shape)):
+                raise ValueError('All the input patterns need to have the same dimentions.')
+            self.background_pattern = background_pattern
+            self.background_factor = background_factor
+            self.background_pattern_is_set = True
+        else:  # Remove background
+            self.background_pattern = None
+            self.background_factor = 1
+            self.background_pattern_is_set = False
 
         if isinstance(library, Lib2dl):
             # all good
@@ -454,7 +469,11 @@ class FitManager:
         patt = self.dp_pattern.pattern_matrix
         xmesh = self.dp_pattern.xmesh
         ymesh = self.dp_pattern.ymesh
-        ft.set_data_pattern(xmesh, ymesh, patt)
+        if self.background_pattern_is_set:
+            ft.set_data_pattern(xmesh, ymesh, patt,
+                                background_pattern=self.background_pattern, background_factor=self.background_factor)
+        else:
+            ft.set_data_pattern(xmesh, ymesh, patt)
 
         # Get parameter values
         init_dict = self.fit_parameters.get_initial_values()
