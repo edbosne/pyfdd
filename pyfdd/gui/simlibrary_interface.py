@@ -78,7 +78,11 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
         self.mplwindow.setStyleSheet('background: palette(window);')
 
         # Instantiate datapattern controler
-        self.dpcontroler = DataPatternControler(parent_widget=self, mpl_layout=self.mplvl, infotext_box=None)
+        self.dpcontroler = DataPatternControler(parent_widget=self)#, mpl_layout=self.mplvl, infotext_box=None)
+        self.mainwindow = mainwindow
+        self.mpl_layout = self.mplvl
+        self.dpcontroler.set_widgets_and_layouts(mpl_layout=self.mplvl, mainwindow=self.mainwindow,
+                                                 infotext_box=self.infotext)
         self.dpcontroler.percentiles = [0, 1]  # Force [0, 1] percentiles
 
         # Create a menubar entry for the datapattern
