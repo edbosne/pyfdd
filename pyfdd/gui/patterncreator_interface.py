@@ -26,7 +26,8 @@ from pyfdd.core.datapattern.datapattern import create_detector_mesh
 from pyfdd.gui.qt_designer.patterncreator_widget import Ui_PatternCreatorWidget
 from pyfdd.gui.qt_designer.creatorconfig_dialog import Ui_CreatorConfigDialog
 from pyfdd.gui.fitmanager_interface import FitParameter, SiteRange, FitParameterDynamicLayout, SiteRangeDynamicLayout
-from pyfdd.gui.datapattern_interface import DataPatternControler, BuildMesh_dialog, DataPattern_window
+from pyfdd.gui.datapattern_controler import DataPatternControler, BuildMesh_dialog
+from pyfdd.gui.datapattern_interface import DataPattern_window
 
 import pyfdd.gui.config as config
 
@@ -209,7 +210,11 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         self.mplwindow.setStyleSheet('background: palette(window);')
 
         # Instantiate datapattern controler
-        self.dpcontroler = DataPatternControler(parent_widget=self, mpl_layout=self.mplvl, infotext_box=None)
+        self.dpcontroler = DataPatternControler(parent_widget=self)#, mpl_layout=self.mplvl, infotext_box=None)
+        self.mainwindow = mainwindow
+        self.mpl_layout = self.mplvl
+        self.dpcontroler.set_widgets_and_layouts(mpl_layout=self.mplvl, mainwindow=self.mainwindow,
+                                                 infotext_box=self.infotext)
 
         # Create a menubar entry for the datapattern
         self.menubar = self.mainwindow.menuBar()
