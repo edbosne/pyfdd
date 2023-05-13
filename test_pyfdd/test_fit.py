@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 import math
 
-from pyfdd import Lib2dl, Fit, DataPattern, PatternCreator, BkgPattern
+from pyfdd import Lib2dl, Fit, DataPattern, PatternCreator, BkgPattern, BackgroundTools
 from pyfdd.core.datapattern import create_detector_mesh
 
 
@@ -93,16 +93,19 @@ class TestFit(unittest.TestCase):
         vertical_gradient = np.linspace(0.5, 1.5, npixels)[np.newaxis]
         horizontal_gradient = np.linspace(0.8, 1.2, npixels)
         patt_arr = ((np.ones((npixels, npixels)) * horizontal_gradient) * vertical_gradient.T)
-        bkg_patt = BkgPattern(pattern_array=patt_arr)
+        bkg_patt = DataPattern(pattern_array=patt_arr)
         bkg_patt.manip_create_mesh(1.4, 300)
-        bkg_patt.set_sigma(1)
+
+        btools = BackgroundTools()
+        btools.set_sigma(1)
 
         ft = Fit(self.lib, self.sites)
         ft.verbose_graphics = False
 
         # set a fitting routine
         counts_ordofmag = 10 ** (int(math.log10(self.patt.sum())))
-        ft.set_data_pattern(self.xmesh, self.ymesh, self.patt, background_pattern=bkg_patt.get_smoothed_background(),
+        ft.set_data_pattern(self.xmesh, self.ymesh, self.patt,
+                            background_pattern=btools.get_smoothed_background(bkg_patt),
                             background_factor=1.01)
         # ft.set_patterns_to_fit(249-249,377-249)
         # ft._set_patterns_to_fit(1, 65)  # ,129)

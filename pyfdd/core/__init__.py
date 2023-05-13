@@ -8,4 +8,5 @@ from pyfdd.core.fitparameters import FitParameters
 from pyfdd.core.lib2dl import Lib2dl
 from pyfdd.core.patterncreator import PatternCreator
 from pyfdd.core.datapattern import DataPattern, DataPatternPlotter
-from pyfdd.core.bkgpattern import BkgPattern
+from pyfdd.core.backgroundtools import BackgroundTools
+

@@ -17,7 +17,6 @@ from scipy.ndimage import gaussian_filter
 # Imports from project
 from pyfdd.core.lib2dl import Lib2dl
 from pyfdd.core.datapattern import DataPattern
-from pyfdd.core.bkgpattern import BkgPattern
 
 
 class PatternCreator:

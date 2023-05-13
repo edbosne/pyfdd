@@ -250,9 +250,9 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
             quit_msg = quit_msg + '\n  - Fit results are not saved!'
 
         reply = QtWidgets.QMessageBox.question(self, 'Message',
-                                               quit_msg, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+                                               quit_msg, QtWidgets.QMessageBox.Close, QtWidgets.QMessageBox.Cancel)
 
-        if reply == QtWidgets.QMessageBox.Yes:
+        if reply == QtWidgets.QMessageBox.Close:
             config.write()
             event.accept()
             sys.exit()

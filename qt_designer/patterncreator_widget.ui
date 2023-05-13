@@ -145,8 +145,8 @@ p, li { white-space: pre-wrap; }
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>281</width>
-              <height>80</height>
+              <width>294</width>
+              <height>79</height>
              </rect>
             </property>
             <layout class="QGridLayout" name="sitesrange_layout">
@@ -249,8 +249,8 @@ p, li { white-space: pre-wrap; }
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>281</width>
-              <height>182</height>
+              <width>279</width>
+              <height>172</height>
              </rect>
             </property>
             <layout class="QGridLayout" name="parameters_layout">
@@ -492,31 +492,38 @@ p, li { white-space: pre-wrap; }
          <string>Control</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_4">
-         <item row="0" column="0">
-          <widget class="QPushButton" name="pb_buildmesh">
+         <item row="3" column="0" colspan="2">
+          <widget class="QPushButton" name="pb_opendatapattern">
            <property name="text">
-            <string>Build Angular Mesh</string>
+            <string>Open in a DataPattern window</string>
            </property>
           </widget>
          </item>
-         <item row="0" column="1">
-          <widget class="QPushButton" name="pb_get_mesh_from_dp">
-           <property name="text">
-            <string>Get Mesh from DP</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0" colspan="2">
+         <item row="2" column="0" colspan="2">
           <widget class="QPushButton" name="pb_generatepattern">
            <property name="text">
             <string>Generate Pattern</string>
            </property>
           </widget>
          </item>
-         <item row="2" column="0" colspan="2">
-          <widget class="QPushButton" name="pb_opendatapattern">
+         <item row="0" column="0" colspan="2">
+          <widget class="QPushButton" name="pb_buildmesh">
            <property name="text">
-            <string>Open in a DataPattern window</string>
+            <string>Build Angular Mesh</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="pb_get_mesh_from_dp">
+           <property name="text">
+            <string>Get Mesh from DP</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="pb_get_mesh_from_bkg">
+           <property name="text">
+            <string>Get Mesh from Bkg</string>
            </property>
           </widget>
          </item>
