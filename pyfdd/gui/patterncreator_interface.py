@@ -213,8 +213,7 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         self.dpcontroler = DataPatternControler(parent_widget=self)#, mpl_layout=self.mplvl, infotext_box=None)
         self.mainwindow = mainwindow
         self.mpl_layout = self.mplvl
-        self.dpcontroler.set_widgets_and_layouts(mpl_layout=self.mplvl, mainwindow=self.mainwindow,
-                                                 infotext_box=self.infotext)
+        self.dpcontroler.set_widgets_and_layouts(mpl_layout=self.mplvl, mainwindow=self.mainwindow)
 
         # Create a menubar entry for the datapattern
         self.menubar = self.mainwindow.menuBar()
