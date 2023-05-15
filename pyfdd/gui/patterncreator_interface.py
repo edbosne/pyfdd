@@ -267,6 +267,7 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
         self.pb_creatorconfig.clicked.connect(self.call_pb_creatorconfig)
         self.pb_buildmesh.clicked.connect(self.call_pb_buildmesh)
         self.pb_get_mesh_from_dp.clicked.connect(self.call_pb_get_mesh_from_dp)
+        self.pb_get_mesh_from_bkg.clicked.connect(self.call_pb_get_mesh_from_bkg)
         self.pb_generatepattern.clicked.connect(self.call_pb_generatepattern)
         self.pb_opendatapattern.clicked.connect(self.call_pb_opendatapattern)
 
@@ -322,15 +323,31 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
                                 sub_pixels,
                                 normalization,
                                 gen_method)
-
         self.infotext.setText(text)
 
     def get_datapattern(self):
 
         if self.mainwindow is None:
-            self.datapattern = None
+            datapattern = None
         else:
-            self.datapattern = self.mainwindow.get_datapattern()
+            datapattern = self.mainwindow.get_datapattern()
+        return datapattern
+
+    def get_backgroundpattern(self):
+
+        if self.mainwindow is None:
+            datapattern = None
+        else:
+            datapattern = self.mainwindow.get_bkgtab_datapattern()
+        return datapattern
+
+    def get_background_pattern_and_factor(self):
+        if self.mainwindow is None:
+            return None, None
+        elif hasattr(self.mainwindow, 'get_background_pattern_and_factor'):
+            return self.mainwindow.get_background_pattern_and_factor()
+        else:
+            return None, None
 
     def get_simlibrary(self):
 
@@ -410,20 +427,35 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
 
     def call_pb_get_mesh_from_dp(self):
 
-        self.get_datapattern()
+        datapattern = self.get_datapattern()
 
-        if self.datapattern is None:
+        if datapattern is None:
             QtWidgets.QMessageBox.warning(self, 'Warning message', 'The DataPattern does not exist.')
             return
 
+        self.set_mesh_from_dp(datapattern)
+
+    def call_pb_get_mesh_from_bkg(self):
+        datapattern = self.get_backgroundpattern()
+
+        if datapattern is None:
+            QtWidgets.QMessageBox.warning(self, 'Warning message', 'The Background DataPattern does not exist.')
+            return
+
+        self.set_mesh_from_dp(datapattern)
+
+    def set_mesh_from_dp(self, datapattern):
+
+        assert isinstance(datapattern, pyfdd.DataPattern)
+
         self.pattern_xmesh, self.pattern_ymesh = \
-            self.datapattern.get_xymesh()
+            datapattern.get_xymesh()
         self.pattern_mesh_isset = True
 
         # update config
 
-        horizontal_pixels = self.datapattern.nx
-        vertical_pixel = self.datapattern.ny
+        horizontal_pixels = datapattern.nx
+        vertical_pixel = datapattern.ny
         angular_step = (self.pattern_xmesh[0, -1] - self.pattern_xmesh[0, 0]) / (horizontal_pixels - 1)
         angular_step = np.round(angular_step, decimals=2)
 
@@ -456,6 +488,17 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
             QtWidgets.QMessageBox.warning(self, 'Warning message', 'The Simulations Library is not set.')
             return
 
+        background_pattern, factor = self.get_background_pattern_and_factor()
+
+        if background_pattern is not None:
+            try:
+                pyfdd.BackgroundTools.verify_mesh(background_array=background_pattern,
+                                                  xmesh=self.pattern_xmesh, ymesh=self.pattern_ymesh)
+            except Exception as e:
+                QtWidgets.QMessageBox.warning(self, 'Warning message', str(e))
+                return
+
+
         # Get values
         n_sites = self.creatorconfig['n_sites']
         sub_pixels = self.creatorconfig['sub_pixels']
@@ -483,7 +526,9 @@ class PatternCreator_widget(QtWidgets.QWidget, Ui_PatternCreatorWidget):
                                    self.pattern_ymesh,
                                    simulations=sites,
                                    sub_pixels=sub_pixels,
-                                   mask_out_of_range=True)
+                                   mask_out_of_range=True,
+                                   background_pattern=background_pattern,
+                                   background_factor=factor)
 
         pattern = gen.make_pattern(dx, dy, phi, fractions_per_sim,
                                    total_events=normalization,

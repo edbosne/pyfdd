@@ -23,6 +23,7 @@ from pyfdd.gui.datapattern_interface import DataPattern_widget
 from pyfdd.gui.simlibrary_interface import SimExplorer_widget
 from pyfdd.gui.fitmanager_interface import FitManager_widget
 from pyfdd.gui.patterncreator_interface import PatternCreator_widget
+from pyfdd.gui.bkgpattern_interface import BkgPattern_widget
 import pyfdd.gui.config as config
 
 
@@ -43,7 +44,7 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         :param args:
         :param kwargs:
         """
-        # Setup the window
+        # Set up the window
         super(WindowedPyFDD, self).__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -61,28 +62,31 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         self.se_w = SimExplorer_widget(self.maintabs, mainwindow=self)
         self.fm_w = FitManager_widget(self.maintabs, mainwindow=self)
         self.pc_w = PatternCreator_widget(self.maintabs, mainwindow=self)
+        self.bp_w = BkgPattern_widget(self.maintabs, mainwindow=self)
 
         # Creat the tabs for the widgets
         self.dp_tab_title = 'Data Pattern'
         self.se_tab_title = 'Simulations Library'
         self.fm_tab_title = 'Fit Manager'
         self.pc_tab_title = 'Pattern Creator'
+        self.bp_tab_title = 'Background Pattern'
 
         self.maintabs.addTab(self.dp_w, 'Data Pattern')
         self.maintabs.addTab(self.se_w, 'Simulations Library')
         self.maintabs.addTab(self.fm_w, 'Fit Manager')
         self.maintabs.addTab(self.pc_w, 'Pattern Creator')
+        self.maintabs.addTab(self.bp_w, 'Background Pattern')
 
         # Connect signals
         # Update fit manager tab if data pattern or library is changed
-        self.fm_pending_update = False
+        self.fm_pending_update = False  # Updates when switching to its tab
         self.maintabs.currentChanged.connect(self.update_fm)
         self.dp_w.datapattern_opened.connect(lambda: self._set_fm_pending_update(True))
         self.dp_w.datapattern_changed.connect(lambda: self._set_fm_pending_update(True))
         self.se_w.simlibrary_opened.connect(lambda: self._set_fm_pending_update(True))
 
         # Update pattern creator tab if data pattern or library is changed
-        self.pc_pending_update = False
+        self.pc_pending_update = False  # Updates when switching to its tab
         self.maintabs.currentChanged.connect(self.update_pc)
         self.dp_w.datapattern_opened.connect(lambda: self._set_pc_pending_update(True))
         self.dp_w.datapattern_changed.connect(lambda: self._set_pc_pending_update(True))
@@ -103,6 +107,10 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         # Fit manager
         self.fm_w.fitresults_changed.connect(self.fm_tab_title_update)
         self.fm_w.fitresults_saved.connect(self.fm_tab_title_update)
+        # Background pattern
+        self.bp_w.datapattern_opened.connect(self.bp_tab_title_update)
+        self.bp_w.datapattern_changed.connect(self.bp_tab_title_update)
+        self.bp_w.datapattern_saved.connect(self.bp_tab_title_update)
 
     def setup_statusbar(self):
         """
@@ -173,6 +181,14 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         datapattern = self.dp_w.get_datapattern()
         return datapattern
 
+    def get_bkgtab_datapattern(self):
+        """
+        Get the DataPattern object from its tab widget.
+        :return:
+        """
+        datapattern = self.bp_w.get_datapattern()
+        return datapattern
+
     def get_simlibrary(self):
         """
         Get the Lib2dl object from its tab widget.
@@ -180,6 +196,9 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         """
         simlibrary = self.se_w.get_simlibrary()
         return simlibrary
+
+    def get_background_pattern_and_factor(self):
+        return self.bp_w.get_background_pattern_and_corrfactor()
 
     def update_fm(self, tab=2):
         """
@@ -232,6 +251,22 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
                 self.fm_tab_title = self.fm_tab_title[0:-1]
 
         self.maintabs.setTabText(2, self.fm_tab_title)  # FM tab index is 2
+
+    def bp_tab_title_update(self):
+        """
+        Update the title of the Background Pattern tab if the saved status changes.
+        :return:
+        """
+        if self.bp_w.are_changes_saved() is False:
+            if self.bp_tab_title[-1] == "*":
+                pass
+            else:
+                self.bp_tab_title = self.bp_tab_title + '*'
+        else:
+            if self.bp_tab_title[-1] == "*":
+                self.bp_tab_title = self.bp_tab_title[0:-1]
+
+        self.maintabs.setTabText(4, self.bp_tab_title)  # BP tab index is 4
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """

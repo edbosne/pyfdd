@@ -181,7 +181,7 @@ class BkgPattern_widget(pyfdd.gui.datapattern_interface.DataPattern_widget):
             config.parser.add_section('bkgpattern')
 
         default_is_enabled = True if not config.parser.has_option('bkgpattern', 'is_enabled') else \
-            config.getlist('bkgpattern', 'is_enabled')
+            config.getboolean('bkgpattern', 'is_enabled')
         default_corr_factor = 1 if not config.parser.has_option('bkgpattern', 'corr_factor') else \
             config.getlist('bkgpattern', 'corr_factor')
         default_smooth_sigma = 0 if not config.parser.has_option('bkgpattern', 'smooth_sigma') else \
@@ -192,6 +192,7 @@ class BkgPattern_widget(pyfdd.gui.datapattern_interface.DataPattern_widget):
         self.corr_factor = default_corr_factor
         self.smooth_sigma = default_smooth_sigma
 
+        self.bkgtools.cb_enabled.setChecked(self.is_enabled)
         self.bkgtools.le_gauss_sigma.setText(str(self.smooth_sigma))
         self.bkgtools.le_correction_factor.setText(str(self.corr_factor))
 
@@ -202,8 +203,22 @@ class BkgPattern_widget(pyfdd.gui.datapattern_interface.DataPattern_widget):
         self.bkgtools.pb_set_sigma.clicked.connect(self.call_pb_set_sigma)
         self.bkgtools.bp_view_background.clicked.connect(self.call_p_view_background)
 
+    def get_background_pattern_and_corrfactor(self):
+        if not self.is_enabled:
+            return None, None
+        if self.datapattern is None:
+            return None, None
+
+        btools = pyfdd.BackgroundTools()
+        btools.set_sigma(self.smooth_sigma)
+        background_array = btools.get_smoothed_background(self.datapattern)
+        return background_array, self.corr_factor
+
     def call_cb_enabled(self):
         self.is_enabled = self.bkgtools.cb_enabled.isChecked()
+
+        # update config
+        config.parser['bkgpattern']['is_enabled'] = str(self.is_enabled)
 
     def call_pb_set_factor(self):
         if not self.datapattern is None:
@@ -215,6 +230,9 @@ class BkgPattern_widget(pyfdd.gui.datapattern_interface.DataPattern_widget):
         if factor_dialog.exec_() == QtWidgets.QDialog.Accepted:
             self.corr_factor = factor_dialog.corr_factor
             self.bkgtools.le_correction_factor.setText(str(self.corr_factor))
+
+            # update config
+            config.parser['bkgpattern']['corr_factor'] = str(self.corr_factor)
         else:
             # Canceled
             pass

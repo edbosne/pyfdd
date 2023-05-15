@@ -28,7 +28,7 @@ class PatternCreator:
 
     def __init__(self, lib: Lib2dl, xmesh: np.ndarray = None, ymesh: np.ndarray = None, simulations=None,
                  mask=ma.nomask, sub_pixels: int = 1, background_pattern: np.ndarray = None,
-                 background_factor: float = 1.0, mask_out_of_range: bool = True):
+                 background_factor: float = None, mask_out_of_range: bool = True):
         """
         __init__ method for PatternCreator. Simulation and mesh are to be stated here.
         :param lib: A lib2dl type object that points to the desired library
@@ -106,7 +106,7 @@ class PatternCreator:
         self._pattern_current = ma.array(np.ones(self._sim_xmesh.shape))
 
         # Prepare background
-        if background_pattern is not None:
+        if background_pattern is not None and background_factor is not None:
             background_factor = float(background_factor)
             if not isinstance(background_factor, float):
                 raise TypeError(f'background_factor should be of type float, not {type(background_factor)}')

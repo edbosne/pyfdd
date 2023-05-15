@@ -110,6 +110,58 @@ def make_assimetric_txt(sites, orientation, fractions, total_events, savename=No
         np.savetxt(savename, data_matrix, "%d")
         print('saved', savename)
 
+def make_pad_background_db(savename=None):
+
+    # Define detector
+    n_h_pixels = n_v_pixels = 22
+    pixel_size = 1.3  # mm
+    distance = 315  # mm
+
+    # Set up background
+    vertical_gradient = np.linspace(0.5, 1.5, n_v_pixels)[np.newaxis]
+    horizontal_gradient = np.linspace(0.8, 1.2, n_h_pixels)
+    patt_arr = ((np.ones((n_v_pixels, n_h_pixels)) * horizontal_gradient) * vertical_gradient.T)
+    patt_arr = patt_arr * 1e5/ patt_arr.sum()
+    patt_arr = patt_arr.astype(int)
+    patt_arr = np.random.poisson(patt_arr)
+
+    bkg_patt = pyfdd.DataPattern(pattern_array=patt_arr)
+    bkg_patt.manip_create_mesh(pixel_size, 300)
+
+
+    # Save
+    if savename is not None:
+        bkg_patt.io_save_json(savename)
+        print('saved', savename)
+
+    return bkg_patt
+
+
+def make_tpx_quad_background_db(savename=None):
+    # Define detector
+    n_h_pixels = n_v_pixels = 516
+    pixel_size = 0.055  # mm
+    distance = 315  # mm
+
+    # Set up background
+    vertical_gradient = np.linspace(0.5, 1.5, n_v_pixels)[np.newaxis]
+    horizontal_gradient = np.linspace(0.8, 1.2, n_h_pixels)
+    patt_arr = ((np.ones((n_v_pixels, n_h_pixels)) * horizontal_gradient) * vertical_gradient.T)
+    patt_arr = patt_arr * 1e5 * 1e3 / patt_arr.sum()
+    patt_arr = patt_arr.astype(int)
+    patt_arr = np.random.poisson(patt_arr / 1e3)
+
+    bkg_patt = pyfdd.DataPattern(pattern_array=patt_arr)
+    bkg_patt.manip_create_mesh(pixel_size, 300)
+
+    # Save
+    if savename is not None:
+        bkg_patt.io_save_json(savename)
+        print('saved', savename)
+
+    return bkg_patt
+
+
 
 if __name__ == '__main__':
 
@@ -137,6 +189,12 @@ if __name__ == '__main__':
 
     savename = os.path.join(test_files_path, "tpx_quad_dp_100K.json")
     make_tpx_quad_db(simulations_n, orientation, fractions, total_events=1e5, savename=savename)
+
+    savename = os.path.join(test_files_path, "pad_background_dp_100k.json")
+    make_pad_background_db(savename=savename)
+
+    savename = os.path.join(test_files_path, "tpx_quad_background_dp_100k.json")
+    make_tpx_quad_background_db(savename=savename)
 
     # Make and save txt patterns
     savename = os.path.join(test_files_path, "tpx_quad_array_2M.txt")

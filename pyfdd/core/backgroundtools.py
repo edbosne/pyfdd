@@ -99,7 +99,7 @@ class BackgroundTools:
                           'Gaussian convolution done assuming a step of {}'.format(xy_step))
 
         sigma_pix = self.smooth_sigma / xy_step
-        smoothed_background = gaussian_filter(pattern_matrix, sigma_pix, truncate=3)
+        smoothed_background = gaussian_filter(pattern_matrix.astype(float), sigma_pix, truncate=3)
         return smoothed_background
 
     @staticmethod
@@ -108,6 +108,16 @@ class BackgroundTools:
             raise ValueError('The background pattern and pattern creator mesh need '
                              'to have the same number of pixels and the same shape.'
                              'Please, ensure that the same manipulations are done in both arrays.')
+        else:
+            return True
+
+    @staticmethod
+    def verify_mesh(background_array: np.ndarray, xmesh: np.ndarray, ymesh: np.ndarray):
+        if (not np.alltrue(background_array.shape == xmesh.shape)) or \
+                (not np.alltrue(background_array.shape == ymesh.shape)):
+            raise ValueError('The background pattern and the x and y mesh need '
+                             'to have the same number of pixels and the same shape.'
+                             'Please, ensure that the same manipulations are done in both patterns.')
         else:
             return True
 
