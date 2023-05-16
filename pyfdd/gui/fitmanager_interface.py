@@ -567,7 +567,7 @@ class FitManawerWorker(QtCore.QObject):
     progress_msg = QtCore.pyqtSignal(str)
     output_fitman = QtCore.pyqtSignal(pyfdd.FitManager)
 
-    def __init__(self, datapattern, simlibrary, fitconfig, dynamic_parameter_objects, dynamic_site_ranges_objects):
+    def __init__(self, datapattern, simlibrary, background_array, background_corr_factor, fitconfig, dynamic_parameter_objects, dynamic_site_ranges_objects):
         super(FitManawerWorker, self).__init__()
 
         assert isinstance(dynamic_parameter_objects, FitParameterDynamicLayout)
@@ -590,7 +590,7 @@ class FitManawerWorker(QtCore.QObject):
         self.fitman._print = self.new_print
 
         # Set the pattern and library to fit with
-        self.fitman.set_pattern(datapattern, simlibrary)
+        self.fitman.set_pattern(datapattern, simlibrary, background_array, background_corr_factor)
 
         parameter_keys = self.fitman.fit_parameters.get_keys()
 
@@ -758,8 +758,11 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
                             'ml': 'Neg. log likelihood'}
         self.datapattern = None
         self.simlibrary = None
+        self.background_array = None
+        self.background_corr_factor = None
         self.get_datapattern()
         self.get_simlibrary()
+        #self.get_background_pattern_and_factor()
         self.changes_saved = True
 
         # Fitman thread variables
@@ -844,6 +847,14 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         else:
             self.datapattern = self.mainwindow.get_datapattern()
 
+
+    def get_background_pattern_and_factor(self):
+        if self.mainwindow is None:
+            self.background_array = None
+            self.background_corr_factor = None
+        else:
+            self.background_array, self.background_corr_factor = self.mainwindow.get_background_pattern_and_factor()
+
     def get_simlibrary(self):
 
         if self.mainwindow is None:
@@ -867,6 +878,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
             pass
 
     def call_pb_runfits(self):
+        self.update_all()
 
         if self.datapattern is None:
             QtWidgets.QMessageBox.warning(self, 'Warning message', 'Data pattern is not set.')
@@ -884,6 +896,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
 
         # Step 3: Create a worker object
         self.fitman_worker = FitManawerWorker(self.datapattern, self.simlibrary,
+                                              self.background_array, self.background_corr_factor,
                                               self.fitconfig, self.dynamic_parameters,
                                               self.dynamic_site_ranges)
 
@@ -1028,7 +1041,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
         if self.fitman_output is not None:
             n_sites = self.fitconfig['n_sites']
             sub_pixels = self.fitconfig['sub_pixels']
-            last_output = self.fitman_output.df_horizontal.iloc[-1]
+            last_output = self.fitman_output.results.generate_results_table(layout='horizontal').iloc[-1]
             sites_list = []
             parameters_dict = dict()
             out_keys = ['x', 'y', 'phi', 'sigma']  # ,'f_p1','f_p2','f_p3'
@@ -1052,6 +1065,7 @@ class FitManager_widget(QtWidgets.QWidget, Ui_FitManagerWidget):
 
     def update_all(self):
         self.get_datapattern()
+        self.get_background_pattern_and_factor()
         self.get_simlibrary()
         self.update_infotext()
         self.dynamic_parameters.refresh_parameters(datapattern=self.datapattern)

@@ -165,9 +165,7 @@ class FitResults:
             append_dic['fraction{:d}_err'.format(i + 1)] = \
                 parameter_dict['f_p{:d}'.format(i + 1)]['std']
 
-        print(append_dic)
         df_dictionary = pd.DataFrame([append_dic])
-        print(df_dictionary)
         self.df_horizontal = pd.concat([self.df_horizontal, df_dictionary], ignore_index=True)
         self.df_horizontal = self.df_horizontal[list(self.columns_horizontal)]
 
@@ -347,7 +345,9 @@ class FitManager:
         self.fit_parameters.update_bounds_with_datapattern(self.dp_pattern)
 
         if background_pattern is not None:
-            if not all((data_pattern.pattern_matrix.shape == background_pattern.shape)):
+            print(data_pattern.pattern_matrix.shape )
+            print(background_pattern.shape)
+            if not data_pattern.pattern_matrix.shape == background_pattern.shape:
                 raise ValueError('All the input patterns need to have the same dimentions.')
             self.background_pattern = background_pattern
             self.background_factor = background_factor
