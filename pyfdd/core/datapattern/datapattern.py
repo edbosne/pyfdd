@@ -207,22 +207,24 @@ class DataPatternPlotter:
         else:
             lowtick, hightick = self.get_ticks(percentiles)
 
+        # the extent needs to acount for the last pixel space therefore add the step size
+        xstep = self.datapattern.xmesh[0, 1] - self.datapattern.xmesh[0, 0]
+        ystep = self.datapattern.ymesh[1, 0] - self.datapattern.ymesh[0, 0]
+        extent = [self.datapattern.xmesh[0, 0],
+                  self.datapattern.xmesh[0, -1] + xstep,
+                  self.datapattern.ymesh[0, 0],
+                  self.datapattern.ymesh[-1, 0] + ystep]
+
         if plot_type == 'contour':
             # set up to n_color_bins levels at nice locations
             levels = ml.ticker.MaxNLocator(nbins=n_color_bins).tick_values(lowtick, hightick)
             # set up exactly n_color_bins levels (alternative)
             # levels = ml.ticker.LinearLocator(numticks=n_color_bins+1).tick_values(lowtick, hightick)
-            ret = self.ax.contourf(self.datapattern.xmesh, self.datapattern.ymesh, self.matrixDrawable, cmap=img_cmap, levels=levels)
+            ret = self.ax.contourf(self.matrixDrawable, cmap=img_cmap,
+                                   levels=levels, extent=extent)
             if self.datapattern.reverse_x is True:
                 self.ax.invert_xaxis()
         elif plot_type == 'pixels':
-            # the extent needs to acount for the last pixel space therefore add the ste size
-            xstep = self.datapattern.xmesh[0, 1] - self.datapattern.xmesh[0, 0]
-            ystep = self.datapattern.ymesh[1, 0] - self.datapattern.ymesh[0, 0]
-            extent = [self.datapattern.xmesh[0, 0],
-                      self.datapattern.xmesh[0, -1] + xstep,
-                      self.datapattern.ymesh[0, 0],
-                      self.datapattern.ymesh[-1, 0] + ystep]
             ret = self.ax.imshow(self.matrixDrawable, cmap=img_cmap, interpolation='None', aspect='auto',
                                  vmin=lowtick, vmax=hightick, origin='lower', extent=extent)
         else:

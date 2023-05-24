@@ -1071,7 +1071,6 @@ class DataPatternControler(QtCore.QObject):
         # find the last position where x is >= xm
         j = np.where(xm <= x)[0][-1]  # columns
         i = np.where(ym <= y)[0][-1]  # lines
-        #i = (np.abs(ym - y)).argmin()  # lines
 
         return i, j
 
@@ -1128,9 +1127,9 @@ class DataPatternControler(QtCore.QObject):
         if self.pb_maskrectangle.isChecked():
             rectprops = dict(facecolor='red', edgecolor='black',
                              alpha=0.8, fill=True)
-            self.rselect_mpl = RectangleSelector(self.plot_ax, self.on_rectangleselect, drawtype='box', useblit=True,
+            self.rselect_mpl = RectangleSelector(self.plot_ax, self.on_rectangleselect, useblit=True,
                                                  interactive=False,
-                                                 rectprops=rectprops)
+                                                 props=rectprops)
             # need to update canvas for RS to work properly
             self.mpl_canvas.draw()
             self.use_crosscursor_in_axes(True)
