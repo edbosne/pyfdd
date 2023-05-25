@@ -214,6 +214,7 @@ class DataPatternPlotter:
                   self.datapattern.xmesh[0, -1] + xstep,
                   self.datapattern.ymesh[0, 0],
                   self.datapattern.ymesh[-1, 0] + ystep]
+        print('123', xstep, ystep, extent)
 
         if plot_type == 'contour':
             # set up to n_color_bins levels at nice locations
@@ -969,8 +970,8 @@ class DataPattern:
                 temp_matrix = np.rot90(temp_matrix, 3)
                 # Rotate mesh
                 temp_xmesh = new_xmesh.copy()
-                new_xmesh = np.rot90(new_ymesh, 3)
-                new_ymesh = np.rot90(temp_xmesh, 1)
+                new_xmesh = np.rot90(new_ymesh, 1)
+                new_ymesh = np.rot90(temp_xmesh, 3)
                 # New pattern dimentions
                 temp_nx = new_nx
                 new_nx = new_ny
@@ -980,8 +981,8 @@ class DataPattern:
                 temp_matrix = np.rot90(temp_matrix)
                 # Rotate mesh
                 temp_xmesh = new_xmesh.copy()
-                new_xmesh = np.rot90(new_ymesh, 3)
-                new_ymesh = np.rot90(temp_xmesh, 1)
+                new_xmesh = np.rot90(new_ymesh, 1)
+                new_ymesh = np.rot90(temp_xmesh, 3)
                 # New pattern dimentions
                 temp_nx = new_nx
                 new_nx = new_ny
