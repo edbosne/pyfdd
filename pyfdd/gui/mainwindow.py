@@ -24,6 +24,7 @@ from pyfdd.gui.simlibrary_interface import SimExplorer_widget
 from pyfdd.gui.fitmanager_interface import FitManager_widget
 from pyfdd.gui.patterncreator_interface import PatternCreator_widget
 from pyfdd.gui.bkgpattern_interface import BkgPattern_widget
+from pyfdd.gui.about_widget import AboutDialog
 import pyfdd.gui.config as config
 
 
@@ -63,6 +64,14 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         self.fm_w = FitManager_widget(self.maintabs, mainwindow=self)
         self.pc_w = PatternCreator_widget(self.maintabs, mainwindow=self)
         self.bp_w = BkgPattern_widget(self.maintabs, mainwindow=self)
+
+        # Help
+        self.help_menu = self.menubar.addMenu('&Help')
+        # About
+        about_act = QtWidgets.QAction('&About', self)
+        about_act.setStatusTip('See About window')
+        about_act.triggered.connect(self.about_call)
+        self.help_menu.addAction(about_act)
 
         # Creat the tabs for the widgets
         self.dp_tab_title = 'Data Pattern'
@@ -267,6 +276,10 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
                 self.bp_tab_title = self.bp_tab_title[0:-1]
 
         self.maintabs.setTabText(4, self.bp_tab_title)  # BP tab index is 4
+
+    def about_call(self):
+        about_dialog = AboutDialog()
+        about_dialog.exec_()
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """
