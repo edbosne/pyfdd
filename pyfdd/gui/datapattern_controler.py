@@ -876,7 +876,7 @@ class DataPatternControler(QtCore.QObject):
         if importsettings_dialog.exec_() == QtWidgets.QDialog.Accepted:
             import_config = importsettings_dialog.get_settings()
             # configuration keys {'label', 'detector type', 'orientation'}
-        else: # Canceled
+        else:  # Canceled
             return
 
         try:
@@ -887,9 +887,9 @@ class DataPatternControler(QtCore.QObject):
                 self.datapattern.manip_correct_central_pix()
             # Orient
             self.datapattern.manip_orient(import_config['orientation'])
-        except:
+        except Exception as e:
             QtWidgets.QMessageBox.warning(self.parent_widget, 'Warning message',
-                                          'Error while importing the data.')
+                                          'Error while importing the data.\n' + str(e))
         else:
             # Draw pattern and update info text
             self.draw_new_datapattern()
