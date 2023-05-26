@@ -268,7 +268,7 @@ class Lib2dl:
         :return:
         """
         if not num >= 1:
-            raise ValueError('pattern number must be positive')
+            raise ValueError(f'pattern number must be positive, not {num}')
         if not num <= len(self.dict_2dl['Spectrums']):
             raise ValueError('pattern number is not valid')
 

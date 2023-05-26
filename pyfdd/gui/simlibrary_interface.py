@@ -95,7 +95,7 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
 
         # Connect signals
         # List
-        self.simlist.currentItemChanged.connect(self.update_datapattern)
+        self.simlist.itemSelectionChanged.connect(self.update_datapattern)
 
         # Pattern visualization
         self.pb_colorscale.clicked.connect(self.dpcontroler.call_pb_colorscale)
@@ -198,19 +198,37 @@ class SimExplorer_widget(QtWidgets.QWidget, Ui_SimExplorerWidget):
         self.infotext.setText(text)
 
     def update_simlist(self):
-        # Disconnect signal to make changes and reconect after.
-        self.simlist.currentItemChanged.disconnect()
+        # Disconnect signal to make changes and reconnect after.
+        self.simlist.itemSelectionChanged.disconnect()
         self.simlist.clear()
-        baseline_string = '{:>3} - {:25}, f: {:}, u1: {:}, s:{:}'
-        for line in self.simlib.get_simulations_list():
-            # columns, ["Spectrum number", "Spectrum_description", "factor", "u1", "sigma"]
-            # strip white spaces from description
-            line_string = baseline_string.format(line[0], line[1].strip(), *line[2:])
-            self.simlist.addItem(line_string)
+
+        # Set up table columns
+        column_labels = ["Number", "Description", "Factor", "u1", "Sigma"]
+        self.simlist.setColumnCount(len(column_labels))
+        self.simlist.setHorizontalHeaderLabels(column_labels)
+        self.lib2dl_sim_list = self.simlib.get_simulations_list()
+        num_rows = len(self.lib2dl_sim_list)
+
+        # Set the number of rows in the table
+        self.simlist.setRowCount(num_rows)
+
+        for row, line in enumerate(self.lib2dl_sim_list):
+            # Create table items and set their values
+            items = []
+            for column, value in enumerate(line):
+                item = QtWidgets.QTableWidgetItem(str(value).strip())
+                items.append(item)
+                self.simlist.setItem(row, column, item)
+
+            # Adjust column widths to content
+            self.simlist.resizeColumnsToContents()
+
+        # Set selection behavior to select entire rows
+        #self.simlist.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
 
         self.current_row = 1
-        self.simlist.setCurrentRow(self.current_row - 1)
-        self.simlist.currentItemChanged.connect(self.update_datapattern)
+        self.simlist.setCurrentCell(self.current_row - 1, 0)
+        self.simlist.itemSelectionChanged.connect(self.update_datapattern)
 
     def update_datapattern(self):
         self.current_row = self.simlist.currentRow() + 1
