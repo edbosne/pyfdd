@@ -809,23 +809,30 @@ class DataPatternControler(QtCore.QObject):
     def processdata_dp_call(self):
         open_path = '' if not config.parser.has_option('datapattern', 'open_path') else \
             config.get('datapattern', 'open_path')
-        filename = QtWidgets.QFileDialog.getOpenFileName(self.parent_widget,
+        filenames = QtWidgets.QFileDialog.getOpenFileNames(self.parent_widget,
                                                          'Import matrix file',
                                                          directory=open_path,
                                                          filter='ClusterViewer ScatterData (*)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
-        if filename == ('', ''):  # Cancel
+
+        if filenames == ([], ''):  # Cancel (first is an empty list)
             return
 
         # Process data
-        data_array = np.array([])
+        combined_data_array = None
         try:
-            match filename[1]:
-                case 'ClusterViewer ScatterData (*)':
-                    data_array = make_array_from_scatterdata(filename[0])
-        except:
+            for filename in filenames[0]:
+                print(filename)
+                match filenames[1]:
+                    case 'ClusterViewer ScatterData (*)':
+                        data_array = make_array_from_scatterdata(filename)
+                        if combined_data_array is None:
+                            combined_data_array = data_array
+                        else:
+                            combined_data_array += data_array
+        except Exception as e:
             QtWidgets.QMessageBox.warning(self.parent_widget, 'Warning message',
-                                          'Error while processing the data.')
+                                          'Error while processing the data.\n' + str(e))
             return
 
         # Get Import settings
@@ -840,15 +847,15 @@ class DataPatternControler(QtCore.QObject):
         # Create DataPattern
         try:
             if import_config['detector type'] == 'single':
-                self.datapattern = pyfdd.DataPattern(pattern_array=data_array, nChipsX=1, nChipsY=1, real_size=1)
+                self.datapattern = pyfdd.DataPattern(pattern_array=combined_data_array, nChipsX=1, nChipsY=1, real_size=1)
             elif import_config['detector type'] == 'quad':
-                self.datapattern = pyfdd.DataPattern(pattern_array=data_array, nChipsX=2, nChipsY=2, real_size=3)
+                self.datapattern = pyfdd.DataPattern(pattern_array=combined_data_array, nChipsX=2, nChipsY=2, real_size=3)
                 self.datapattern.manip_correct_central_pix()
             # Orient
             self.datapattern.manip_orient(import_config['orientation'])
-        except:
+        except Exception as e:
             QtWidgets.QMessageBox.warning(self.parent_widget, 'Warning message',
-                                          'Error while importing the data.')
+                                          'Error while importing the data.\n' + str(e))
         else:
             # Draw pattern and update info text
             self.draw_new_datapattern()
@@ -862,18 +869,19 @@ class DataPatternControler(QtCore.QObject):
             self.datapattern_changed.emit()
 
             # update config
-            open_path = os.path.dirname(filename[0])
+            open_path = os.path.dirname(filename)
             config.parser['datapattern']['open_path'] = open_path
 
     def import_dp_call(self):
         open_path = '' if not config.parser.has_option('datapattern', 'open_path') else \
             config.get('datapattern', 'open_path')
-        filename = QtWidgets.QFileDialog.getOpenFileName(self.parent_widget,
-                                                         'Import matrix file',
-                                                         directory=open_path,
-                                                         filter='Import matrix (*.txt *.csv *.2db)',
-                                                         options=QtWidgets.QFileDialog.DontUseNativeDialog)
-        if filename == ('', ''):  # Cancel
+        filenames = QtWidgets.QFileDialog.getOpenFileNames(self.parent_widget,
+                                                          'Import matrix file',
+                                                          directory=open_path,
+                                                          filter='Import matrix (*.txt *.csv *.2db)',
+                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
+
+        if filenames == ([], ''):  # Cancel (first is an empty list)
             return
 
         importsettings_dialog = ImportSettings_dialog(parent_widget=self.parent_widget)
@@ -886,13 +894,24 @@ class DataPatternControler(QtCore.QObject):
             return
 
         try:
-            if import_config['detector type'] == 'single':
-                self.datapattern = pyfdd.DataPattern(file_path=filename[0], nChipsX=1, nChipsY=1, real_size=1)
-            elif import_config['detector type'] == 'quad':
-                self.datapattern = pyfdd.DataPattern(file_path=filename[0], nChipsX=2, nChipsY=2, real_size=3)
-                self.datapattern.manip_correct_central_pix()
-            # Orient
-            self.datapattern.manip_orient(import_config['orientation'])
+            combined_datapattern = None
+            for filename in filenames[0]:
+                if import_config['detector type'] == 'single':
+                    datapattern = pyfdd.DataPattern(file_path=filename, nChipsX=1, nChipsY=1, real_size=1)
+                elif import_config['detector type'] == 'quad':
+                    datapattern = pyfdd.DataPattern(file_path=filename, nChipsX=2, nChipsY=2, real_size=3)
+                    datapattern.manip_correct_central_pix()
+                # Orient
+                datapattern.manip_orient(import_config['orientation'])
+
+                if combined_datapattern is None:
+                    combined_datapattern = datapattern
+                else:
+                    combined_datapattern += datapattern
+
+            # Store the combined datapattern or use it as needed
+            self.datapattern = combined_datapattern
+
         except Exception as e:
             QtWidgets.QMessageBox.warning(self.parent_widget, 'Warning message',
                                           'Error while importing the data.\n' + str(e))
@@ -908,7 +927,7 @@ class DataPatternControler(QtCore.QObject):
             self.datapattern_changed.emit()
 
             # update config
-            open_path = os.path.dirname(filename[0])
+            open_path = os.path.dirname(filenames[0][0])
             config.parser['datapattern']['open_path'] = open_path
 
     def export_dp_call(self):
@@ -1120,8 +1139,6 @@ class DataPatternControler(QtCore.QObject):
         ystep = ym[1] - ym[0]
         # eclick and erelease are matplotlib events at press and release
         rectangle_limits = np.array([eclick.xdata - xstep, erelease.xdata, eclick.ydata - ystep, erelease.ydata])
-
-
         self.datapattern.mask_rectangle(rectangle_limits)
 
         # Draw pattern and update info text
