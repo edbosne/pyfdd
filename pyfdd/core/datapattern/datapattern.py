@@ -214,7 +214,6 @@ class DataPatternPlotter:
                   self.datapattern.xmesh[0, -1] + xstep,
                   self.datapattern.ymesh[0, 0],
                   self.datapattern.ymesh[-1, 0] + ystep]
-        print('123', xstep, ystep, extent)
 
         if plot_type == 'contour':
             # set up to n_color_bins levels at nice locations
@@ -222,7 +221,7 @@ class DataPatternPlotter:
             # set up exactly n_color_bins levels (alternative)
             # levels = ml.ticker.LinearLocator(numticks=n_color_bins+1).tick_values(lowtick, hightick)
             ret = self.ax.contourf(self.matrixDrawable, cmap=img_cmap,
-                                   levels=levels, extent=extent)
+                                   levels=levels, extent=extent, extend='both')
             if self.datapattern.reverse_x is True:
                 self.ax.invert_xaxis()
         elif plot_type == 'pixels':
@@ -231,7 +230,7 @@ class DataPatternPlotter:
         else:
             raise ValueError('plot_type not recognized, use contour or pixels')
 
-        self.colorbar_ax = fig.colorbar(ret, ax=self.ax, use_gridspec=True)
+        self.colorbar_ax = fig.colorbar(ret, ax=self.ax, use_gridspec=True, extend='both')
 
         self.colorbar_ax.set_label(zlabel)
         self.ax.set_title(title)
