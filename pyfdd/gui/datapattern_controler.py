@@ -853,6 +853,12 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_new_datapattern()
             self.update_infotext()
+
+            # Give filename to data pattern widget for it to be displayed
+            self.set_dp_filename('')
+
+            # Emit opened signal
+            self.datapattern_opened.emit()
             self.datapattern_changed.emit()
 
             # update config
@@ -894,6 +900,11 @@ class DataPatternControler(QtCore.QObject):
             # Draw pattern and update info text
             self.draw_new_datapattern()
             self.update_infotext()
+            # Give filename to data pattern widget for it to be displayed
+            self.set_dp_filename('')
+
+            # Emit opened signal
+            self.datapattern_opened.emit()
             self.datapattern_changed.emit()
 
             # update config

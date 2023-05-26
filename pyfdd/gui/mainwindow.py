@@ -87,6 +87,11 @@ class WindowedPyFDD(QtWidgets.QMainWindow, Ui_WindowedPyFDD):
         self.maintabs.addTab(self.bp_w, 'Background Pattern')
 
         # Connect signals
+        # Change tabs when opening files
+        self.dp_w.datapattern_opened.connect(lambda: self.maintabs.setCurrentIndex(0))
+        self.se_w.simlibrary_opened.connect(lambda: self.maintabs.setCurrentIndex(1))
+        self.bp_w.datapattern_opened.connect(lambda: self.maintabs.setCurrentIndex(4))
+
         # Update fit manager tab if data pattern or library is changed
         self.fm_pending_update = False  # Updates when switching to its tab
         self.maintabs.currentChanged.connect(self.update_fm)
