@@ -84,7 +84,17 @@ class BackgroundTools:
             dp.set_xymesh(xmesh, ymesh)
             return dp
 
+    @staticmethod
+    def change_masked(pattern_matrix):
+        if not isinstance(pattern_matrix, np.ma.MaskedArray):
+            return pattern_matrix
+
+        average = pattern_matrix.mean()
+        return pattern_matrix.filled(fill_value=average)
+
     def _gaussian_conv(self, pattern_matrix, xmesh, ymesh):
+
+        pattern_matrix = self.change_masked(pattern_matrix)
 
         if self.smooth_sigma < 0:
             self.smooth_sigma = 0
