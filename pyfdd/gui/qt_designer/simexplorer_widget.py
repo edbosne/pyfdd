@@ -71,6 +71,7 @@ class Ui_SimExplorerWidget(object):
         self.verticalLayout_4 = QtWidgets.QVBoxLayout(self.groupBox)
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.simlist = QtWidgets.QTableWidget(self.groupBox)
+        self.simlist.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.simlist.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.simlist.setObjectName("simlist")
         self.simlist.setColumnCount(0)
