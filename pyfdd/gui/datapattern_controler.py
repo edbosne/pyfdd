@@ -1341,6 +1341,9 @@ class DataPatternControler(QtCore.QObject):
                                                          directory=mask_path,
                                                          filter='Mask file (*.txt)',
                                                          options=QtWidgets.QFileDialog.DontUseNativeDialog)
+        if filename == ('', ''):  # Cancel
+            return
+
         self.datapattern.save_mask(filename[0])
 
         # update config
