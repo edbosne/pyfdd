@@ -11,4 +11,4 @@ from pyfdd.core import BackgroundTools
 from pyfdd.__main__ import run
 
 
-__version__ = "0.8.0"
+__version__ = "0.9.0"
