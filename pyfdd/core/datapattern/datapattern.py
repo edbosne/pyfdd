@@ -479,7 +479,7 @@ class DataPattern:
         """
 
         # other needs to be a float
-        other = np.float(other)
+        other = float(other)
 
         # Calculate new pattern
         new_pattern = ma.masked_array(data=self.pattern_matrix.data * other, mask=False)
@@ -498,7 +498,7 @@ class DataPattern:
         """
 
         # other needs to be a float
-        other = np.float(other)
+        other = float(other)
 
         if other == 0:
             raise ValueError('Dividing by zero.')
