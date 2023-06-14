@@ -25,3 +25,6 @@ pyqt5 = [{version = ">=5.15.0", markers = "platform_system == 'Windows'"},
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+#compile = "poetry run pyinstaller main.py--windowed --onefile --icon ./images/icon.ico --name PyFDD"
