@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "pyfdd"
+version = "0.9.0"
+description = "Software for fitting 2D channelling data for lattice location"
+authors = ["Eric Bosne <eric.bosne@cern.ch>"]
+license = "GPL-3.0"
+readme = "README.md"
+homepage = "https://github.com/edbosne/pyfdd"
+
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.12"
+numpy = "*"
+matplotlib = ">=3.3.0, !=3.4.*"
+scipy = "*"
+numdifftools = "*"
+pandas = "*"
+seaborn = "*"
+packaging = "*"
+pyinstaller = "*"
+pyqt5 = [{version = ">=5.15.0", markers = "platform_system == 'Windows'"},
+         {version = "==5.14", markers = "platform_system == 'Linux'"}]
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
