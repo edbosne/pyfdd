@@ -853,7 +853,7 @@ class DataPattern:
 
         if distance == 0:
             # No fit region mask
-            condition = np.array(np.zeros(self.pattern_matrix.shape), dtype=np.bool)
+            condition = np.array(np.zeros(self.pattern_matrix.shape), dtype=bool)
 
         else:
             # Calculate the distance of each point in the pattern.
