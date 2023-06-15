@@ -55,6 +55,17 @@ def create_detector_mesh(n_h_pixels, n_v_pixels, pixel_size=None, distance=None,
     return xmesh, ymesh
 
 
+def check_csv_separator(file_path):
+    with open(file_path, 'r') as csv_file:
+        first_line = csv_file.readline()
+        if ',' in first_line:
+            return ','
+        elif ';' in first_line:
+            return ';'
+        else:
+            return None
+
+
 class MpxHist:
     """
     Class to hold useful methods for dealing with histograms in the datapattern program
@@ -616,7 +627,10 @@ class DataPattern:
         Loads an csv file containing a 2D data matrix.
         :param filename: Name or full path to the file.
         """
-        self.pattern_matrix = ma.array(data=np.loadtxt(filename, delimiter=';'), mask=False)
+        delimiter = check_csv_separator(filename)
+        if delimiter is None:
+            raise TypeError('The give file is not an csv file.')
+        self.pattern_matrix = ma.array(data=np.loadtxt(filename, delimiter=delimiter), mask=False)
         (self.ny, self.nx) = self.pattern_matrix.shape
 
     def io_save_csv(self, filename, ignore_mask=False, number_format='int'):

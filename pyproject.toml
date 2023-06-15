@@ -9,7 +9,7 @@ homepage = "https://github.com/edbosne/pyfdd"
 
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.12"
+python = ">=3.7,<3.12"
 numpy = "*"
 matplotlib = ">=3.3.0, !=3.4.*"
 scipy = "*"
@@ -27,4 +27,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-#compile = "poetry run pyinstaller main.py--windowed --onefile --icon ./images/icon.ico --name PyFDD"
+#compile = "poetry run pyinstaller ./pyfdd/__main__.py --windowed --onefile --icon ./images/icon.ico --name PyFDD"
