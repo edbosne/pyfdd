@@ -823,13 +823,14 @@ class DataPatternControler(QtCore.QObject):
         try:
             for filename in filenames[0]:
                 print(filename)
-                match filenames[1]:
-                    case 'ClusterViewer ScatterData (*)':
-                        data_array = make_array_from_scatterdata(filename)
-                        if combined_data_array is None:
-                            combined_data_array = data_array
-                        else:
-                            combined_data_array += data_array
+                if filenames[1] == 'ClusterViewer ScatterData (*)':
+                    data_array = make_array_from_scatterdata(filename)
+                    if combined_data_array is None:
+                        combined_data_array = data_array
+                    else:
+                        combined_data_array += data_array
+                else:
+                    pass
         except Exception as e:
             QtWidgets.QMessageBox.warning(self.parent_widget, 'Warning message',
                                           'Error while processing the data.\n' + str(e))
@@ -946,13 +947,14 @@ class DataPatternControler(QtCore.QObject):
         if filename == ('', ''):  # Cancel
             return
 
-        match filename[1]:
-            case 'ASCII (*.txt)':
-                self.datapattern.io_save_ascii(filename[0])
-            case 'CSV (*.csv)':
-                self.datapattern.io_save_csv(filename[0])
-            case 'Binary (*.2db)':
-                self.datapattern.io_save_origin(filename[0])
+        if filename[1] == 'ASCII (*.txt)':
+            self.datapattern.io_save_ascii(filename[0])
+        elif filename[1] == 'CSV (*.csv)':
+            self.datapattern.io_save_csv(filename[0])
+        elif filename[1] == 'Binary (*.2db)':
+            self.datapattern.io_save_origin(filename[0])
+        else:
+            pass
 
         # update config
         save_path = os.path.dirname(filename[0])
