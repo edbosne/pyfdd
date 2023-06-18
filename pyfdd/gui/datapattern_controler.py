@@ -164,12 +164,12 @@ class ColorScale_dialog(QtWidgets.QDialog, Ui_ColorScaleDialog):
     def init_cb_colorbar(self, current=''):
 
         colormaps = [
-            'jet', 'jet_r',
+            'jet', 'jet_r', 'Spectral', 'coolwarm', 'coolwarm_r',
             'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
             'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
             'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn',
             'PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
-            'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr', 'seismic']
+            'RdYlBu', 'RdYlGn', 'bwr', 'seismic']
 
         self.cb_colormap.addItems(colormaps)
 
