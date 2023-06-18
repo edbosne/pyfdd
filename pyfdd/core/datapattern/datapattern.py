@@ -97,7 +97,7 @@ class MpxHist:
         # Calculate bin indexes
         lowbin = bis.bisect(self.normalized_integral, percentiles[0], lo=1, hi=len(self.normalized_integral))-1
         # having lo=1 ensures lowbin is never -1
-        highbin = bis.bisect(self.normalized_integral, percentiles[1])
+        highbin = bis.bisect(self.normalized_integral, percentiles[1], lo=lowbin+1)
 
         # I decided to round the ticks because in previous versions the tick label would write all decimal cases
         # It seems that now its ok without rounding but I will still round at the 4th case, instead of the 1st. v0.7.0
