@@ -332,11 +332,8 @@ class ImportSettings_dialog(QtWidgets.QDialog, Ui_ImportSettingsDialog):
                                'detector type': 'single',
                                'orientation': ''}
 
-        self.default_config_labels = ['Single chip', 'Pad6 EC-Sli', 'Tpx-quad EC-Sli', 'New configuration']
-        self.default_import_config = [dummy_configuration.copy(),
-                                      dummy_configuration.copy(),
-                                      dummy_configuration.copy(),
-                                      dummy_configuration.copy()]
+        self.default_config_labels = ['Single chip', 'Pad6 EC-Sli', 'Tpx-Quad EC-SLI', 'Tpx3-Quad IEAP', 'New configuration']
+        self.default_import_config = [dummy_configuration.copy() for i in range(len(self.default_config_labels))]
         # Single chip
         self.default_import_config[0]['label'] = self.default_config_labels[0]
         # Pad EC-Sli
@@ -345,10 +342,14 @@ class ImportSettings_dialog(QtWidgets.QDialog, Ui_ImportSettingsDialog):
         self.default_import_config[1]['orientation'] = 'cc'
         # Tpx quad
         self.default_import_config[2]['label'] = self.default_config_labels[2]
-        self.default_import_config[2]['detector type'] = 'quad'
+        self.default_import_config[2]['detector type'] = 'tpx-quad'
         self.default_import_config[2]['orientation'] = 'cc, mh'
-        # New configuration
+        # Tpx3 quad
         self.default_import_config[3]['label'] = self.default_config_labels[3]
+        self.default_import_config[3]['detector type'] = 'tpx3-quad'
+        self.default_import_config[3]['orientation'] = 'mv'
+        # New configuration
+        self.default_import_config[4]['label'] = self.default_config_labels[4]
 
         self.import_labels = self.default_config_labels.copy() if not \
             config.parser.has_option('datapattern', 'import_labels') else \
@@ -357,6 +358,9 @@ class ImportSettings_dialog(QtWidgets.QDialog, Ui_ImportSettingsDialog):
         self.import_config = self.default_import_config.copy() if not \
             config.parser.has_option('datapattern', 'import_config') else \
             config.getdict('datapattern', 'import_config')
+        for item_idx in range(len(self.import_config)):
+            if self.import_config[item_idx]['detector type'] == 'quad':
+                self.import_config[item_idx]['detector type'] = 'tpx-quad'
 
         self.selected_import = 0 if not \
             config.parser.has_option('datapattern', 'selected_import') else \
@@ -386,21 +390,14 @@ class ImportSettings_dialog(QtWidgets.QDialog, Ui_ImportSettingsDialog):
         current_keys = [entry['label'] for entry in self.import_config]
         # Ensure labels and configs the same length
         if len(self.import_labels) != len(self.import_config):
-            print(1)
             self.load_defaut_config()
             return
         # Ensure the default single chip is there
-        if (self.import_labels[0] != 'Single chip') or\
-            ('Single chip' not in current_keys):
-            print(2)
+        if (self.import_labels[0] != 'Single chip') or ('Single chip' not in current_keys):
             self.load_defaut_config()
             return
         # Ensure a new configuration is possible
-        if (self.import_labels[-1] != 'New configuration') or\
-            ('New configuration' not in current_keys):
-            print(3)
-            print(current_keys)
-            print(self.import_labels[-1])
+        if (self.import_labels[-1] != 'New configuration') or ('New configuration' not in current_keys):
             self.load_defaut_config()
             return
 
@@ -452,14 +449,17 @@ class ImportSettings_dialog(QtWidgets.QDialog, Ui_ImportSettingsDialog):
         # Detector type radio buttons
         if self.import_config[self.selected_import]['detector type'] == 'single':
             self.rb_single_chip.setChecked(True)
-            self.rb_timepix_quad.setChecked(False)
-        elif self.import_config[self.selected_import]['detector type'] == 'quad':
-            self.rb_single_chip.setChecked(False)
+            #self.rb_timepix_quad.setChecked(False)
+        elif self.import_config[self.selected_import]['detector type'] == 'tpx-quad':
+            #self.rb_single_chip.setChecked(False)
             self.rb_timepix_quad.setChecked(True)
+        elif self.import_config[self.selected_import]['detector type'] == 'tpx3-quad':
+            #self.rb_single_chip.setChecked(False)
+            self.rb_timepix3_quad.setChecked(True)
         else:
             # default to single
             self.rb_single_chip.setChecked(True)
-            self.rb_timepix_quad.setChecked(False)
+            #self.rb_timepix_quad.setChecked(False)
 
         # Orientation commands
         self.le_orientation_commands.setText(self.import_config[self.selected_import]['orientation'])
@@ -472,8 +472,12 @@ class ImportSettings_dialog(QtWidgets.QDialog, Ui_ImportSettingsDialog):
 
         if self.selected_import == len(self.import_labels)-1:
             # New configuration
+            detector_type = 'single' if self.rb_single_chip.isChecked() else \
+                            'tpx-quad' if self.rb_timepix_quad.isChecked() else \
+                            'tpx3-quad'
+
             new_config = {'label': self.le_config_label.text(),
-                          'detector type': 'single' if self.rb_single_chip.isChecked() else 'quad',
+                          'detector type': detector_type,
                           'orientation': self.le_orientation_commands.text()}
 
             # Ensure only one label named 'New configuration'
@@ -849,8 +853,11 @@ class DataPatternControler(QtCore.QObject):
         try:
             if import_config['detector type'] == 'single':
                 self.datapattern = pyfdd.DataPattern(pattern_array=combined_data_array, nChipsX=1, nChipsY=1, real_size=1)
-            elif import_config['detector type'] == 'quad':
+            elif import_config['detector type'] == 'tpx-quad':
                 self.datapattern = pyfdd.DataPattern(pattern_array=combined_data_array, nChipsX=2, nChipsY=2, real_size=3)
+                self.datapattern.manip_correct_central_pix()
+            elif import_config['detector type'] == 'tpx3-quad':
+                self.datapattern = pyfdd.DataPattern(pattern_array=combined_data_array, nChipsX=2, nChipsY=2, real_size=2)
                 self.datapattern.manip_correct_central_pix()
             # Orient
             self.datapattern.manip_orient(import_config['orientation'])
@@ -899,8 +906,11 @@ class DataPatternControler(QtCore.QObject):
             for filename in filenames[0]:
                 if import_config['detector type'] == 'single':
                     datapattern = pyfdd.DataPattern(file_path=filename, nChipsX=1, nChipsY=1, real_size=1)
-                elif import_config['detector type'] == 'quad':
+                elif import_config['detector type'] == 'tpx-quad':
                     datapattern = pyfdd.DataPattern(file_path=filename, nChipsX=2, nChipsY=2, real_size=3)
+                    datapattern.manip_correct_central_pix()
+                elif import_config['detector type'] == 'tpx3-quad':
+                    datapattern = pyfdd.DataPattern(file_path=filename, nChipsX=2, nChipsY=2, real_size=2)
                     datapattern.manip_correct_central_pix()
                 # Orient
                 datapattern.manip_orient(import_config['orientation'])

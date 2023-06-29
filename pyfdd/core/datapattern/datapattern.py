@@ -601,7 +601,11 @@ class DataPattern:
         Loads an ascii file containing a 2D data matrix.
         :param filename: Name or full path to the file.
         """
-        self.pattern_matrix = ma.array(data=np.loadtxt(filename), mask=False)
+        new_pattern_matrix = ma.array(data=np.loadtxt(filename), mask=False)
+        if self.nChipsX == 2 and self.nChipsY == 2:
+            if not new_pattern_matrix.shape == (512, 512):
+                raise ValueError(f'Expected a matrix of shape (512, 512) instead got {new_pattern_matrix.shape}')
+        self.pattern_matrix = new_pattern_matrix
         (self.ny, self.nx) = self.pattern_matrix.shape
 
     def io_save_ascii(self, filename, ignore_mask=False, number_format='int'):
@@ -630,6 +634,10 @@ class DataPattern:
         delimiter = check_csv_separator(filename)
         if delimiter is None:
             raise TypeError('The give file is not an csv file.')
+        new_pattern_matrix = ma.array(data=np.loadtxt(filename, delimiter=delimiter), mask=False)
+        if self.nChipsX == 2 and self.nChipsY == 2:
+            if not new_pattern_matrix.shape == (512, 512):
+                raise ValueError(f'Expected a matrix of shape (512, 512) instead got {new_pattern_matrix.shape}')
         self.pattern_matrix = ma.array(data=np.loadtxt(filename, delimiter=delimiter), mask=False)
         (self.ny, self.nx) = self.pattern_matrix.shape
 

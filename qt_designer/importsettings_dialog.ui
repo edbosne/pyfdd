@@ -54,9 +54,6 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="1">
-          <widget class="QLineEdit" name="le_config_label"/>
-         </item>
          <item row="1" column="0">
           <widget class="QRadioButton" name="rb_single_chip">
            <property name="sizePolicy">
@@ -73,27 +70,37 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="0">
-          <widget class="QLabel" name="label_4">
+         <item row="1" column="2">
+          <widget class="QRadioButton" name="rb_timepix3_quad">
            <property name="text">
-            <string>Configuration label</string>
+            <string>Timepix3 quad</string>
            </property>
           </widget>
          </item>
-         <item row="2" column="0">
-          <widget class="QLabel" name="label">
-           <property name="text">
-            <string>Orientation (cw, cc, mh, mv)</string>
-           </property>
-          </widget>
+         <item row="0" column="2">
+          <widget class="QLineEdit" name="le_config_label"/>
          </item>
-         <item row="2" column="1">
+         <item row="2" column="2">
           <widget class="QLineEdit" name="le_orientation_commands">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0" colspan="2">
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>Orientation (cw, cc, mh, mv)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0" colspan="2">
+          <widget class="QLabel" name="label_4">
+           <property name="text">
+            <string>Configuration label</string>
            </property>
           </widget>
          </item>
