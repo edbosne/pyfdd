@@ -8,7 +8,6 @@ pip3 install pyprof2calltree --user
 
 pyprof2calltree -i timeStats.profile -k
 
-
 pyreverse3 -A -S -o png -p Pyreverse PyFDD/
 
 ==== QT designer
@@ -32,14 +31,10 @@ pyqt5==5.9.2
 
 ===== PyInstaller =====
 
-pyinstaller main.py --onefile --name PyFDD
+Install first python3.8 python3.8-dev pip
 
-main.py:
+pyinstaller .\pyfdd\__main__.py --windowed --onefile --icon .\images\icon.ico --name PyFDD
 
-import pyfdd
-
-if __name__ == '__main__':
-    pyfdd.run()
 
 
 # On windows:
@@ -47,6 +42,9 @@ python -m venv env
 env\Scrips\activate.bat
 pip install https://github.com/edbosne/pyfdd/archive/master.zip
 pip install pyinstaller
+
+python3.8 -m PyInstaller ./pyfdd/__main__.py --windowed --onefile --icon ./images/icon.ico --name PyFDD
+
 
 ===== Install branch =====
 
